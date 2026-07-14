@@ -1,7 +1,21 @@
 import { useCallback, useRef, useState } from 'react';
-import { PLATFORM_LIST, TONE_REWRITES, type Tone } from '../constants';
-import { initialEmails, initialSchedule, initialTemplates } from '../data/mockData';
-import type { Email, EmailTag, PlatformKey, ScheduleItem, Tab, Template } from '../types';
+import { PLATFORM_LIST, TONE_REWRITES, type LibraryMainTab, type Tone } from '../constants';
+import {
+  initialCopyTemplates,
+  initialEmails,
+  initialSchedule,
+  initialSocialHistory,
+  initialTemplates,
+} from '../data/mockData';
+import type {
+  Email,
+  EmailTag,
+  PlatformKey,
+  ScheduleItem,
+  SocialPost,
+  Tab,
+  Template,
+} from '../types';
 import { getWeekDates, toISODate } from '../utils/date';
 
 export type AppStore = ReturnType<typeof useAppStore>;
@@ -18,6 +32,8 @@ export function useAppStore() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [emails] = useState<Email[]>(initialEmails);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const [copyTemplates, setCopyTemplates] = useState<Template[]>(initialCopyTemplates);
+  const [socialHistory] = useState<SocialPost[]>(initialSocialHistory);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialSchedule);
 
   // 草稿:來源郵件 id、'blank'(空白草稿)或 null(尚未開始)
@@ -32,8 +48,12 @@ export function useAppStore() {
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
+  const [libraryMainTab, setLibraryMainTab] = useState<LibraryMainTab>('message');
   const [librarySearch, setLibrarySearch] = useState('');
   const [libraryCategory, setLibraryCategory] = useState('全部');
+  const [copySearch, setCopySearch] = useState('');
+  const [copyCategory, setCopyCategory] = useState('全部');
+  const [socialFilter, setSocialFilter] = useState('全部');
   const [selectedDay, setSelectedDay] = useState(toISODate(new Date()));
 
   const [toastMessage, setToastMessage] = useState('');
@@ -68,7 +88,15 @@ export function useAppStore() {
 
   const insertTemplateIntoDraft = (tpl: Template) => {
     setDraftText((t) => (t ? t + '\n\n' : '') + tpl.text);
-    showToast('已插入罐頭訊息');
+    showToast('已插入文管庫內容');
+  };
+
+  /** 套用社群媒體歷史貼文到草稿(附加到尾端),若尚無草稿目標則視為空白草稿開始。 */
+  const pickSocialPost = (post: SocialPost) => {
+    setSelectedMailId((id) => id ?? 'blank');
+    setDraftText((t) => (t ? t + '\n\n' : '') + post.content);
+    setActiveTab('draft');
+    showToast('已套用社群媒體歷史貼文');
   };
 
   const applyTemplateToDraft = (tpl: Template) => {
@@ -87,7 +115,19 @@ export function useAppStore() {
     }
   };
 
+  /** 「+ 新增內容」:依文管庫當前分頁寫入對應資料集,分類取該分頁當前選取分類。 */
   const addTemplate = (title: string, text: string) => {
+    if (libraryMainTab === 'copy') {
+      const tpl: Template = {
+        id: 'nc' + Date.now(),
+        category: copyCategory === '全部' ? '其他' : copyCategory,
+        title,
+        text,
+      };
+      setCopyTemplates((list) => [tpl, ...list]);
+      showToast('已新增至文案管理');
+      return;
+    }
     const tpl: Template = {
       id: 'nt' + Date.now(),
       category: libraryCategory === '全部' ? '其他' : libraryCategory,
@@ -95,7 +135,7 @@ export function useAppStore() {
       text,
     };
     setTemplates((list) => [tpl, ...list]);
-    showToast('已新增罐頭訊息');
+    showToast('已新增至訊息管理');
   };
 
   const saveDraft = () => showToast('草稿已儲存');
@@ -145,6 +185,8 @@ export function useAppStore() {
     setActiveTab,
     emails,
     templates,
+    copyTemplates,
+    socialHistory,
     scheduleItems,
     selectedMailId,
     draftText,
@@ -154,10 +196,18 @@ export function useAppStore() {
     setInboxSearch,
     inboxFilter,
     setInboxFilter,
+    libraryMainTab,
+    setLibraryMainTab,
     librarySearch,
     setLibrarySearch,
     libraryCategory,
     setLibraryCategory,
+    copySearch,
+    setCopySearch,
+    copyCategory,
+    setCopyCategory,
+    socialFilter,
+    setSocialFilter,
     selectedDay,
     setSelectedDay,
     toastMessage,
@@ -167,6 +217,7 @@ export function useAppStore() {
     applyTone,
     togglePlatform,
     insertTemplateIntoDraft,
+    pickSocialPost,
     applyTemplateToDraft,
     copyTemplate,
     addTemplate,

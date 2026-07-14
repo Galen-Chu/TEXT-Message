@@ -9,7 +9,7 @@
 <x-dc>
 <helmet>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&amp;family=Poppins:wght@500;600;700&amp;display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'Noto Sans TC', 'Poppins', sans-serif; }
@@ -25,12 +25,12 @@
   <!-- SIDEBAR -->
   <div style="width:232px; flex-shrink:0; background:#FFFFFF; border-right:1px solid #ECEAF7; display:flex; flex-direction:column; padding:24px 16px;">
     <div style="display:flex; align-items:center; gap:10px; padding:0 8px 24px 8px;">
-      <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#6C5CE7,#FF7A59); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px;">罐</div>
-      <div style="font-weight:700; font-size:16px; color:#1F2333;">罐頭訊息小幫手</div>
+      <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#6C5CE7,#FF7A59); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px;">文</div>
+      <div style="font-weight:700; font-size:16px; color:#1F2333;">文管庫<br></div>
     </div>
 
     <div style="display:flex; flex-direction:column; gap:4px;">
-      <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+      <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="6">
         <div onClick="{{ nav.onClick }}" style="{{ nav.style }}">
           <span style="font-size:18px;">{{ nav.icon }}</span><span>{{ nav.label }}</span>
         </div>
@@ -59,7 +59,7 @@
           </div>
           <div style="display:flex; gap:10px;">
             <div onClick="{{ goToInbox }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">從 Gmail 建立草稿</div>
-            <div onClick="{{ goToLibrary }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">瀏覽罐頭訊息庫</div>
+            <div onClick="{{ goToLibrary }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">瀏覽文管庫</div>
           </div>
         </div>
 
@@ -109,11 +109,11 @@
     <!-- INBOX -->
     <sc-if value="{{ isInboxTab }}">
       <div>
-        <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">Gmail 收件匣</div>
+        <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">Gmail 郵件匣</div>
         <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">已串接帳號:xiaori.life@gmail.com · AI 自動標示適合轉發文的內容</div>
 
         <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
-          <input value="{{ inboxSearch }}" onChange="{{ onInboxSearch }}" placeholder="搜尋寄件者或主旨…" style="flex:1; max-width:320px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+          <input value="{{ inboxSearch }}" onChange="{{ onInboxSearch }}" placeholder="搜尋寄件者或主旨…" style="flex:1; max-width:320px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;">
           <sc-for list="{{ inboxFilters }}" as="f" hint-placeholder-count="4">
             <div onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</div>
           </sc-for>
@@ -154,9 +154,10 @@
           <div style="background:#fff; border-radius:16px; padding:48px; text-align:center; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
             <div style="font-size:36px; margin-bottom:12px;">📝</div>
             <div style="font-size:15px; font-weight:700; color:#1F2333; margin-bottom:6px;">還沒有選擇內容來源</div>
-            <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">從 Gmail 挑一封信轉成草稿,或直接空白開始撰寫</div>
-            <div style="display:flex; gap:10px; justify-content:center;">
+            <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">從 Gmail 挑一封信、社群媒體歷史貼文轉成草稿,或直接空白開始撰寫</div>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
               <div onClick="{{ goToInbox }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">前往收件匣挑選</div>
+              <div onClick="{{ openSocialPicker }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">從社群媒體挑選</div>
               <div onClick="{{ startBlankDraft }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">空白草稿開始撰寫</div>
             </div>
           </div>
@@ -177,9 +178,12 @@
             <div style="flex:1; display:flex; flex-direction:column; gap:16px;">
 
               <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
                   <div style="font-size:12px; font-weight:700; color:#8B87A8;">AI 語氣輔助改寫(輔助功能,可略過)</div>
-                  <div onClick="{{ openTemplatePicker }}" style="cursor:pointer; font-size:12px; font-weight:700; color:#6C5CE7;">📋 從罐頭訊息庫插入</div>
+                  <div style="display:flex; gap:14px;">
+                    <div onClick="{{ openTemplatePicker }}" style="cursor:pointer; font-size:12px; font-weight:700; color:#6C5CE7;">📋 從文管庫插入</div>
+                    <div onClick="{{ openSocialPicker }}" style="cursor:pointer; font-size:12px; font-weight:700; color:#6C5CE7;">📣 從社群媒體挑選</div>
+                  </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <sc-for list="{{ toneOptions }}" as="tone" hint-placeholder-count="4">
@@ -229,38 +233,106 @@
     <!-- LIBRARY -->
     <sc-if value="{{ isLibraryTab }}">
       <div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px;">
           <div>
-            <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">罐頭訊息庫</div>
-            <div style="font-size:13px; color:#8B87A8;">常用文案範本,一鍵套用到草稿</div>
+            <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">文管庫</div>
+            <div style="font-size:13px; color:#8B87A8;">可套用草稿的常用內容,依用途分為訊息管理與文案管理</div>
           </div>
-          <div onClick="{{ openNewTemplateModal }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">+ 新增範本</div>
+          <div onClick="{{ openNewTemplateModal }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">+ 新增內容</div>
         </div>
 
-        <div style="display:flex; gap:20px; align-items:flex-start;">
-          <div style="width:180px; flex-shrink:0; display:flex; flex-direction:column; gap:6px;">
-            <sc-for list="{{ libraryCategories }}" as="cat" hint-placeholder-count="6">
-              <div onClick="{{ cat.onClick }}" style="{{ cat.style }}">{{ cat.label }}</div>
-            </sc-for>
-          </div>
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+          <sc-for list="{{ libraryMainTabs }}" as="mt" hint-placeholder-count="2">
+            <div onClick="{{ mt.onClick }}" style="{{ mt.style }}">{{ mt.label }}</div>
+          </sc-for>
+        </div>
 
-          <div style="flex:1;">
-            <input value="{{ librarySearch }}" onChange="{{ onLibrarySearch }}" placeholder="搜尋範本標題或內容…" style="width:100%; max-width:360px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;"/>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-              <sc-for list="{{ filteredTemplates }}" as="tpl" hint-placeholder-count="4">
-                <div style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
-                  <div style="font-size:10.5px; font-weight:700; color:#6C5CE7; background:#F1EDFF; display:inline-block; padding:2px 9px; border-radius:999px; margin-bottom:8px;">{{ tpl.category }}</div>
-                  <div style="font-size:14px; font-weight:700; color:#1F2333; margin-bottom:6px;">{{ tpl.title }}</div>
-                  <div style="font-size:12.5px; color:#8B87A8; line-height:1.6; margin-bottom:12px; white-space:pre-line;">{{ tpl.text }}</div>
-                  <div style="display:flex; gap:8px;">
-                    <div onClick="{{ tpl.onApply }}" style="cursor:pointer; flex:1; text-align:center; padding:8px; border-radius:8px; background:#6C5CE7; color:#fff; font-size:12px; font-weight:700;">套用到草稿</div>
-                    <div onClick="{{ tpl.onCopy }}" style="cursor:pointer; padding:8px 12px; border-radius:8px; background:#F6F5FB; color:#6C5CE7; font-size:12px; font-weight:700;">複製</div>
-                  </div>
-                </div>
+        <sc-if value="{{ isMessageSubTab }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; gap:20px; align-items:flex-start;">
+            <div style="width:180px; flex-shrink:0; display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ libraryCategories }}" as="cat" hint-placeholder-count="6">
+                <div onClick="{{ cat.onClick }}" style="{{ cat.style }}">{{ cat.label }}</div>
               </sc-for>
             </div>
+
+            <div style="flex:1;">
+              <div style="font-size:11.5px; color:#8B87A8; margin-bottom:10px;">訊息管理:可直接套用到草稿的通用文字片段(問候、感謝、常見問答等)</div>
+              <input value="{{ librarySearch }}" onChange="{{ onLibrarySearch }}" placeholder="搜尋內容標題或文字…" style="width:100%; max-width:360px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;">
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <sc-for list="{{ filteredTemplates }}" as="tpl" hint-placeholder-count="4">
+                  <div style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                    <div style="font-size:10.5px; font-weight:700; color:#6C5CE7; background:#F1EDFF; display:inline-block; padding:2px 9px; border-radius:999px; margin-bottom:8px;">{{ tpl.category }}</div>
+                    <div style="font-size:14px; font-weight:700; color:#1F2333; margin-bottom:6px;">{{ tpl.title }}</div>
+                    <div style="font-size:12.5px; color:#8B87A8; line-height:1.6; margin-bottom:12px; white-space:pre-line;">{{ tpl.text }}</div>
+                    <div style="display:flex; gap:8px;">
+                      <div onClick="{{ tpl.onApply }}" style="cursor:pointer; flex:1; text-align:center; padding:8px; border-radius:8px; background:#6C5CE7; color:#fff; font-size:12px; font-weight:700;">套用到草稿</div>
+                      <div onClick="{{ tpl.onCopy }}" style="cursor:pointer; padding:8px 12px; border-radius:8px; background:#F6F5FB; color:#6C5CE7; font-size:12px; font-weight:700;">複製</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
           </div>
+        </sc-if>
+
+        <sc-if value="{{ isCopySubTab }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:20px; align-items:flex-start;">
+            <div style="width:180px; flex-shrink:0; display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ copyCategories }}" as="cat" hint-placeholder-count="5">
+                <div onClick="{{ cat.onClick }}" style="{{ cat.style }}">{{ cat.label }}</div>
+              </sc-for>
+            </div>
+
+            <div style="flex:1;">
+              <div style="font-size:11.5px; color:#8B87A8; margin-bottom:10px;">文案管理:針對社群發文設計的完整貼文草稿範本</div>
+              <input value="{{ copySearch }}" onChange="{{ onCopySearch }}" placeholder="搜尋文案標題或內容…" style="width:100%; max-width:360px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;">
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <sc-for list="{{ filteredCopyTemplates }}" as="tpl" hint-placeholder-count="4">
+                  <div style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                    <div style="font-size:10.5px; font-weight:700; color:#6C5CE7; background:#F1EDFF; display:inline-block; padding:2px 9px; border-radius:999px; margin-bottom:8px;">{{ tpl.category }}</div>
+                    <div style="font-size:14px; font-weight:700; color:#1F2333; margin-bottom:6px;">{{ tpl.title }}</div>
+                    <div style="font-size:12.5px; color:#8B87A8; line-height:1.6; margin-bottom:12px; white-space:pre-line;">{{ tpl.text }}</div>
+                    <div style="display:flex; gap:8px;">
+                      <div onClick="{{ tpl.onApply }}" style="cursor:pointer; flex:1; text-align:center; padding:8px; border-radius:8px; background:#6C5CE7; color:#fff; font-size:12px; font-weight:700;">套用到草稿</div>
+                      <div onClick="{{ tpl.onCopy }}" style="cursor:pointer; padding:8px 12px; border-radius:8px; background:#F6F5FB; color:#6C5CE7; font-size:12px; font-weight:700;">複製</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- SOCIAL -->
+    <sc-if value="{{ isSocialTab }}">
+      <div>
+        <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">社群媒體</div>
+        <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">各社群平台發文歷史記錄</div>
+
+        <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+          <sc-for list="{{ socialFilters }}" as="f" hint-placeholder-count="5">
+            <div onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06); overflow:hidden;">
+          <sc-for list="{{ filteredSocialHistory }}" as="post" hint-placeholder-count="5">
+            <div style="display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-bottom:1px solid #F1EFFA;">
+              <div style="width:34px; height:34px; border-radius:9px; background:{{ post.platformColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0;">{{ post.platformBadge }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <div style="font-size:13.5px; font-weight:700; color:#1F2333;">{{ post.title }}</div>
+                  <div style="font-size:11.5px; color:#B4AFCB; white-space:nowrap;">{{ post.dateLabel }} · {{ post.time }}</div>
+                </div>
+                <div style="font-size:12.5px; color:#8B87A8; margin-top:4px; line-height:1.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ post.content }}</div>
+                <div style="font-size:10.5px; font-weight:700; color:#06C755; margin-top:6px;">✓ 已發佈</div>
+              </div>
+            </div>
+          </sc-for>
         </div>
       </div>
     </sc-if>
@@ -325,7 +397,7 @@
     <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
       <div style="width:480px; max-height:70vh; background:#fff; border-radius:18px; padding:24px; display:flex; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div style="font-size:15px; font-weight:800; color:#1F2333;">插入罐頭訊息</div>
+          <div style="font-size:15px; font-weight:800; color:#1F2333;">插入文管庫內容</div>
           <div onClick="{{ closeTemplatePicker }}" style="cursor:pointer; font-size:18px; color:#B4AFCB;">✕</div>
         </div>
         <div style="overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
@@ -340,13 +412,37 @@
     </div>
   </sc-if>
 
+  <!-- SOCIAL PICKER MODAL -->
+  <sc-if value="{{ showSocialPicker }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
+      <div style="width:480px; max-height:70vh; background:#fff; border-radius:18px; padding:24px; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div style="font-size:15px; font-weight:800; color:#1F2333;">從社群媒體挑選</div>
+          <div onClick="{{ closeSocialPicker }}" style="cursor:pointer; font-size:18px; color:#B4AFCB;">✕</div>
+        </div>
+        <div style="overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ socialHistoryForPicker }}" as="post" hint-placeholder-count="5">
+            <div onClick="{{ post.onPick }}" style="cursor:pointer; padding:12px 14px; border:1px solid #F1EFFA; border-radius:10px;">
+              <div style="display:flex; justify-content:space-between; gap:8px;">
+                <div style="font-size:12.5px; font-weight:700; color:#1F2333;">{{ post.title }}</div>
+                <div style="width:18px; height:18px; border-radius:5px; background:{{ post.platformColor }}; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ post.platformBadge }}</div>
+              </div>
+              <div style="font-size:11.5px; color:#8B87A8; margin-top:4px; white-space:pre-line;">{{ post.content }}</div>
+              <div style="font-size:10.5px; color:#B4AFCB; margin-top:4px;">{{ post.dateLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <!-- NEW TEMPLATE MODAL -->
   <sc-if value="{{ showNewTemplateModal }}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
       <div style="width:440px; background:#fff; border-radius:18px; padding:24px;">
-        <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">新增罐頭訊息</div>
+        <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">新增內容</div>
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">標題</div>
-        <input value="{{ newTemplateTitle }}" onChange="{{ onNewTemplateTitle }}" placeholder="例如:感謝訂閱電子報" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <input value="{{ newTemplateTitle }}" onChange="{{ onNewTemplateTitle }}" placeholder="例如:感謝訂閱電子報" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;">
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">內容</div>
         <textarea value="{{ newTemplateText }}" onChange="{{ onNewTemplateText }}" placeholder="輸入範本內容…" style="width:100%; min-height:100px; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; line-height:1.6; margin-bottom:16px;"></textarea>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -363,9 +459,9 @@
       <div style="width:420px; background:#fff; border-radius:18px; padding:24px;">
         <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">加入排程</div>
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">日期</div>
-        <input type="date" value="{{ scheduleDate }}" onChange="{{ onScheduleDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <input type="date" value="{{ scheduleDate }}" onChange="{{ onScheduleDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;">
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">時間</div>
-        <input type="time" value="{{ scheduleTime }}" onChange="{{ onScheduleTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;"/>
+        <input type="time" value="{{ scheduleTime }}" onChange="{{ onScheduleTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;">
         <div style="font-size:11.5px; color:#B4AFCB; margin-bottom:16px;">將發布至:{{ selectedPlatformLabelsText }}</div>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
           <div onClick="{{ closeScheduleModal }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#F6F5FB; color:#6C5CE7; font-weight:700; font-size:13px;">取消</div>
@@ -381,15 +477,15 @@
       <div style="width:440px; background:#fff; border-radius:18px; padding:24px;">
         <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">手動新增排程</div>
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">貼文標題</div>
-        <input value="{{ manualTitle }}" onChange="{{ onManualTitle }}" placeholder="例如:週末生活分享" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <input value="{{ manualTitle }}" onChange="{{ onManualTitle }}" placeholder="例如:週末生活分享" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;">
         <div style="display:flex; gap:10px; margin-bottom:14px;">
           <div style="flex:1;">
             <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">日期</div>
-            <input type="date" value="{{ manualDate }}" onChange="{{ onManualDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+            <input type="date" value="{{ manualDate }}" onChange="{{ onManualDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;">
           </div>
           <div style="flex:1;">
             <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">時間</div>
-            <input type="time" value="{{ manualTime }}" onChange="{{ onManualTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+            <input type="time" value="{{ manualTime }}" onChange="{{ onManualTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;">
           </div>
         </div>
         <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">平台</div>
@@ -461,6 +557,30 @@ function initialTemplates() {
   ];
 }
 
+function initialCopyTemplates() {
+  return [
+    { id: 'c1', category: '日常分享', title: '週間生活紀錄', text: '這禮拜的日常紀錄 📷\n工作之餘,留了一點時間給自己慢慢喝咖啡、整理陽台的植物。\n\n你這週有沒有留一點時間給自己呢?' },
+    { id: 'c2', category: '日常分享', title: '選物分享開場', text: '最近迷上的幾個生活選物,想整理成一篇分享給大家——\n這篇會聊聊挑選的原因跟實際使用心得,慢慢往下滑 👇' },
+    { id: 'c3', category: '新品/業配', title: '業配貼文標準架構', text: '【業配】{{品牌名稱}} × 小日子生活誌\n這次和 {{品牌名稱}} 合作,體驗了 {{產品名稱}}。\n\n真實使用心得:\n[使用情境]\n[喜歡的地方]\n[小提醒]\n\n本篇為合作邀請,心得皆為真實使用感受。' },
+    { id: 'c4', category: '新品/業配', title: '限定優惠貼文', text: '📣 限定優惠開跑\n這次合作品牌釋出專屬折扣碼給大家,即日起至本週日止,詳情請見貼文連結。' },
+    { id: 'c5', category: '活動宣傳', title: '線上直播預告', text: '🔴 直播預告\n這週三晚上八點,我會在線上跟大家聊聊最近的創作心得,也會開放提問,記得先設提醒!' },
+    { id: 'c6', category: '活動宣傳', title: '實體活動邀請', text: '📍 活動邀請\n這個月月底有一場小型見面會,想跟長期關注的你們當面聊聊,名額有限,詳情見置頂貼文連結。' },
+    { id: 'c7', category: '品牌故事', title: '創作初衷分享', text: '常有人問我當初為什麼開始經營這個帳號——\n其實一開始只是想把生活中喜歡的小事記錄下來,慢慢地才發現有這麼多人也喜歡這樣的步調。謝謝你們的陪伴。' },
+    { id: 'c8', category: '品牌故事', title: '年度回顧貼文', text: '回顧這一年 📖\n謝謝這一路上一起經歷的大小事,也謝謝每一位留言、分享的你們。明年會繼續帶來更多用心的內容!' },
+  ];
+}
+
+function initialSocialHistory() {
+  return [
+    { id: 'h1', platform: 'fb', title: '夏日離島慢活企劃上線', content: '這次企劃跑了三座離島,整理成一篇完整的慢活指南,連結在留言處 🏝️', date: '2026-07-08', time: '09:00' },
+    { id: 'h2', platform: 'ig', title: '選物分享:桌面香氛小物', content: '最近辦公桌上的小確幸,幾款喜歡的香氛小物一次分享給大家 🕯️', date: '2026-07-07', time: '19:30' },
+    { id: 'h3', platform: 'threads', title: '週間閒聊:慢慢來也是一種前進', content: '這句話最近很有感觸,想跟大家分享,也想聽聽你們最近的步調如何 🌿', date: '2026-07-05', time: '21:00' },
+    { id: 'h4', platform: 'line', title: '本月電子報重點回顧', content: '整理了這個月分享過的幾篇重點內容,給還沒看過的你們一次補齊 📬', date: '2026-07-03', time: '08:00' },
+    { id: 'h5', platform: 'fb', title: '讀者提問:如何規劃長住行程', content: '收到很多關於長住行程規劃的提問,這篇整理了我自己的排法給大家參考', date: '2026-06-29', time: '12:00' },
+    { id: 'h6', platform: 'ig', title: '合作花絮:秋季香氛蠟燭試用', content: '拍攝花絮先偷偷曝光一點點,正式開箱文下週見 ✨', date: '2026-06-25', time: '20:00' },
+  ];
+}
+
 function initialSchedule() {
   return [
     { id: 's1', date: '2026-07-13', time: '09:00', platform: 'fb', title: '夏日離島慢活回顧', status: 'scheduled' },
@@ -487,6 +607,13 @@ class Component extends DCLogic {
     inboxFilter: '全部',
     librarySearch: '',
     libraryCategory: '全部',
+    libraryMainTab: 'message',
+    copyTemplates: initialCopyTemplates(),
+    copyCategory: '全部',
+    copySearch: '',
+    socialHistory: initialSocialHistory(),
+    socialFilter: '全部',
+    showSocialPicker: false,
     showTemplatePicker: false,
     showNewTemplateModal: false,
     newTemplateTitle: '',
@@ -547,7 +674,7 @@ class Component extends DCLogic {
   insertTemplateIntoDraft(tpl) {
     return () => {
       this.setState((s) => ({ draftText: (s.draftText ? s.draftText + '\n\n' : '') + tpl.text, showTemplatePicker: false }));
-      this.showToast('已插入罐頭訊息');
+      this.showToast('已插入文管庫內容');
     };
   }
 
@@ -593,6 +720,38 @@ class Component extends DCLogic {
     return `cursor:pointer; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:${active ? 700 : 500}; color:${active ? '#6C5CE7' : '#5B5773'}; background:${active ? '#F1EDFF' : 'transparent'};`;
   }
 
+  setLibraryMainTab(tab) { return () => this.setState({ libraryMainTab: tab }); }
+  libraryMainTabStyle(tab) {
+    const active = this.state.libraryMainTab === tab;
+    return `cursor:pointer; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:700; background:${active ? '#6C5CE7' : '#fff'}; color:${active ? '#fff' : '#5B5773'}; border:1px solid ${active ? '#6C5CE7' : '#E4E1F5'};`;
+  }
+
+  onCopySearch = (e) => this.setState({ copySearch: e.target.value });
+  setCopyCategory(c) { return () => this.setState({ copyCategory: c }); }
+  copyCategoryItemStyle(c) {
+    const active = this.state.copyCategory === c;
+    return `cursor:pointer; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:${active ? 700 : 500}; color:${active ? '#6C5CE7' : '#5B5773'}; background:${active ? '#F1EDFF' : 'transparent'};`;
+  }
+
+  openSocialPicker = () => this.setState({ showSocialPicker: true });
+  closeSocialPicker = () => this.setState({ showSocialPicker: false });
+  pickSocialPost(post) {
+    return () => {
+      this.setState((s) => ({
+        activeTab: 'draft',
+        selectedMailId: s.selectedMailId || 'blank',
+        draftText: (s.draftText ? s.draftText + '\n\n' : '') + post.content,
+        showSocialPicker: false,
+      }));
+      this.showToast('已套用社群媒體歷史貼文');
+    };
+  }
+  setSocialFilter(f) { return () => this.setState({ socialFilter: f }); }
+  socialFilterChipStyle(f) {
+    const active = this.state.socialFilter === f;
+    return `cursor:pointer; padding:8px 14px; border-radius:9px; font-size:12.5px; font-weight:600; background:${active ? '#6C5CE7' : '#fff'}; color:${active ? '#fff' : '#5B5773'}; border:1px solid ${active ? '#6C5CE7' : '#E4E1F5'};`;
+  }
+
   applyTemplateToDraft(tpl) {
     return () => {
       this.setState((s) => ({
@@ -612,9 +771,15 @@ class Component extends DCLogic {
   saveNewTemplate = () => {
     const s = this.state;
     if (!s.newTemplateTitle.trim()) { this.showToast('請輸入標題'); return; }
+    if (s.libraryMainTab === 'copy') {
+      const tpl = { id: 'nc' + Date.now(), category: s.copyCategory === '全部' ? '其他' : s.copyCategory, title: s.newTemplateTitle, text: s.newTemplateText };
+      this.setState((st) => ({ copyTemplates: [tpl, ...st.copyTemplates], showNewTemplateModal: false }));
+      this.showToast('已新增至文案管理');
+      return;
+    }
     const tpl = { id: 'nt' + Date.now(), category: s.libraryCategory === '全部' ? '其他' : s.libraryCategory, title: s.newTemplateTitle, text: s.newTemplateText };
     this.setState((st) => ({ templates: [tpl, ...st.templates], showNewTemplateModal: false }));
-    this.showToast('已新增罐頭訊息');
+    this.showToast('已新增至訊息管理');
   };
 
   toneChipStyle(tone) {
@@ -677,10 +842,11 @@ class Component extends DCLogic {
 
     const navDefs = [
       { key: 'dashboard', icon: '🏠', label: '首頁總覽' },
-      { key: 'inbox', icon: '📥', label: 'Gmail 收件匣' },
-      { key: 'draft', icon: '✍️', label: '草稿撰寫' },
-      { key: 'library', icon: '🗂️', label: '罐頭訊息庫' },
+      { key: 'inbox', icon: '📥', label: 'Gmail 郵件匣' },
+      { key: 'social', icon: '📣', label: '社群媒體' },
       { key: 'schedule', icon: '📅', label: '排程管理' },
+      { key: 'draft', icon: '✍️', label: '草稿撰寫' },
+      { key: 'library', icon: '🗂️', label: '文管庫' },
     ];
     const navItems = navDefs.map((n) => ({
       ...n,
@@ -747,7 +913,14 @@ class Component extends DCLogic {
 
     const selectedPlatformLabelsText = Object.values(PLATFORM_META).filter((p) => s.draftPlatforms[p.key]).map((p) => p.label).join('、') || '尚未選擇平台';
 
-    const allTemplates = s.templates.map((t) => ({ ...t, onInsert: () => this.insertTemplateIntoDraft(t)() }));
+    const allTemplates = [...s.templates, ...s.copyTemplates].map((t) => ({ ...t, onInsert: () => this.insertTemplateIntoDraft(t)() }));
+
+    const libraryMainTabs = [
+      { key: 'message', label: '訊息管理' },
+      { key: 'copy', label: '文案管理' },
+    ].map((mt) => ({ ...mt, style: this.libraryMainTabStyle(mt.key), onClick: this.setLibraryMainTab(mt.key) }));
+    const isMessageSubTab = s.libraryMainTab === 'message';
+    const isCopySubTab = s.libraryMainTab === 'copy';
 
     const libraryCategories = ['全部', '節慶祝賀', '業配/產品促銷', '粉絲互動', '常見問答', '感謝訊息'].map((c) => ({
       label: c,
@@ -764,6 +937,46 @@ class Component extends DCLogic {
       ...t,
       onApply: () => this.applyTemplateToDraft(t)(),
       onCopy: () => this.copyTemplate(t)(),
+    }));
+
+    const copyCategories = ['全部', '日常分享', '新品/業配', '活動宣傳', '品牌故事'].map((c) => ({
+      label: c,
+      style: this.copyCategoryItemStyle(c),
+      onClick: () => this.setState({ copyCategory: c }),
+    }));
+
+    const filteredCopyTemplates = s.copyTemplates.filter((t) => {
+      const matchCat = s.copyCategory === '全部' || t.category === s.copyCategory;
+      const q = s.copySearch.trim();
+      const matchSearch = !q || t.title.includes(q) || t.text.includes(q);
+      return matchCat && matchSearch;
+    }).map((t) => ({
+      ...t,
+      onApply: () => this.applyTemplateToDraft(t)(),
+      onCopy: () => this.copyTemplate(t)(),
+    }));
+
+    const socialFilters = ['全部', ...Object.values(PLATFORM_META).map((p) => p.label)].map((f) => ({
+      label: f,
+      style: this.socialFilterChipStyle(f),
+      onClick: this.setSocialFilter(f),
+    }));
+
+    const filteredSocialHistory = s.socialHistory.filter((h) => {
+      return s.socialFilter === '全部' || PLATFORM_META[h.platform].label === s.socialFilter;
+    }).map((h) => ({
+      ...h,
+      platformColor: PLATFORM_META[h.platform].color,
+      platformBadge: PLATFORM_META[h.platform].badge,
+      dateLabel: this.dateLabel(h.date),
+    }));
+
+    const socialHistoryForPicker = s.socialHistory.map((h) => ({
+      ...h,
+      platformColor: PLATFORM_META[h.platform].color,
+      platformBadge: PLATFORM_META[h.platform].badge,
+      dateLabel: this.dateLabel(h.date),
+      onPick: () => this.pickSocialPost(h)(),
     }));
 
     const weekDays = WEEK_DATES.map((date, i) => {
@@ -808,6 +1021,7 @@ class Component extends DCLogic {
       isInboxTab: this.isTab('inbox'),
       isDraftTab: this.isTab('draft'),
       isLibraryTab: this.isTab('library'),
+      isSocialTab: this.isTab('social'),
       isScheduleTab: this.isTab('schedule'),
       goToInbox: () => this.setState({ activeTab: 'inbox' }),
       goToLibrary: () => this.setState({ activeTab: 'library' }),
@@ -836,10 +1050,23 @@ class Component extends DCLogic {
       showTemplatePicker: s.showTemplatePicker,
       allTemplates,
       closeTemplatePicker: this.closeTemplatePicker,
+      libraryMainTabs,
+      isMessageSubTab,
+      isCopySubTab,
       libraryCategories,
       librarySearch: s.librarySearch,
       onLibrarySearch: this.onLibrarySearch,
       filteredTemplates,
+      copyCategories,
+      copySearch: s.copySearch,
+      onCopySearch: this.onCopySearch,
+      filteredCopyTemplates,
+      socialFilters,
+      filteredSocialHistory,
+      socialHistoryForPicker,
+      showSocialPicker: s.showSocialPicker,
+      openSocialPicker: this.openSocialPicker,
+      closeSocialPicker: this.closeSocialPicker,
       openNewTemplateModal: this.openNewTemplateModal,
       showNewTemplateModal: s.showNewTemplateModal,
       newTemplateTitle: s.newTemplateTitle,

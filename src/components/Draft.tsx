@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { PLATFORM_LIST, TONE_OPTIONS } from '../constants';
+import { PLATFORM_LIST, PLATFORM_META, TONE_OPTIONS } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import { charCount } from '../utils/date';
+import { charCount, dateLabel } from '../utils/date';
 import Modal from './Modal';
 
 export default function Draft({ store }: { store: AppStore }) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showSocialPicker, setShowSocialPicker] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(store.tomorrowISO);
   const [scheduleTime, setScheduleTime] = useState('09:00');
@@ -37,11 +38,14 @@ export default function Draft({ store }: { store: AppStore }) {
             還沒有選擇內容來源
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
-            從 Gmail 挑一封信轉成草稿,或直接空白開始撰寫
+            從 Gmail 挑一封信、社群媒體歷史貼文轉成草稿,或直接空白開始撰寫
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button className="btn btn-outline" onClick={() => store.setActiveTab('inbox')}>
-              前往收件匣挑選
+              前往郵件匣挑選
+            </button>
+            <button className="btn btn-outline" onClick={() => setShowSocialPicker(true)}>
+              從社群媒體挑選
             </button>
             <button className="btn btn-primary" onClick={store.startBlankDraft}>
               空白草稿開始撰寫
@@ -99,12 +103,20 @@ export default function Draft({ store }: { store: AppStore }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
                   AI 語氣輔助改寫(輔助功能,可略過)
                 </div>
-                <button
-                  onClick={() => setShowTemplatePicker(true)}
-                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
-                >
-                  📋 從罐頭訊息庫插入
-                </button>
+                <div style={{ display: 'flex', gap: 14 }}>
+                  <button
+                    onClick={() => setShowTemplatePicker(true)}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    📋 從文管庫插入
+                  </button>
+                  <button
+                    onClick={() => setShowSocialPicker(true)}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    📣 從社群媒體挑選
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {TONE_OPTIONS.map((tone) => (
@@ -276,7 +288,7 @@ export default function Draft({ store }: { store: AppStore }) {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入罐頭訊息</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入文管庫內容</div>
             <button
               onClick={() => setShowTemplatePicker(false)}
               style={{ fontSize: 18, color: 'var(--text-faint)' }}
@@ -285,7 +297,7 @@ export default function Draft({ store }: { store: AppStore }) {
             </button>
           </div>
           <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {store.templates.map((tpl) => (
+            {[...store.templates, ...store.copyTemplates].map((tpl) => (
               <button
                 key={tpl.id}
                 onClick={() => {
@@ -304,6 +316,79 @@ export default function Draft({ store }: { store: AppStore }) {
                   style={{ fontSize: 11.5, color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
                 >
                   {tpl.text}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {showSocialPicker && (
+        <Modal
+          onClose={() => setShowSocialPicker(false)}
+          width={480}
+          style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>從社群媒體挑選</div>
+            <button
+              onClick={() => setShowSocialPicker(false)}
+              style={{ fontSize: 18, color: 'var(--text-faint)' }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {store.socialHistory.map((post) => (
+              <button
+                key={post.id}
+                onClick={() => {
+                  store.pickSocialPost(post);
+                  setShowSocialPicker(false);
+                }}
+                style={{
+                  textAlign: 'left',
+                  padding: '12px 14px',
+                  border: '1px solid var(--border-2)',
+                  borderRadius: 10,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)' }}>
+                    {post.title}
+                  </div>
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 5,
+                      background: PLATFORM_META[post.platform].color,
+                      color: '#fff',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {PLATFORM_META[post.platform].badge}
+                  </span>
+                </div>
+                <div
+                  style={{ fontSize: 11.5, color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
+                >
+                  {post.content}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginTop: 4 }}>
+                  {dateLabel(post.date)}
                 </div>
               </button>
             ))}

@@ -1,12 +1,14 @@
 import type { AppStore } from '../hooks/useAppStore';
 import type { Tab } from '../types';
 
+// 導覽順序為使用者調整過的最終順序(v2),請勿沿用 v1 排列。
 const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
   { key: 'dashboard', icon: '🏠', label: '首頁總覽' },
-  { key: 'inbox', icon: '📥', label: 'Gmail 收件匣' },
-  { key: 'draft', icon: '✍️', label: '草稿撰寫' },
-  { key: 'library', icon: '🗂️', label: '罐頭訊息庫' },
+  { key: 'inbox', icon: '📥', label: 'Gmail 郵件匣' },
+  { key: 'social', icon: '📣', label: '社群媒體' },
   { key: 'schedule', icon: '📅', label: '排程管理' },
+  { key: 'draft', icon: '✍️', label: '草稿撰寫' },
+  { key: 'library', icon: '🗂️', label: '文管庫' },
 ];
 
 export default function Sidebar({ store }: { store: AppStore }) {
@@ -37,9 +39,9 @@ export default function Sidebar({ store }: { store: AppStore }) {
             fontSize: 16,
           }}
         >
-          罐
+          文
         </div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>罐頭訊息小幫手</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>文管庫</div>
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

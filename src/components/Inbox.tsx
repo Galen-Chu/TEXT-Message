@@ -12,7 +12,7 @@ export default function Inbox({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-        Gmail 收件匣
+        Gmail 郵件匣
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
         已串接帳號:xiaori.life@gmail.com · AI 自動標示適合轉發文的內容

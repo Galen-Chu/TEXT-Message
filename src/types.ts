@@ -1,4 +1,4 @@
-export type Tab = 'dashboard' | 'inbox' | 'draft' | 'library' | 'schedule';
+export type Tab = 'dashboard' | 'inbox' | 'social' | 'schedule' | 'draft' | 'library';
 
 export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line';
 
@@ -32,6 +32,15 @@ export interface ScheduleItem {
   platform: PlatformKey;
   title: string;
   status: ScheduleStatus;
+}
+
+export interface SocialPost {
+  id: string;
+  platform: PlatformKey;
+  title: string;
+  content: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
 }
 
 export interface PlatformMeta {

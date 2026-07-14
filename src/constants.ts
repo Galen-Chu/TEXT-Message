@@ -17,6 +17,7 @@ export const INBOX_FILTERS: Array<'全部' | EmailTag> = [
   '活動通知',
 ];
 
+// 文管庫「訊息管理」分類
 export const LIBRARY_CATEGORIES = [
   '全部',
   '節慶祝賀',
@@ -25,6 +26,11 @@ export const LIBRARY_CATEGORIES = [
   '常見問答',
   '感謝訊息',
 ];
+
+// 文管庫「文案管理」分類
+export const COPY_CATEGORIES = ['全部', '日常分享', '新品/業配', '活動宣傳', '品牌故事'];
+
+export type LibraryMainTab = 'message' | 'copy';
 
 export const TONE_OPTIONS = ['專業', '親切', '活潑', '簡短'] as const;
 export type Tone = (typeof TONE_OPTIONS)[number];

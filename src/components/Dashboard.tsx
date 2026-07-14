@@ -45,7 +45,7 @@ export default function Dashboard({ store }: { store: AppStore }) {
             從 Gmail 建立草稿
           </button>
           <button className="btn btn-primary" onClick={() => store.setActiveTab('library')}>
-            瀏覽罐頭訊息庫
+            瀏覽文管庫
           </button>
         </div>
       </div>
