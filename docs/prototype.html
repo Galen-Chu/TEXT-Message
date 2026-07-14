@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Noto Sans TC', 'Poppins', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #D9D4F0; border-radius: 8px; }
+    textarea:focus, input:focus { outline: none; }
+    @keyframes toastIn { from { opacity:0; transform: translateY(12px);} to { opacity:1; transform: translateY(0);} }
+  </style>
+</helmet>
+
+<div style="display:flex; height:100vh; width:100%; background:#F6F5FB; overflow:hidden;">
+
+  <!-- SIDEBAR -->
+  <div style="width:232px; flex-shrink:0; background:#FFFFFF; border-right:1px solid #ECEAF7; display:flex; flex-direction:column; padding:24px 16px;">
+    <div style="display:flex; align-items:center; gap:10px; padding:0 8px 24px 8px;">
+      <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#6C5CE7,#FF7A59); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:16px;">罐</div>
+      <div style="font-weight:700; font-size:16px; color:#1F2333;">罐頭訊息小幫手</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+        <div onClick="{{ nav.onClick }}" style="{{ nav.style }}">
+          <span style="font-size:18px;">{{ nav.icon }}</span><span>{{ nav.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:auto; padding:14px 12px; background:#F8F7FD; border-radius:12px; display:flex; align-items:center; gap:10px;">
+      <div style="width:34px; height:34px; border-radius:50%; background:#6C5CE7; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">小日</div>
+      <div>
+        <div style="font-size:13px; font-weight:700; color:#1F2333;">小日子生活誌</div>
+        <div style="font-size:11px; color:#8B87A8;">個人自媒體帳號</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div style="flex:1; overflow-y:auto; padding:32px 40px; position:relative;">
+
+    <!-- DASHBOARD -->
+    <sc-if value="{{ isDashboardTab }}">
+      <div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+          <div>
+            <div style="font-size:22px; font-weight:900; color:#1F2333;">早安,小日 👋</div>
+            <div style="font-size:13px; color:#8B87A8; margin-top:4px;">2026年7月13日 星期一 · 這是你本週的發文進度</div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div onClick="{{ goToInbox }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">從 Gmail 建立草稿</div>
+            <div onClick="{{ goToLibrary }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">瀏覽罐頭訊息庫</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:16px; margin-bottom:24px;">
+          <sc-for list="{{ statCards }}" as="stat" hint-placeholder-count="4">
+            <div style="flex:1; background:#fff; border-radius:16px; padding:20px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+              <div style="font-size:26px; font-weight:900; color:{{ stat.color }};">{{ stat.value }}</div>
+              <div style="font-size:12.5px; color:#8B87A8; margin-top:6px; font-weight:500;">{{ stat.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; gap:20px; align-items:flex-start;">
+          <div style="flex:1; background:#fff; border-radius:16px; padding:22px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <div style="font-weight:700; font-size:15px; color:#1F2333;">近期排程</div>
+              <div onClick="{{ goToSchedule }}" style="cursor:pointer; font-size:12.5px; color:#6C5CE7; font-weight:600;">查看全部 →</div>
+            </div>
+            <sc-for list="{{ upcomingSchedule }}" as="item" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #F1EFFA;">
+                <div style="width:34px; height:34px; border-radius:9px; background:{{ item.platformColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0;">{{ item.platformBadge }}</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:13.5px; font-weight:600; color:#1F2333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.title }}</div>
+                  <div style="font-size:12px; color:#8B87A8; margin-top:2px;">{{ item.dateLabel }} · {{ item.time }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="flex:1; background:#fff; border-radius:16px; padding:22px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+            <div style="font-weight:700; font-size:15px; color:#1F2333; margin-bottom:14px;">來自 Gmail 的靈感</div>
+            <sc-for list="{{ inspirationEmails }}" as="mail" hint-placeholder-count="2">
+              <div style="padding:14px; border:1px solid #F1EFFA; border-radius:12px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; gap:8px;">
+                  <div style="font-size:13px; font-weight:700; color:#1F2333;">{{ mail.subject }}</div>
+                  <div style="font-size:10.5px; padding:2px 8px; border-radius:999px; background:#F1EDFF; color:#6C5CE7; font-weight:700; white-space:nowrap; height:fit-content;">{{ mail.tag }}</div>
+                </div>
+                <div style="font-size:12px; color:#8B87A8; margin:6px 0 10px 0; line-height:1.5;">{{ mail.snippet }}</div>
+                <div onClick="{{ mail.onConvert }}" style="cursor:pointer; display:inline-block; font-size:12px; font-weight:700; color:#FF7A59;">轉為草稿 →</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- INBOX -->
+    <sc-if value="{{ isInboxTab }}">
+      <div>
+        <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">Gmail 收件匣</div>
+        <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">已串接帳號:xiaori.life@gmail.com · AI 自動標示適合轉發文的內容</div>
+
+        <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
+          <input value="{{ inboxSearch }}" onChange="{{ onInboxSearch }}" placeholder="搜尋寄件者或主旨…" style="flex:1; max-width:320px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+          <sc-for list="{{ inboxFilters }}" as="f" hint-placeholder-count="4">
+            <div onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06); overflow:hidden;">
+          <sc-for list="{{ filteredEmails }}" as="mail" hint-placeholder-count="4">
+            <div style="display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-bottom:1px solid #F1EFFA;">
+              <div style="width:38px; height:38px; border-radius:50%; background:#EDEAFB; color:#6C5CE7; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ mail.initial }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <div style="font-size:13px; color:#1F2333; font-weight:600;">{{ mail.sender }}</div>
+                  <div style="font-size:11.5px; color:#B4AFCB; white-space:nowrap;">{{ mail.date }}</div>
+                </div>
+                <div style="font-size:13.5px; font-weight:700; color:#1F2333; margin-top:2px;">{{ mail.subject }}</div>
+                <div style="font-size:12.5px; color:#8B87A8; margin-top:3px; line-height:1.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ mail.snippet }}</div>
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                  <div style="font-size:10.5px; padding:2px 9px; border-radius:999px; background:#F1EDFF; color:#6C5CE7; font-weight:700;">{{ mail.tag }}</div>
+                  <sc-if value="{{ mail.suitable }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:10.5px; padding:2px 9px; border-radius:999px; background:#FFF1EC; color:#FF7A59; font-weight:700;">✨ AI 建議可發文</div>
+                  </sc-if>
+                </div>
+              </div>
+              <div onClick="{{ mail.onConvert }}" style="cursor:pointer; flex-shrink:0; padding:8px 14px; border-radius:9px; background:#6C5CE7; color:#fff; font-size:12.5px; font-weight:700; align-self:center;">轉為草稿</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- DRAFT -->
+    <sc-if value="{{ isDraftTab }}">
+      <div>
+        <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">草稿撰寫</div>
+        <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">將郵件內容轉換成適合各平台的貼文草稿</div>
+
+        <sc-if value="{{ !hasDraftTarget }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff; border-radius:16px; padding:48px; text-align:center; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+            <div style="font-size:36px; margin-bottom:12px;">📝</div>
+            <div style="font-size:15px; font-weight:700; color:#1F2333; margin-bottom:6px;">還沒有選擇內容來源</div>
+            <div style="font-size:13px; color:#8B87A8; margin-bottom:20px;">從 Gmail 挑一封信轉成草稿,或直接空白開始撰寫</div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+              <div onClick="{{ goToInbox }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">前往收件匣挑選</div>
+              <div onClick="{{ startBlankDraft }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">空白草稿開始撰寫</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasDraftTarget }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:20px; align-items:flex-start;">
+
+            <sc-if value="{{ hasSourceMail }}" hint-placeholder-val="{{ false }}">
+              <div style="width:280px; flex-shrink:0; background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                <div style="font-size:11px; font-weight:700; color:#8B87A8; margin-bottom:10px; letter-spacing:0.5px;">原始郵件參考</div>
+                <div style="font-size:13px; font-weight:700; color:#1F2333;">{{ sourceMail.subject }}</div>
+                <div style="font-size:11.5px; color:#B4AFCB; margin:4px 0 10px 0;">{{ sourceMail.sender }} · {{ sourceMail.date }}</div>
+                <div style="font-size:12.5px; color:#5B5773; line-height:1.7; max-height:340px; overflow-y:auto; white-space:pre-line;">{{ sourceMail.fullBody }}</div>
+              </div>
+            </sc-if>
+
+            <div style="flex:1; display:flex; flex-direction:column; gap:16px;">
+
+              <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                  <div style="font-size:12px; font-weight:700; color:#8B87A8;">AI 語氣輔助改寫(輔助功能,可略過)</div>
+                  <div onClick="{{ openTemplatePicker }}" style="cursor:pointer; font-size:12px; font-weight:700; color:#6C5CE7;">📋 從罐頭訊息庫插入</div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <sc-for list="{{ toneOptions }}" as="tone" hint-placeholder-count="4">
+                    <div onClick="{{ tone.onClick }}" style="{{ tone.style }}">{{ tone.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                <textarea value="{{ draftText }}" onChange="{{ onDraftChange }}" placeholder="開始撰寫你的貼文內容…" style="width:100%; min-height:160px; border:1px solid #E4E1F5; border-radius:12px; padding:14px; font-size:14px; font-family:inherit; line-height:1.7; color:#1F2333; resize:vertical;"></textarea>
+                <div style="text-align:right; font-size:11.5px; color:#B4AFCB; margin-top:6px;">{{ draftLength }} 字</div>
+              </div>
+
+              <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                <div style="font-size:12px; font-weight:700; color:#8B87A8; margin-bottom:12px;">選擇發布平台</div>
+                <div style="display:flex; gap:10px; margin-bottom:16px;">
+                  <sc-for list="{{ platformToggleList }}" as="p" hint-placeholder-count="4">
+                    <div onClick="{{ p.onToggle }}" style="{{ p.chipStyle }}">
+                      <span style="width:20px; height:20px; border-radius:6px; background:{{ p.color }}; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;">{{ p.badge }}</span>
+                      <span>{{ p.label }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <sc-for list="{{ selectedPlatformPreviews }}" as="prev" hint-placeholder-count="1">
+                  <div style="border:1px solid #F1EFFA; border-radius:12px; padding:14px; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                      <span style="width:18px; height:18px; border-radius:5px; background:{{ prev.color }}; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center;">{{ prev.badge }}</span>
+                      <span style="font-size:12px; font-weight:700; color:#1F2333;">{{ prev.label }} 預覽</span>
+                      <span style="font-size:11px; color:{{ prev.limitColor }}; margin-left:auto;">{{ prev.lengthNote }}</span>
+                    </div>
+                    <div style="font-size:13px; color:#3A3750; line-height:1.7; white-space:pre-line;">{{ prev.text }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <div onClick="{{ saveDraft }}" style="cursor:pointer; padding:11px 20px; border-radius:10px; background:#fff; border:1px solid #E4E1F5; color:#6C5CE7; font-weight:700; font-size:13px;">儲存草稿</div>
+                <div onClick="{{ openScheduleModal }}" style="cursor:pointer; padding:11px 22px; border-radius:10px; background:#FF7A59; color:#fff; font-weight:700; font-size:13px;">加入排程 →</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- LIBRARY -->
+    <sc-if value="{{ isLibraryTab }}">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;">
+          <div>
+            <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">罐頭訊息庫</div>
+            <div style="font-size:13px; color:#8B87A8;">常用文案範本,一鍵套用到草稿</div>
+          </div>
+          <div onClick="{{ openNewTemplateModal }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">+ 新增範本</div>
+        </div>
+
+        <div style="display:flex; gap:20px; align-items:flex-start;">
+          <div style="width:180px; flex-shrink:0; display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ libraryCategories }}" as="cat" hint-placeholder-count="6">
+              <div onClick="{{ cat.onClick }}" style="{{ cat.style }}">{{ cat.label }}</div>
+            </sc-for>
+          </div>
+
+          <div style="flex:1;">
+            <input value="{{ librarySearch }}" onChange="{{ onLibrarySearch }}" placeholder="搜尋範本標題或內容…" style="width:100%; max-width:360px; padding:10px 14px; border-radius:10px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;"/>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <sc-for list="{{ filteredTemplates }}" as="tpl" hint-placeholder-count="4">
+                <div style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+                  <div style="font-size:10.5px; font-weight:700; color:#6C5CE7; background:#F1EDFF; display:inline-block; padding:2px 9px; border-radius:999px; margin-bottom:8px;">{{ tpl.category }}</div>
+                  <div style="font-size:14px; font-weight:700; color:#1F2333; margin-bottom:6px;">{{ tpl.title }}</div>
+                  <div style="font-size:12.5px; color:#8B87A8; line-height:1.6; margin-bottom:12px; white-space:pre-line;">{{ tpl.text }}</div>
+                  <div style="display:flex; gap:8px;">
+                    <div onClick="{{ tpl.onApply }}" style="cursor:pointer; flex:1; text-align:center; padding:8px; border-radius:8px; background:#6C5CE7; color:#fff; font-size:12px; font-weight:700;">套用到草稿</div>
+                    <div onClick="{{ tpl.onCopy }}" style="cursor:pointer; padding:8px 12px; border-radius:8px; background:#F6F5FB; color:#6C5CE7; font-size:12px; font-weight:700;">複製</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- SCHEDULE -->
+    <sc-if value="{{ isScheduleTab }}">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;">
+          <div>
+            <div style="font-size:20px; font-weight:900; color:#1F2333; margin-bottom:4px;">排程管理</div>
+            <div style="font-size:13px; color:#8B87A8;">跨平台發佈排程一覽</div>
+          </div>
+          <div onClick="{{ openNewScheduleModal }}" style="cursor:pointer; padding:10px 18px; border-radius:10px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">+ 新增排程</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:20px;">
+          <sc-for list="{{ weekDays }}" as="day" hint-placeholder-count="7">
+            <div onClick="{{ day.onSelect }}" style="{{ day.style }}">
+              <div style="font-size:11px; opacity:0.75;">{{ day.weekdayLabel }}</div>
+              <div style="font-size:17px; font-weight:800; margin:4px 0;">{{ day.dayLabel }}</div>
+              <sc-if value="{{ day.hasItems }}" hint-placeholder-val="{{ false }}">
+                <div style="width:6px; height:6px; border-radius:50%; background:currentColor; margin:0 auto;"></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06); margin-bottom:20px;">
+          <div style="font-size:13px; font-weight:700; color:#1F2333; margin-bottom:12px;">{{ selectedDayLabel }} 排程內容</div>
+          <sc-if value="{{ selectedDayItemsEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12.5px; color:#B4AFCB; padding:16px 0; text-align:center;">這天還沒有排程,點右上角新增一則吧</div>
+          </sc-if>
+          <sc-for list="{{ selectedDayItems }}" as="item" hint-placeholder-count="2">
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #F1EFFA;">
+              <div style="width:34px; height:34px; border-radius:9px; background:{{ item.platformColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0;">{{ item.platformBadge }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:13.5px; font-weight:600; color:#1F2333;">{{ item.title }}</div>
+                <div style="font-size:12px; color:#8B87A8; margin-top:2px;">{{ item.time }} · {{ item.statusLabel }}</div>
+              </div>
+              <div onClick="{{ item.onDelete }}" style="cursor:pointer; font-size:12px; color:#B4AFCB; font-weight:600; padding:6px 10px;">刪除</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff; border-radius:16px; padding:18px; box-shadow:0 2px 10px rgba(108,92,231,0.06);">
+          <div style="font-size:13px; font-weight:700; color:#1F2333; margin-bottom:12px;">所有排程(依日期)</div>
+          <sc-for list="{{ allScheduleSorted }}" as="item" hint-placeholder-count="5">
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #F8F7FD;">
+              <div style="width:28px; height:28px; border-radius:8px; background:{{ item.platformColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10.5px; flex-shrink:0;">{{ item.platformBadge }}</div>
+              <div style="font-size:12.5px; color:#8B87A8; width:120px; flex-shrink:0;">{{ item.dateLabel }} {{ item.time }}</div>
+              <div style="font-size:13px; color:#1F2333; font-weight:600; flex:1;">{{ item.title }}</div>
+              <div style="font-size:11px; color:#6C5CE7; font-weight:700;">{{ item.statusLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- TEMPLATE PICKER MODAL -->
+  <sc-if value="{{ showTemplatePicker }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
+      <div style="width:480px; max-height:70vh; background:#fff; border-radius:18px; padding:24px; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div style="font-size:15px; font-weight:800; color:#1F2333;">插入罐頭訊息</div>
+          <div onClick="{{ closeTemplatePicker }}" style="cursor:pointer; font-size:18px; color:#B4AFCB;">✕</div>
+        </div>
+        <div style="overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ allTemplates }}" as="tpl" hint-placeholder-count="5">
+            <div onClick="{{ tpl.onInsert }}" style="cursor:pointer; padding:12px 14px; border:1px solid #F1EFFA; border-radius:10px;">
+              <div style="font-size:12.5px; font-weight:700; color:#1F2333;">{{ tpl.title }}</div>
+              <div style="font-size:11.5px; color:#8B87A8; margin-top:4px; white-space:pre-line;">{{ tpl.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- NEW TEMPLATE MODAL -->
+  <sc-if value="{{ showNewTemplateModal }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
+      <div style="width:440px; background:#fff; border-radius:18px; padding:24px;">
+        <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">新增罐頭訊息</div>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">標題</div>
+        <input value="{{ newTemplateTitle }}" onChange="{{ onNewTemplateTitle }}" placeholder="例如:感謝訂閱電子報" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">內容</div>
+        <textarea value="{{ newTemplateText }}" onChange="{{ onNewTemplateText }}" placeholder="輸入範本內容…" style="width:100%; min-height:100px; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; line-height:1.6; margin-bottom:16px;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <div onClick="{{ closeNewTemplateModal }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#F6F5FB; color:#6C5CE7; font-weight:700; font-size:13px;">取消</div>
+          <div onClick="{{ saveNewTemplate }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">儲存範本</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- SCHEDULE MODAL -->
+  <sc-if value="{{ showScheduleModal }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
+      <div style="width:420px; background:#fff; border-radius:18px; padding:24px;">
+        <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">加入排程</div>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">日期</div>
+        <input type="date" value="{{ scheduleDate }}" onChange="{{ onScheduleDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">時間</div>
+        <input type="time" value="{{ scheduleTime }}" onChange="{{ onScheduleTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:16px;"/>
+        <div style="font-size:11.5px; color:#B4AFCB; margin-bottom:16px;">將發布至:{{ selectedPlatformLabelsText }}</div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <div onClick="{{ closeScheduleModal }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#F6F5FB; color:#6C5CE7; font-weight:700; font-size:13px;">取消</div>
+          <div onClick="{{ confirmSchedule }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#FF7A59; color:#fff; font-weight:700; font-size:13px;">確認排程</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- NEW SCHEDULE MODAL -->
+  <sc-if value="{{ showNewScheduleModal }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; background:rgba(31,35,51,0.45); display:flex; align-items:center; justify-content:center; z-index:50;">
+      <div style="width:440px; background:#fff; border-radius:18px; padding:24px;">
+        <div style="font-size:15px; font-weight:800; color:#1F2333; margin-bottom:16px;">手動新增排程</div>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">貼文標題</div>
+        <input value="{{ manualTitle }}" onChange="{{ onManualTitle }}" placeholder="例如:週末生活分享" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit; margin-bottom:14px;"/>
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">日期</div>
+            <input type="date" value="{{ manualDate }}" onChange="{{ onManualDate }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">時間</div>
+            <input type="time" value="{{ manualTime }}" onChange="{{ onManualTime }}" style="width:100%; padding:10px 12px; border-radius:9px; border:1px solid #E4E1F5; font-size:13px; font-family:inherit;"/>
+          </div>
+        </div>
+        <div style="font-size:11.5px; font-weight:700; color:#8B87A8; margin-bottom:6px;">平台</div>
+        <div style="display:flex; gap:8px; margin-bottom:18px;">
+          <sc-for list="{{ manualPlatformList }}" as="p" hint-placeholder-count="4">
+            <div onClick="{{ p.onSelect }}" style="{{ p.style }}">{{ p.label }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <div onClick="{{ closeNewScheduleModal }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#F6F5FB; color:#6C5CE7; font-weight:700; font-size:13px;">取消</div>
+          <div onClick="{{ saveManualSchedule }}" style="cursor:pointer; padding:10px 18px; border-radius:9px; background:#6C5CE7; color:#fff; font-weight:700; font-size:13px;">新增</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toastMessage }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; bottom:24px; right:24px; background:#1F2333; color:#fff; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:100; animation:toastIn 0.2s ease;">{{ toastMessage }}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PLATFORM_META = {
+  fb: { key: 'fb', label: 'Facebook', color: '#1877F2', badge: 'f', limit: 63206 },
+  ig: { key: 'ig', label: 'Instagram', color: '#C13584', badge: 'IG', limit: 2200 },
+  threads: { key: 'threads', label: 'Threads', color: '#101010', badge: '@', limit: 500 },
+  line: { key: 'line', label: 'LINE', color: '#06C755', badge: 'L', limit: 1000 },
+};
+
+const TONE_REWRITES = {
+  '專業': (t) => t,
+  '親切': (t) => (t ? t + '\n\n謝謝你一直以來的陪伴 🌿' : t),
+  '活潑': (t) => (t ? t.replace(/。/g, '!') + ' ✨' : t),
+  '簡短': (t) => (t ? t.split('\n')[0] : t),
+};
+
+function initialEmails() {
+  return [
+    { id: 'e1', initial: '換', sender: '換日線 Crossing 電子報', subject: '本週旅遊趨勢:小島慢活正夯', date: '07/12', tag: '電子報', suitable: true,
+      snippet: '今年夏天,越來越多人選擇離島慢活取代traditional打卡行程,沖繩、澎湖的長住旅宿詢問度大幅上升……',
+      fullBody: '嗨,小日:\n\n本週電子報想跟你分享一個有趣的趨勢——「離島慢活」正在取代傳統的打卡式旅遊。越來越多讀者留言詢問沖繩、澎湖的長住旅宿選擇,大家開始重視在一個地方待上一週以上的深度體驗,而不是趕行程。\n\n這對經營旅遊內容的創作者來說是很好的題材切角:可以聊聊「慢活行程規劃」、「長住旅宿推薦」、「當地生活步調」等角度。\n\n祝寫作順利!\n換日線 編輯團隊' },
+    { id: 'e2', initial: '光', sender: '光影香氛 Studio', subject: '業配邀約:新品香氛蠟燭試用', date: '07/11', tag: '合作邀約', suitable: true,
+      snippet: '我們即將推出秋季限定香氛系列,想邀請你試用並分享真實使用心得,提供三款香氛供你挑選……',
+      fullBody: '小日,你好:\n\n我們是光影香氛 Studio,即將於下個月推出秋季限定香氛蠟燭系列(共三款:雪松、無花果、焦糖燕麥)。看了你過去分享的居家生活內容,覺得調性非常契合,想邀請你試用並分享真實使用心得。\n\n我們可以提供三款正貨讓你挑選,若有興趣歡迎回信討論合作細節與時程。\n\n期待你的回覆!\n光影香氛 商務合作窗口 敬上' },
+    { id: 'e3', initial: '雯', sender: '讀者 Wenwen', subject: 'Re: 上次分享的沖繩行程好詳細!', date: '07/10', tag: '讀者來信', suitable: true,
+      snippet: '看完你上次分享的沖繩7天行程整理超實用,想問問你推薦的那間民宿現在還有營業嗎……',
+      fullBody: '小日你好~\n\n我是長期關注你帳號的讀者,上次你分享的沖繩7天慢活行程整理真的超實用,已經照著規劃了下個月的旅程!\n\n想請問你文中推薦的那間本部町民宿現在還有在營業嗎?另外也想知道你推薦的租車方式,想跟身邊朋友分享你的經驗~\n\n謝謝你的分享,期待你更多內容!' },
+    { id: 'e4', initial: 'G', sender: 'Google 日曆通知', subject: '提醒:下週三「創作者線上分享會」', date: '07/09', tag: '活動通知', suitable: false,
+      snippet: '你已報名參加下週三晚上8點的創作者線上分享會,活動連結將於當天寄出……',
+      fullBody: '活動提醒:\n\n你已成功報名「創作者線上分享會」,時間為下週三晚間 20:00,講題為「如何用電子報累積忠實讀者」。活動連結將於活動當天上午寄出至你的信箱,請留意收信。' },
+  ];
+}
+
+function initialTemplates() {
+  return [
+    { id: 't1', category: '節慶祝賀', title: '中秋節祝福', text: '中秋佳節將至 🌕\n感謝這一路上有你們的陪伴,祝大家闔家團圓、平安喜樂!' },
+    { id: 't2', category: '節慶祝賀', title: '新年祝福文案', text: '新的一年,願我們都能持續分享生活裡的小美好 ✨\n謝謝你一直以來的支持,新年快樂!' },
+    { id: 't3', category: '業配/產品促銷', title: '新品開箱通用文案', text: '最近入手了這個新品,用了兩週想跟大家分享真實心得——\n\n[使用情境] [優點] [使用小提醒]\n\n有興趣的朋友可以參考文末連結 🔗' },
+    { id: 't4', category: '業配/產品促銷', title: '限時優惠通知', text: '📢 限時優惠通知\n即日起至本週日,輸入專屬折扣碼即可享優惠,數量有限、售完為止!' },
+    { id: 't5', category: '粉絲互動', title: '每週提問互動', text: '這週想問問大家:\n最近生活中有沒有什麼讓你特別有感的小事?留言告訴我,我會挑幾則來回覆 💬' },
+    { id: 't6', category: '粉絲互動', title: '感謝追蹤突破里程碑', text: '謝謝每一位一路上的支持 🙏\n我們一起走到了這個里程碑,接下來會持續分享更多用心的內容,敬請期待!' },
+    { id: 't7', category: '常見問答', title: '如何提出合作邀約', text: '關於合作邀約,歡迎透過信箱與我聯繫,並附上品牌簡介與合作方向,我會在3個工作天內回覆你 📩' },
+    { id: 't8', category: '常見問答', title: '拍攝器材推薦', text: '最近常被問到用什麼器材拍攝,這裡整理給大家:\n相機 / 鏡頭 / 燈光 / 後製軟體,細節可參考置頂貼文。' },
+    { id: 't9', category: '感謝訊息', title: '感謝訂閱電子報', text: '謝謝你訂閱我的電子報 💌\n之後會固定與你分享生活觀察與幕後故事,有任何想聊的主題也歡迎回信告訴我!' },
+    { id: 't10', category: '感謝訊息', title: '感謝留言互動', text: '看到大家的留言真的很開心,謝謝你們花時間分享想法 🩵\n有你們的參與,分享才更有意義。' },
+  ];
+}
+
+function initialSchedule() {
+  return [
+    { id: 's1', date: '2026-07-13', time: '09:00', platform: 'fb', title: '夏日離島慢活回顧', status: 'scheduled' },
+    { id: 's2', date: '2026-07-14', time: '18:30', platform: 'ig', title: '生活好物開箱:秋季香氛蠟燭', status: 'scheduled' },
+    { id: 's3', date: '2026-07-15', time: '12:00', platform: 'threads', title: '週三閒聊:最近的靈感來源', status: 'draft' },
+    { id: 's4', date: '2026-07-16', time: '20:00', platform: 'line', title: '本週限定優惠通知', status: 'scheduled' },
+    { id: 's5', date: '2026-07-18', time: '09:00', platform: 'fb', title: '讀者 Q&A:如何開始經營自媒體', status: 'scheduled' },
+  ];
+}
+
+const WEEKDAY_LABELS = ['週一','週二','週三','週四','週五','週六','週日'];
+const WEEK_DATES = ['2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19'];
+
+class Component extends DCLogic {
+  state = {
+    activeTab: 'dashboard',
+    emails: initialEmails(),
+    templates: initialTemplates(),
+    scheduleItems: initialSchedule(),
+    selectedMailId: null,
+    draftText: '',
+    draftPlatforms: { fb: true, ig: true, threads: false, line: false },
+    inboxSearch: '',
+    inboxFilter: '全部',
+    librarySearch: '',
+    libraryCategory: '全部',
+    showTemplatePicker: false,
+    showNewTemplateModal: false,
+    newTemplateTitle: '',
+    newTemplateText: '',
+    showScheduleModal: false,
+    scheduleDate: '2026-07-20',
+    scheduleTime: '09:00',
+    showNewScheduleModal: false,
+    manualTitle: '',
+    manualDate: '2026-07-20',
+    manualTime: '09:00',
+    manualPlatform: 'fb',
+    selectedDay: '2026-07-13',
+    toastMessage: '',
+  };
+
+  showToast(msg) {
+    this.setState({ toastMessage: msg });
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.setState({ toastMessage: '' }), 2200);
+  }
+
+  goTo(tab) { return () => this.setState({ activeTab: tab }); }
+  isTab(tab) { return this.state.activeTab === tab; }
+
+  navStyle(tab) {
+    const active = this.state.activeTab === tab;
+    return `cursor:pointer; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; font-size:13.5px; font-weight:${active ? 700 : 500}; color:${active ? '#6C5CE7' : '#5B5773'}; background:${active ? '#F1EDFF' : 'transparent'};`;
+  }
+
+  convertToDraft(mail) {
+    return () => {
+      this.setState({ activeTab: 'draft', selectedMailId: mail.id, draftText: mail.snippet + '\n\n(草稿已由 AI 從郵件內容摘要產生,歡迎編輯調整)' });
+      this.showToast('已將郵件轉換為草稿 ✨');
+    };
+  }
+
+  startBlankDraft = () => {
+    this.setState({ selectedMailId: 'blank', draftText: '' });
+  };
+
+  onDraftChange = (e) => this.setState({ draftText: e.target.value });
+
+  applyTone(tone) {
+    return () => {
+      const fn = TONE_REWRITES[tone] || ((t) => t);
+      this.setState((s) => ({ draftText: fn(s.draftText) }));
+      this.showToast(`AI 已套用「${tone}」語氣`);
+    };
+  }
+
+  togglePlatform(key) {
+    return () => this.setState((s) => ({ draftPlatforms: { ...s.draftPlatforms, [key]: !s.draftPlatforms[key] } }));
+  }
+
+  openTemplatePicker = () => this.setState({ showTemplatePicker: true });
+  closeTemplatePicker = () => this.setState({ showTemplatePicker: false });
+  insertTemplateIntoDraft(tpl) {
+    return () => {
+      this.setState((s) => ({ draftText: (s.draftText ? s.draftText + '\n\n' : '') + tpl.text, showTemplatePicker: false }));
+      this.showToast('已插入罐頭訊息');
+    };
+  }
+
+  saveDraft = () => this.showToast('草稿已儲存');
+
+  openScheduleModal = () => this.setState({ showScheduleModal: true });
+  closeScheduleModal = () => this.setState({ showScheduleModal: false });
+  onScheduleDate = (e) => this.setState({ scheduleDate: e.target.value });
+  onScheduleTime = (e) => this.setState({ scheduleTime: e.target.value });
+
+  confirmSchedule = () => {
+    const s = this.state;
+    const platforms = Object.keys(s.draftPlatforms).filter((k) => s.draftPlatforms[k]);
+    const title = (s.draftText || '未命名草稿').split('\n')[0].slice(0, 24);
+    const newItems = (platforms.length ? platforms : ['fb']).map((p, i) => ({
+      id: 'ns' + Date.now() + i,
+      date: s.scheduleDate,
+      time: s.scheduleTime,
+      platform: p,
+      title,
+      status: 'scheduled',
+    }));
+    this.setState((st) => ({
+      scheduleItems: [...st.scheduleItems, ...newItems],
+      showScheduleModal: false,
+      activeTab: 'schedule',
+      selectedDay: s.scheduleDate,
+    }));
+    this.showToast('已加入排程 🎉');
+  };
+
+  onInboxSearch = (e) => this.setState({ inboxSearch: e.target.value });
+  setInboxFilter(f) { return () => this.setState({ inboxFilter: f }); }
+  filterChipStyle(f) {
+    const active = this.state.inboxFilter === f;
+    return `cursor:pointer; padding:8px 14px; border-radius:9px; font-size:12.5px; font-weight:600; background:${active ? '#6C5CE7' : '#fff'}; color:${active ? '#fff' : '#5B5773'}; border:1px solid ${active ? '#6C5CE7' : '#E4E1F5'};`;
+  }
+
+  onLibrarySearch = (e) => this.setState({ librarySearch: e.target.value });
+  setLibraryCategory(c) { return () => this.setState({ libraryCategory: c }); }
+  categoryItemStyle(c) {
+    const active = this.state.libraryCategory === c;
+    return `cursor:pointer; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:${active ? 700 : 500}; color:${active ? '#6C5CE7' : '#5B5773'}; background:${active ? '#F1EDFF' : 'transparent'};`;
+  }
+
+  applyTemplateToDraft(tpl) {
+    return () => {
+      this.setState((s) => ({
+        activeTab: 'draft',
+        selectedMailId: s.selectedMailId || 'blank',
+        draftText: (s.draftText ? s.draftText + '\n\n' : '') + tpl.text,
+      }));
+      this.showToast('已套用範本到草稿');
+    };
+  }
+  copyTemplate(tpl) { return () => this.showToast('已複製到剪貼簿'); }
+
+  openNewTemplateModal = () => this.setState({ showNewTemplateModal: true, newTemplateTitle: '', newTemplateText: '' });
+  closeNewTemplateModal = () => this.setState({ showNewTemplateModal: false });
+  onNewTemplateTitle = (e) => this.setState({ newTemplateTitle: e.target.value });
+  onNewTemplateText = (e) => this.setState({ newTemplateText: e.target.value });
+  saveNewTemplate = () => {
+    const s = this.state;
+    if (!s.newTemplateTitle.trim()) { this.showToast('請輸入標題'); return; }
+    const tpl = { id: 'nt' + Date.now(), category: s.libraryCategory === '全部' ? '其他' : s.libraryCategory, title: s.newTemplateTitle, text: s.newTemplateText };
+    this.setState((st) => ({ templates: [tpl, ...st.templates], showNewTemplateModal: false }));
+    this.showToast('已新增罐頭訊息');
+  };
+
+  toneChipStyle(tone) {
+    return `cursor:pointer; padding:7px 14px; border-radius:9px; font-size:12.5px; font-weight:600; background:#F6F5FB; color:#6C5CE7; border:1px solid #EDEAFB;`;
+  }
+
+  platformChipStyle(p) {
+    const active = !!this.state.draftPlatforms[p.key];
+    return `cursor:pointer; display:flex; align-items:center; gap:7px; padding:8px 14px; border-radius:9px; font-size:12.5px; font-weight:600; background:${active ? '#F1EDFF' : '#fff'}; color:${active ? '#6C5CE7' : '#B4AFCB'}; border:1px solid ${active ? '#D9D0FA' : '#EDEAFB'};`;
+  }
+
+  manualPlatformChipStyle(p) {
+    const active = this.state.manualPlatform === p.key;
+    return `cursor:pointer; padding:8px 14px; border-radius:9px; font-size:12.5px; font-weight:600; background:${active ? p.color : '#fff'}; color:${active ? '#fff' : '#5B5773'}; border:1px solid ${active ? p.color : '#EDEAFB'};`;
+  }
+  setManualPlatform(key) { return () => this.setState({ manualPlatform: key }); }
+
+  selectDay(date) { return () => this.setState({ selectedDay: date }); }
+  dayCellStyle(day) {
+    const active = this.state.selectedDay === day.date;
+    return `cursor:pointer; text-align:center; padding:10px 4px; border-radius:12px; background:${active ? '#6C5CE7' : '#fff'}; color:${active ? '#fff' : '#5B5773'}; box-shadow:0 2px 8px rgba(108,92,231,0.06);`;
+  }
+
+  openNewScheduleModal = () => this.setState({ showNewScheduleModal: true, manualTitle: '' });
+  closeNewScheduleModal = () => this.setState({ showNewScheduleModal: false });
+  onManualTitle = (e) => this.setState({ manualTitle: e.target.value });
+  onManualDate = (e) => this.setState({ manualDate: e.target.value });
+  onManualTime = (e) => this.setState({ manualTime: e.target.value });
+  saveManualSchedule = () => {
+    const s = this.state;
+    if (!s.manualTitle.trim()) { this.showToast('請輸入貼文標題'); return; }
+    const item = { id: 'ms' + Date.now(), date: s.manualDate, time: s.manualTime, platform: s.manualPlatform, title: s.manualTitle, status: 'scheduled' };
+    this.setState((st) => ({ scheduleItems: [...st.scheduleItems, item], showNewScheduleModal: false, selectedDay: s.manualDate }));
+    this.showToast('已新增排程');
+  };
+
+  deleteScheduleItem(id) {
+    return () => {
+      this.setState((s) => ({ scheduleItems: s.scheduleItems.filter((i) => i.id !== id) }));
+      this.showToast('已刪除排程');
+    };
+  }
+
+  dateLabel(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  statusLabel(status) {
+    return status === 'draft' ? '草稿排程' : '已確認排程';
+  }
+
+  renderVals() {
+    const s = this;
+    return this._buildVals();
+  }
+
+  _buildVals() {
+    const s = this.state;
+
+    const navDefs = [
+      { key: 'dashboard', icon: '🏠', label: '首頁總覽' },
+      { key: 'inbox', icon: '📥', label: 'Gmail 收件匣' },
+      { key: 'draft', icon: '✍️', label: '草稿撰寫' },
+      { key: 'library', icon: '🗂️', label: '罐頭訊息庫' },
+      { key: 'schedule', icon: '📅', label: '排程管理' },
+    ];
+    const navItems = navDefs.map((n) => ({
+      ...n,
+      style: this.navStyle(n.key),
+      onClick: () => this.setState({ activeTab: n.key }),
+    }));
+
+    const statCards = [
+      { label: '本週已排程', value: s.scheduleItems.length, color: '#6C5CE7' },
+      { label: '草稿數量', value: s.selectedMailId ? 1 : 0, color: '#FF7A59' },
+      { label: '本月已發佈', value: 12, color: '#1F2333' },
+      { label: '待處理合作邀約', value: s.emails.filter((e) => e.tag === '合作邀約').length, color: '#06C755' },
+    ];
+
+    const upcomingSchedule = [...s.scheduleItems]
+      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+      .slice(0, 3)
+      .map((i) => ({ ...i, platformColor: PLATFORM_META[i.platform].color, platformBadge: PLATFORM_META[i.platform].badge, dateLabel: this.dateLabel(i.date) }));
+
+    const inspirationEmails = s.emails.filter((e) => e.suitable).slice(0, 2)
+      .map((m) => ({ ...m, onConvert: () => this.convertToDraft(m)() }));
+
+    const inboxFilters = ['全部', '電子報', '合作邀約', '讀者來信', '活動通知'].map((f) => ({
+      label: f,
+      style: this.filterChipStyle(f),
+      onClick: () => this.setState({ inboxFilter: f }),
+    }));
+
+    const filteredEmails = s.emails.filter((e) => {
+      const matchFilter = s.inboxFilter === '全部' || e.tag === s.inboxFilter;
+      const q = s.inboxSearch.trim();
+      const matchSearch = !q || e.sender.includes(q) || e.subject.includes(q);
+      return matchFilter && matchSearch;
+    }).map((m) => ({ ...m, onConvert: () => this.convertToDraft(m)() }));
+
+    const hasDraftTarget = !!s.selectedMailId;
+    const hasSourceMail = !!(s.selectedMailId && s.selectedMailId !== 'blank');
+    const sourceMail = hasSourceMail ? s.emails.find((e) => e.id === s.selectedMailId) : null;
+
+    const toneOptions = ['專業', '親切', '活潑', '簡短'].map((t) => ({
+      label: t,
+      style: this.toneChipStyle(t),
+      onClick: () => this.applyTone(t)(),
+    }));
+
+    const platformToggleList = Object.values(PLATFORM_META).map((p) => ({
+      ...p,
+      chipStyle: this.platformChipStyle(p),
+      onToggle: () => this.togglePlatform(p.key)(),
+    }));
+
+    const selectedPlatformPreviews = Object.values(PLATFORM_META)
+      .filter((p) => s.draftPlatforms[p.key])
+      .map((p) => {
+        const len = (s.draftText || '').length;
+        const over = len > p.limit;
+        return {
+          ...p,
+          text: s.draftText || '（尚未輸入內容）',
+          lengthNote: `${len} / ${p.limit} 字`,
+          limitColor: over ? '#E74C3C' : '#B4AFCB',
+        };
+      });
+
+    const selectedPlatformLabelsText = Object.values(PLATFORM_META).filter((p) => s.draftPlatforms[p.key]).map((p) => p.label).join('、') || '尚未選擇平台';
+
+    const allTemplates = s.templates.map((t) => ({ ...t, onInsert: () => this.insertTemplateIntoDraft(t)() }));
+
+    const libraryCategories = ['全部', '節慶祝賀', '業配/產品促銷', '粉絲互動', '常見問答', '感謝訊息'].map((c) => ({
+      label: c,
+      style: this.categoryItemStyle(c),
+      onClick: () => this.setState({ libraryCategory: c }),
+    }));
+
+    const filteredTemplates = s.templates.filter((t) => {
+      const matchCat = s.libraryCategory === '全部' || t.category === s.libraryCategory;
+      const q = s.librarySearch.trim();
+      const matchSearch = !q || t.title.includes(q) || t.text.includes(q);
+      return matchCat && matchSearch;
+    }).map((t) => ({
+      ...t,
+      onApply: () => this.applyTemplateToDraft(t)(),
+      onCopy: () => this.copyTemplate(t)(),
+    }));
+
+    const weekDays = WEEK_DATES.map((date, i) => {
+      const hasItems = s.scheduleItems.some((it) => it.date === date);
+      const d = new Date(date + 'T00:00:00');
+      return {
+        date,
+        weekdayLabel: WEEKDAY_LABELS[i],
+        dayLabel: d.getDate(),
+        hasItems,
+        style: this.dayCellStyle({ date }),
+        onSelect: () => this.setState({ selectedDay: date }),
+      };
+    });
+
+    const selectedDayItems = s.scheduleItems
+      .filter((i) => i.date === s.selectedDay)
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .map((i) => ({
+        ...i,
+        platformColor: PLATFORM_META[i.platform].color,
+        platformBadge: PLATFORM_META[i.platform].badge,
+        statusLabel: this.statusLabel(i.status),
+        onDelete: () => this.deleteScheduleItem(i.id)(),
+      }));
+
+    const selectedDayDate = new Date(s.selectedDay + 'T00:00:00');
+    const selectedDayLabel = `${selectedDayDate.getMonth() + 1}/${selectedDayDate.getDate()}`;
+
+    const allScheduleSorted = [...s.scheduleItems]
+      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+      .map((i) => ({ ...i, platformColor: PLATFORM_META[i.platform].color, platformBadge: PLATFORM_META[i.platform].badge, dateLabel: this.dateLabel(i.date), statusLabel: this.statusLabel(i.status) }));
+
+    const manualPlatformList = Object.values(PLATFORM_META).map((p) => ({
+      ...p,
+      style: this.manualPlatformChipStyle(p),
+      onSelect: () => this.setManualPlatform(p.key)(),
+    }));
+
+    return {
+      isDashboardTab: this.isTab('dashboard'),
+      isInboxTab: this.isTab('inbox'),
+      isDraftTab: this.isTab('draft'),
+      isLibraryTab: this.isTab('library'),
+      isScheduleTab: this.isTab('schedule'),
+      goToInbox: () => this.setState({ activeTab: 'inbox' }),
+      goToLibrary: () => this.setState({ activeTab: 'library' }),
+      goToSchedule: () => this.setState({ activeTab: 'schedule' }),
+      navItems,
+      statCards,
+      upcomingSchedule,
+      inspirationEmails,
+      inboxFilters,
+      inboxSearch: s.inboxSearch,
+      onInboxSearch: this.onInboxSearch,
+      filteredEmails,
+      hasDraftTarget,
+      hasSourceMail,
+      sourceMail,
+      startBlankDraft: this.startBlankDraft,
+      toneOptions,
+      openTemplatePicker: this.openTemplatePicker,
+      draftText: s.draftText,
+      onDraftChange: this.onDraftChange,
+      draftLength: (s.draftText || '').length,
+      platformToggleList,
+      selectedPlatformPreviews,
+      saveDraft: this.saveDraft,
+      openScheduleModal: this.openScheduleModal,
+      showTemplatePicker: s.showTemplatePicker,
+      allTemplates,
+      closeTemplatePicker: this.closeTemplatePicker,
+      libraryCategories,
+      librarySearch: s.librarySearch,
+      onLibrarySearch: this.onLibrarySearch,
+      filteredTemplates,
+      openNewTemplateModal: this.openNewTemplateModal,
+      showNewTemplateModal: s.showNewTemplateModal,
+      newTemplateTitle: s.newTemplateTitle,
+      newTemplateText: s.newTemplateText,
+      onNewTemplateTitle: this.onNewTemplateTitle,
+      onNewTemplateText: this.onNewTemplateText,
+      closeNewTemplateModal: this.closeNewTemplateModal,
+      saveNewTemplate: this.saveNewTemplate,
+      weekDays,
+      selectedDayLabel,
+      selectedDayItems,
+      selectedDayItemsEmpty: selectedDayItems.length === 0,
+      allScheduleSorted,
+      showScheduleModal: s.showScheduleModal,
+      scheduleDate: s.scheduleDate,
+      scheduleTime: s.scheduleTime,
+      onScheduleDate: this.onScheduleDate,
+      onScheduleTime: this.onScheduleTime,
+      closeScheduleModal: this.closeScheduleModal,
+      confirmSchedule: this.confirmSchedule,
+      selectedPlatformLabelsText,
+      showNewScheduleModal: s.showNewScheduleModal,
+      openNewScheduleModal: this.openNewScheduleModal,
+      closeNewScheduleModal: this.closeNewScheduleModal,
+      manualTitle: s.manualTitle,
+      manualDate: s.manualDate,
+      manualTime: s.manualTime,
+      onManualTitle: this.onManualTitle,
+      onManualDate: this.onManualDate,
+      onManualTime: this.onManualTime,
+      manualPlatformList,
+      saveManualSchedule: this.saveManualSchedule,
+      toastMessage: s.toastMessage,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
