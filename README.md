@@ -13,6 +13,16 @@ npm run build    # 型別檢查 + 產出 dist/
 npm run preview  # 預覽建置結果
 ```
 
+## 部署(GitHub Pages 自動部署)
+
+push 到 `main` 即觸發 `.github/workflows/deploy.yml`:自動安裝依賴 → 型別檢查 + 建置 → 發佈到 GitHub Pages(`https://galen-chu.github.io/TEXT-message/`)。
+
+首次啟用需到 repo **Settings → Pages → Source** 選擇「**GitHub Actions**」。
+
+> 隱私說明:本專案目前**未串接任何真實 Gmail 或社群平台**。畫面上的帳號、郵件、
+> 發文歷史均為寫死的示範假資料(`src/data/mockData.ts`),所有使用者看到相同內容,
+> 操作僅存於各自瀏覽器記憶體,重新整理即重置,不會存取或外洩任何人的資料。
+
 ## 功能一覽(依側邊欄導覽順序)
 
 | 頁面 | 說明 |
