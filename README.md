@@ -2,7 +2,7 @@
 
 個人自媒體經營者用的每日社群發文工具。核心流程:**Gmail 內容 / 文管庫常用內容 / 過去社群貼文 → 貼文草稿 → 跨平台排程**。
 
-🔗 **線上 Demo**:<https://galen-chu.github.io/TEXT-message/>
+🔗 **線上 Demo**:<https://galen-chu.github.io/TEXT-Message/>
 
 依設計交接規格書(見 [`docs/HANDOFF.md`](docs/HANDOFF.md))以 **React 18 + TypeScript + Vite** 重新實作,高保真還原設計原型。
 
@@ -21,7 +21,7 @@ npm run test:e2e # E2E smoke(Playwright,serve dist;需先 npm run build)
 
 ## 部署(GitHub Pages 自動部署)
 
-push 到 `main` 即觸發 `.github/workflows/deploy.yml`:安裝依賴 → 單元測試 → 型別檢查 + 建置 → E2E smoke → 發佈到 GitHub Pages(`https://galen-chu.github.io/TEXT-message/`)。PR 另有 CI 檢查(`.github/workflows/ci.yml`)。
+push 到 `main` 即觸發 `.github/workflows/deploy.yml`:安裝依賴 → 單元測試 → 型別檢查 + 建置 → E2E smoke → 發佈到 GitHub Pages(`https://galen-chu.github.io/TEXT-Message/`)。PR 另有 CI 檢查(`.github/workflows/ci.yml`)。
 
 首次啟用需到 repo **Settings → Pages → Source** 選擇「**GitHub Actions**」。
 

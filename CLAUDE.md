@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-文管庫(Galen-Chu/TEXT-message)— 社群媒體每日發文工具。React 18 + TypeScript(strict)+ Vite 5,**純前端、無後端**,部署於 GitHub Pages(<https://galen-chu.github.io/TEXT-message/>,push `main` 自動部署)。
+文管庫(Galen-Chu/TEXT-Message)— 社群媒體每日發文工具。React 18 + TypeScript(strict)+ Vite 5,**純前端、無後端**,部署於 GitHub Pages(<https://galen-chu.github.io/TEXT-Message/>,push `main` 自動部署)。
 
 ## 常用指令
 
@@ -19,7 +19,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - `src/components/` — 六頁面 + Sidebar / Modal / PlatformBadge
 - `src/data/mockData.ts` — 示範模式假資料(日期相對今天回推,不會過期)
 - `src/constants.ts` — 平台定義、分類、語氣規則、`GMAIL_ERROR_COPY`(UI 字串集中於此)
-- `vite.config.ts` 的 `base: '/TEXT-message/'` 為 Pages 子路徑所需,勿移除
+- `vite.config.ts` 的 `base: '/TEXT-Message/'` 為 Pages 子路徑所需,勿移除
 
 ## 重要行為(修改時勿破壞)
 

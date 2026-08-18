@@ -16,7 +16,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173/TEXT-message/',
+    url: 'http://localhost:4173/TEXT-Message/',
     reuseExistingServer: !process.env.CI,
     timeout: 60000,
   },

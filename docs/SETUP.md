@@ -40,7 +40,7 @@
 2. **Authorized JavaScript origins** 加入以下兩筆:
    - `https://galen-chu.github.io`
    - `http://localhost:5173`(本機開發用)
-3. ⚠️ **頭號設定錯誤:origin 只能填「scheme + host」,不可以帶路徑**。請填 `https://galen-chu.github.io`,**不要**填 `https://galen-chu.github.io/TEXT-message/`(Google 會拒絕或導致 `invalid_client`)
+3. ⚠️ **頭號設定錯誤:origin 只能填「scheme + host」,不可以帶路徑**。請填 `https://galen-chu.github.io`,**不要**填 `https://galen-chu.github.io/TEXT-Message/`(Google 會拒絕或導致 `invalid_client`)
 4. token model 不需要設定 Redirect URI
 5. 建立後複製用戶端 ID(長得像 `1234-abc.apps.googleusercontent.com`)
 
@@ -63,14 +63,14 @@ npm run dev        # http://localhost:5173
    - Name:`GMAIL_CLIENT_ID`
    - Secret:貼上用戶端 ID
 2. push 到 `main` 即觸發部署;workflow 會把 secret 寫入 `.env.production` 再建置
-3. 部署完成後打開 <https://galen-chu.github.io/TEXT-message/>,「Gmail 郵件匣」出現連接按鈕即成功
+3. 部署完成後打開 <https://galen-chu.github.io/TEXT-Message/>,「Gmail 郵件匣」出現連接按鈕即成功
 4. **若沒設這個 secret,部署仍會成功,但建置為「純示範模式」**(無連接按鈕)——這是設計行為,不是故障;PR 的 CI 檢查也是用這個模式跑
 
 ## 7. 驗收測試者操作流程
 
 前提:請維護者把你的 Gmail 加入 §3 的測試使用者清單(只需一次)。
 
-1. 打開 <https://galen-chu.github.io/TEXT-message/>
+1. 打開 <https://galen-chu.github.io/TEXT-Message/>
 2. 左側導覽點「**Gmail 郵件匣**」→ 右上「**連接 Gmail 帳號**」
 3. Google 登入視窗:選你的帳號
 4. 出現「未驗證的應用程式」警告(預期):點左下「**進階**」→「**前往 文管庫(不安全)**」
@@ -110,7 +110,7 @@ npm run dev        # http://localhost:5173
 |---|---|---|
 | 連接按鈕按了沒反應/跳「允許彈出視窗」 | 瀏覽器封鎖彈窗 | 允許 `galen-chu.github.io` 的彈出視窗後重試 |
 | 授權頁顯示 403 access_denied | 你的 Email 不在測試使用者清單 | 請維護者於 §3 步驟 4 加入 |
-| `invalid_client` / origin 相關錯誤 | OAuth origins 設錯(常見:帶了 `/TEXT-message/` 路徑) | 依 §4 修正 origins |
+| `invalid_client` / origin 相關錯誤 | OAuth origins 設錯(常見:帶了 `/TEXT-Message/` 路徑) | 依 §4 修正 origins |
 | 授權成功但清單空白 | 近 7 天收件匣沒有信 | 點「重新整理」確認;或先寄幾封信給自己 |
 | 操作一段時間後跳「授權已過期」 | Google 工作階段結束,靜默續約失敗 | 點「重新連接」重新授權(通常一鍵完成) |
 | Google 登入服務載入失敗 | 網路/代理擋了 `accounts.google.com` | 換網路或確認可存取 Google |

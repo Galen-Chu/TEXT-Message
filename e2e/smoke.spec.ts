@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const PATH = '/TEXT-message/';
+const PATH = '/TEXT-Message/';
 
 /** 點擊側邊欄導覽(限定 nav 範圍,避免與畫面內其他按鈕撞名)。 */
 async function gotoTab(page: import('@playwright/test').Page, name: string) {
