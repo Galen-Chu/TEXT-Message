@@ -2,6 +2,8 @@
 
 個人自媒體經營者用的每日社群發文工具。核心流程:**Gmail 內容 / 文管庫常用內容 / 過去社群貼文 → 貼文草稿 → 跨平台排程**。
 
+🔗 **線上 Demo**:<https://galen-chu.github.io/TEXT-message/>
+
 依設計交接規格書(見 [`docs/HANDOFF.md`](docs/HANDOFF.md))以 **React 18 + TypeScript + Vite** 重新實作,高保真還原設計原型。
 
 ## 開發

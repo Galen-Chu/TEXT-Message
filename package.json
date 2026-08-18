@@ -1,8 +1,8 @@
 {
-  "name": "canned-message-app",
+  "name": "text-message",
   "private": true,
-  "version": "0.1.0",
-  "description": "罐頭訊息 WebAPP — 社群媒體每日發文助手 v1",
+  "version": "2.0.0",
+  "description": "文管庫 — 社群媒體每日發文助手 v2",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -71,7 +71,7 @@
 - 社群媒體歷史貼文「套用」→ 附加內容到 draftText、跳轉 Draft 分頁(從草稿頁內觸發時停留在原頁)。
 - Draft 頁 AI 語氣 chip:純前端規則示範(非真實 AI),生產環境應接後端 AI 改寫 API。
 - 平台 chip 為多選(toggle),對應顯示/隱藏該平台的預覽卡與字數上限檢查。
-- 「加入排程」→ 開 modal 選日期時間 → 確認後依已選平台各建立一筆排程,寫回 Schedule 分頁對應日期並自動跳轉。
+- 「加入排程」→ 開 modal 選日期時間 → 確認後依已選平台各建立一筆排程,寫回 Schedule 分頁對應日期並自動跳轉。若當下未勾選任何平台,則 fallback 以 Facebook 建立一筆(目前實作行為,見 `useAppStore.confirmSchedule`)。
 - 文管庫套用範本 → 附加到目前 draftText 尾端(用兩個換行分隔),若尚無草稿目標則視為空白草稿開始。
 - Schedule 週曆點日期切換 `selectedDay`,下方清單即時篩選;刪除排程即時移除該筆。
 
@@ -132,12 +132,7 @@
 無外部圖片素材,全部為 emoji 圖示(🏠📥📣📅✍️🗂️✨📢💌等)與純色平台字母 badge。生產實作建議改用正式 icon set(如 Lucide/Feather)與各平台官方 badge/logo(需遵守平台品牌規範)。
 
 ## Files
-- `罐頭訊息APP.dc.html` — 完整互動原型(單檔,含 Dashboard/Inbox/Social/Schedule/Draft/Library 六頁 + 5 個 modal + toast),可直接在瀏覽器開啟操作。
-- `screenshots/01-dashboard.png` — 首頁總覽
-- `screenshots/02-inbox.png` — Gmail 郵件匣
-- `screenshots/03-social.png` — 社群媒體(發文歷史)
-- `screenshots/04-schedule.png` — 排程管理
-- `screenshots/05-draft.png` — 草稿撰寫
-- `screenshots/06-library.png` — 文管庫(訊息管理 / 文案管理)
+- `docs/prototype.html` — 完整互動原型(單檔,含 Dashboard/Inbox/Social/Schedule/Draft/Library 六頁 + 5 個 modal + toast),可直接在瀏覽器開啟操作。即原設計交接包內的 `罐頭訊息APP.dc.html`,收入本 repo 時更名。
+- 原設計交接包另附 `screenshots/01-dashboard.png`–`06-library.png` 六張畫面截圖,未隨本 repo 收錄;如需查看畫面,請直接開啟原型檔或線上版(見 README「部署」段)。
 
 以上為最新版本(v2)畫面,反映目前導覽順序與命名。
