@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # 單元測試(純邏輯模組)
+      - run: npm test
+      # 建置(無 secret 環境 = 同時持續驗證「示範模式」建置路徑)
+      - run: npm run build
+      # E2E smoke 跑在 preview server(示範模式,不觸碰 Google 網路)
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

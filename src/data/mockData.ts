@@ -1,7 +1,7 @@
 import type { Email, ScheduleItem, SocialPost, Template } from '../types';
 import { getWeekDates, toISODate } from '../utils/date';
 
-// 示範用假資料:實作 Gmail API 串接後應改為真實郵件(見 docs/HANDOFF.md「資料串接需求」)。
+// 示範模式資料(未連接 Gmail 時顯示);連接後由 useGmail 提供真實郵件。
 export function initialEmails(): Email[] {
   return [
     {

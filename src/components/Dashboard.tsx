@@ -119,6 +119,11 @@ export default function Dashboard({ store }: { store: AppStore }) {
         <div className="card" style={{ flex: 1, padding: 22 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)', marginBottom: 14 }}>
             來自 Gmail 的靈感
+            {store.gmail.status !== 'connected' && (
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', marginLeft: 6 }}>
+                (示範資料)
+              </span>
+            )}
           </div>
           {inspiration.map((mail) => (
             <div

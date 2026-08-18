@@ -1,4 +1,20 @@
 import type { EmailTag, PlatformKey, PlatformMeta } from './types';
+import type { GmailErrorCode } from './services/gmail/errors';
+
+/** Gmail 連線錯誤的使用者文案(依 errors.ts 的 code 對應)。 */
+export const GMAIL_ERROR_COPY: Record<GmailErrorCode, string> = {
+  disabled: '此版本未設定 Gmail 連線',
+  gis_load_failed: 'Google 登入服務載入失敗,請確認網路後重試',
+  popup_blocked: '無法開啟 Google 登入視窗,請允許彈出視窗後重試',
+  access_denied: '已取消授權,未連接 Gmail',
+  cancelled: '已取消連接',
+  network: '網路連線異常,請稍後再試',
+  unauthorized: 'Gmail 授權已過期,請重新連接',
+  quota: '暫時達到 Gmail 用量上限,請稍後再試',
+  server: 'Gmail 服務暫時無法使用,請稍後再試',
+  parse: '郵件資料解析失敗',
+  unknown: '發生未預期的錯誤,請重試',
+};
 
 export const PLATFORM_META: Record<PlatformKey, PlatformMeta> = {
   fb: { key: 'fb', label: 'Facebook', color: '#1877F2', badge: 'f', limit: 63206 },

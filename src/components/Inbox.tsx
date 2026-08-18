@@ -1,7 +1,8 @@
-import { INBOX_FILTERS } from '../constants';
+import { GMAIL_ERROR_COPY, INBOX_FILTERS } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 
 export default function Inbox({ store }: { store: AppStore }) {
+  const g = store.gmail;
   const filtered = store.emails.filter((e) => {
     const matchFilter = store.inboxFilter === '全部' || e.tag === store.inboxFilter;
     const q = store.inboxSearch.trim();
@@ -14,9 +15,65 @@ export default function Inbox({ store }: { store: AppStore }) {
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
         Gmail 郵件匣
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
-        已串接帳號:xiaori.life@gmail.com · AI 自動標示適合轉發文的內容
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
+          {g.status === 'disabled' && '示範模式:此建置未設定 Gmail 連線,以下為示範資料'}
+          {g.status === 'disconnected' && '示範模式:顯示示範郵件,可連接真實 Gmail 帳號'}
+          {g.status === 'connecting' && '連接中…'}
+          {g.status === 'connected' &&
+            `已串接帳號:${g.accountEmail ?? ''} · 近 7 天郵件(分類標籤為本機規則示範)`}
+          {g.status === 'error' && 'Gmail 連線發生問題'}
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          {(g.status === 'disconnected' || g.status === 'connecting') && (
+            <button
+              className="btn btn-primary"
+              onClick={g.connect}
+              disabled={g.status === 'connecting'}
+            >
+              {g.status === 'connecting' ? '連接中…' : '連接 Gmail 帳號'}
+            </button>
+          )}
+          {g.status === 'connected' && (
+            <>
+              <button className="btn btn-outline" onClick={g.refresh} disabled={g.loadingEmails}>
+                {g.loadingEmails ? '載入中…' : '重新整理'}
+              </button>
+              <button className="btn btn-ghost" onClick={g.disconnect}>
+                中斷連線
+              </button>
+            </>
+          )}
+          {g.status === 'error' && (
+            <button className="btn btn-primary" onClick={g.retry}>
+              {g.error?.code === 'unauthorized' ? '重新連接' : '重試'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {g.status === 'error' && g.error && (
+        <div
+          className="card"
+          style={{
+            padding: '14px 18px',
+            marginBottom: 16,
+            fontSize: 13,
+            color: 'var(--error)',
+            background: 'var(--pill-orange-bg)',
+          }}
+        >
+          {GMAIL_ERROR_COPY[g.error.code]}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
         <input
@@ -49,7 +106,14 @@ export default function Inbox({ store }: { store: AppStore }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        {filtered.map((mail) => (
+        {g.loadingEmails && (
+          <div
+            style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-weak)' }}
+          >
+            郵件載入中…
+          </div>
+        )}
+        {!g.loadingEmails && filtered.map((mail) => (
           <div
             key={mail.id}
             style={{
@@ -124,11 +188,13 @@ export default function Inbox({ store }: { store: AppStore }) {
             </button>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {!g.loadingEmails && filtered.length === 0 && (
           <div
             style={{ padding: '32px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
           >
-            沒有符合條件的郵件
+            {g.status === 'connected' && store.emails.length === 0
+              ? '近 7 天沒有郵件,可點選「重新整理」再試'
+              : '沒有符合條件的郵件'}
           </div>
         )}
       </div>

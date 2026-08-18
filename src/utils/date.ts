@@ -22,6 +22,12 @@ export function dateLabel(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+/** 郵件日期顯示用:同年 M/D,跨年 YYYY/M/D。 */
+export function shortDateLabel(d: Date): string {
+  const md = `${d.getMonth() + 1}/${d.getDate()}`;
+  return d.getFullYear() === new Date().getFullYear() ? md : `${d.getFullYear()}/${md}`;
+}
+
 const FULL_WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
 /** '2026年7月14日 星期二' */

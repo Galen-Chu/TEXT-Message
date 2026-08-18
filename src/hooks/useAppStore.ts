@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useGmail } from './useGmail';
 import { PLATFORM_LIST, TONE_REWRITES, type LibraryMainTab, type Tone } from '../constants';
 import {
   initialCopyTemplates,
@@ -42,9 +43,12 @@ function tomorrowISO(): string {
 
 export function useAppStore() {
   const weekDates = getWeekDates();
+  const gmail = useGmail();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [emails] = useState<Email[]>(initialEmails);
+  const [demoEmails] = useState<Email[]>(initialEmails);
+  // 已連線 Gmail → 真實郵件(即使為空也不退回示範資料);否則示範模式
+  const emails = gmail.status === 'connected' ? gmail.emails : demoEmails;
   const [templates, setTemplates] = useState<Template[]>(() =>
     loadPersisted('templates', initialTemplates()),
   );
@@ -214,6 +218,7 @@ export function useAppStore() {
     weekDates,
     activeTab,
     setActiveTab,
+    gmail,
     emails,
     templates,
     copyTemplates,

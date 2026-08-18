@@ -27,8 +27,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # 由 secret 寫入 Gmail Client ID;secret 缺漏時不寫檔 = 純示範模式建置(不失敗)
+      - name: Write Gmail client ID env
+        env:
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+        run: |
+          if [ -n "$GMAIL_CLIENT_ID" ]; then
+            printf 'VITE_GMAIL_CLIENT_ID=%s\n' "$GMAIL_CLIENT_ID" > .env.production
+          fi
+      - run: npm test
       # build 內含 tsc -b 型別檢查,等同基本 CI 關卡
       - run: npm run build
+      # E2E smoke 跑在 preview server;通過才部署(驗收站品質閘門)
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

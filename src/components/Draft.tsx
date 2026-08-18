@@ -56,6 +56,11 @@ export default function Draft({ store }: { store: AppStore }) {
 
       {hasDraftTarget && (
         <div className="draft-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+          {!sourceMail && store.selectedMailId !== 'blank' && (
+            <div className="card draft-source" style={{ padding: 18, fontSize: 12.5, color: 'var(--text-weak)' }}>
+              來源郵件已不在清單中(可能已中斷連線或重新整理)
+            </div>
+          )}
           {sourceMail && (
             <div className="card draft-source" style={{ padding: 18 }}>
               <div
