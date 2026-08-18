@@ -1,5 +1,5 @@
 import type { AppStore } from '../hooks/useAppStore';
-import { dateLabel, fullDateLabel, greeting } from '../utils/date';
+import { dateLabel, fullDateLabel, greeting, toISODate } from '../utils/date';
 import PlatformBadge from './PlatformBadge';
 
 export default function Dashboard({ store }: { store: AppStore }) {
@@ -11,10 +11,14 @@ export default function Dashboard({ store }: { store: AppStore }) {
 
   const thisWeekCount = store.scheduleItems.filter((i) => store.weekDates.includes(i.date)).length;
 
+  // 本月已發佈:由社群媒體發文歷史的日期即時計算(不再寫死)
+  const monthKey = toISODate(new Date()).slice(0, 7);
+  const monthPublished = store.socialHistory.filter((p) => p.date.startsWith(monthKey)).length;
+
   const statCards = [
     { label: '本週已排程', value: thisWeekCount, color: 'var(--brand)' },
     { label: '草稿數量', value: store.selectedMailId ? 1 : 0, color: 'var(--accent)' },
-    { label: '本月已發佈', value: 12, color: 'var(--text-main)' },
+    { label: '本月已發佈', value: monthPublished, color: 'var(--text-main)' },
     {
       label: '待處理合作邀約',
       value: store.emails.filter((e) => e.tag === '合作邀約').length,
@@ -50,9 +54,9 @@ export default function Dashboard({ store }: { store: AppStore }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+      <div className="stat-row" style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {statCards.map((stat) => (
-          <div key={stat.label} className="card" style={{ flex: 1, padding: 20 }}>
+          <div key={stat.label} className="card stat-card" style={{ padding: 20 }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: stat.color }}>{stat.value}</div>
             <div style={{ fontSize: 12.5, color: 'var(--text-weak)', marginTop: 6, fontWeight: 500 }}>
               {stat.label}
@@ -61,7 +65,7 @@ export default function Dashboard({ store }: { store: AppStore }) {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div className="dash-two-col" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div className="card" style={{ flex: 1, padding: 22 }}>
           <div
             style={{

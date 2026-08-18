@@ -13,17 +13,7 @@ const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
 
 export default function Sidebar({ store }: { store: AppStore }) {
   return (
-    <div
-      style={{
-        width: 232,
-        flexShrink: 0,
-        background: '#fff',
-        borderRight: '1px solid var(--border-1)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 16px',
-      }}
-    >
+    <div className="app-sidebar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 24px 8px' }}>
         <div
           style={{
@@ -41,7 +31,9 @@ export default function Sidebar({ store }: { store: AppStore }) {
         >
           文
         </div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>文管庫</div>
+        <div className="sidebar-brand-text" style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
+          文管庫
+        </div>
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -50,6 +42,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
           return (
             <button
               key={item.key}
+              className="nav-btn"
               onClick={() => store.setActiveTab(item.key)}
               style={{
                 display: 'flex',
@@ -65,21 +58,19 @@ export default function Sidebar({ store }: { store: AppStore }) {
               }}
             >
               <span style={{ fontSize: 18 }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="nav-label">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
       <div
+        className="sidebar-footer"
         style={{
           marginTop: 'auto',
           padding: '14px 12px',
           background: '#F8F7FD',
           borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
         }}
       >
         <div

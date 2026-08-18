@@ -13,7 +13,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
       <Sidebar store={store} />
-      <main style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', position: 'relative' }}>
+      <main className="app-main" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         {store.activeTab === 'dashboard' && <Dashboard store={store} />}
         {store.activeTab === 'inbox' && <Inbox store={store} />}
         {store.activeTab === 'social' && <Social store={store} />}

@@ -154,3 +154,84 @@ button {
   z-index: 100;
   animation: toastIn 0.2s ease;
 }
+
+/* ── 響應式版面:以下 class 的基礎樣式對應原本 inline 樣式,窄視窗時收合 ── */
+.app-sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid var(--border-1);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+}
+.app-main {
+  padding: 32px 40px;
+}
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stat-card {
+  flex: 1;
+}
+.draft-source {
+  width: 280px;
+  flex-shrink: 0;
+}
+.library-cats {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-card {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+@media (max-width: 1024px) {
+  .stat-row {
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    flex: 1 1 45%;
+  }
+  .dash-two-col,
+  .draft-layout {
+    flex-direction: column;
+  }
+  .draft-source {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-sidebar {
+    width: 64px;
+    padding: 16px 8px;
+  }
+  .sidebar-brand-text,
+  .sidebar-footer,
+  .nav-label {
+    display: none;
+  }
+  .nav-btn {
+    justify-content: center;
+    padding: 10px 0;
+  }
+  .app-main {
+    padding: 16px;
+  }
+  .library-layout {
+    flex-direction: column;
+  }
+  .library-cats {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

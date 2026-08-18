@@ -55,9 +55,9 @@ export default function Draft({ store }: { store: AppStore }) {
       )}
 
       {hasDraftTarget && (
-        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div className="draft-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           {sourceMail && (
-            <div className="card" style={{ width: 280, flexShrink: 0, padding: 18 }}>
+            <div className="card draft-source" style={{ padding: 18 }}>
               <div
                 style={{
                   fontSize: 11,

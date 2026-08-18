@@ -1,5 +1,5 @@
 import type { Email, ScheduleItem, SocialPost, Template } from '../types';
-import { getWeekDates } from '../utils/date';
+import { getWeekDates, toISODate } from '../utils/date';
 
 // 示範用假資料:實作 Gmail API 串接後應改為真實郵件(見 docs/HANDOFF.md「資料串接需求」)。
 export function initialEmails(): Email[] {
@@ -89,14 +89,21 @@ export function initialCopyTemplates(): Template[] {
 }
 
 // 社群媒體發文歷史(唯讀):正式環境應接各平台發文 API 或內部發文紀錄資料庫。
+// 日期以「今天」為基準回推,讓 Dashboard「本月已發佈」等統計隨示範日期自然呈現。
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return toISODate(d);
+}
+
 export function initialSocialHistory(): SocialPost[] {
   return [
-    { id: 'h1', platform: 'fb', title: '夏日離島慢活企劃上線', content: '這次企劃跑了三座離島,整理成一篇完整的慢活指南,連結在留言處 🏝️', date: '2026-07-08', time: '09:00' },
-    { id: 'h2', platform: 'ig', title: '選物分享:桌面香氛小物', content: '最近辦公桌上的小確幸,幾款喜歡的香氛小物一次分享給大家 🕯️', date: '2026-07-07', time: '19:30' },
-    { id: 'h3', platform: 'threads', title: '週間閒聊:慢慢來也是一種前進', content: '這句話最近很有感觸,想跟大家分享,也想聽聽你們最近的步調如何 🌿', date: '2026-07-05', time: '21:00' },
-    { id: 'h4', platform: 'line', title: '本月電子報重點回顧', content: '整理了這個月分享過的幾篇重點內容,給還沒看過的你們一次補齊 📬', date: '2026-07-03', time: '08:00' },
-    { id: 'h5', platform: 'fb', title: '讀者提問:如何規劃長住行程', content: '收到很多關於長住行程規劃的提問,這篇整理了我自己的排法給大家參考', date: '2026-06-29', time: '12:00' },
-    { id: 'h6', platform: 'ig', title: '合作花絮:秋季香氛蠟燭試用', content: '拍攝花絮先偷偷曝光一點點,正式開箱文下週見 ✨', date: '2026-06-25', time: '20:00' },
+    { id: 'h1', platform: 'fb', title: '夏日離島慢活企劃上線', content: '這次企劃跑了三座離島,整理成一篇完整的慢活指南,連結在留言處 🏝️', date: daysAgo(3), time: '09:00' },
+    { id: 'h2', platform: 'ig', title: '選物分享:桌面香氛小物', content: '最近辦公桌上的小確幸,幾款喜歡的香氛小物一次分享給大家 🕯️', date: daysAgo(5), time: '19:30' },
+    { id: 'h3', platform: 'threads', title: '週間閒聊:慢慢來也是一種前進', content: '這句話最近很有感觸,想跟大家分享,也想聽聽你們最近的步調如何 🌿', date: daysAgo(8), time: '21:00' },
+    { id: 'h4', platform: 'line', title: '本月電子報重點回顧', content: '整理了這個月分享過的幾篇重點內容,給還沒看過的你們一次補齊 📬', date: daysAgo(12), time: '08:00' },
+    { id: 'h5', platform: 'fb', title: '讀者提問:如何規劃長住行程', content: '收到很多關於長住行程規劃的提問,這篇整理了我自己的排法給大家參考', date: daysAgo(21), time: '12:00' },
+    { id: 'h6', platform: 'ig', title: '合作花絮:秋季香氛蠟燭試用', content: '拍攝花絮先偷偷曝光一點點,正式開箱文下週見 ✨', date: daysAgo(28), time: '20:00' },
   ];
 }
 

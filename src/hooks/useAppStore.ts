@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { PLATFORM_LIST, TONE_REWRITES, type LibraryMainTab, type Tone } from '../constants';
 import {
   initialCopyTemplates,
@@ -20,6 +20,20 @@ import { getWeekDates, toISODate } from '../utils/date';
 
 export type AppStore = ReturnType<typeof useAppStore>;
 
+// 使用者建立的內容(範本/排程)存 localStorage,重新整理不消失;
+// 讀寫失敗(隱私模式等)時靜默退回記憶體模式。
+const STORAGE_KEY = 'text-message:v2';
+
+function loadPersisted<T>(field: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : null;
+    return data && Array.isArray(data[field]) ? (data[field] as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function tomorrowISO(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -31,10 +45,27 @@ export function useAppStore() {
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [emails] = useState<Email[]>(initialEmails);
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
-  const [copyTemplates, setCopyTemplates] = useState<Template[]>(initialCopyTemplates);
+  const [templates, setTemplates] = useState<Template[]>(() =>
+    loadPersisted('templates', initialTemplates()),
+  );
+  const [copyTemplates, setCopyTemplates] = useState<Template[]>(() =>
+    loadPersisted('copyTemplates', initialCopyTemplates()),
+  );
   const [socialHistory] = useState<SocialPost[]>(initialSocialHistory);
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialSchedule);
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() =>
+    loadPersisted('scheduleItems', initialSchedule()),
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ templates, copyTemplates, scheduleItems }),
+      );
+    } catch {
+      // localStorage 不可用時僅退回記憶體模式,不影響操作
+    }
+  }, [templates, copyTemplates, scheduleItems]);
 
   // 草稿:來源郵件 id、'blank'(空白草稿)或 null(尚未開始)
   const [selectedMailId, setSelectedMailId] = useState<string | null>(null);

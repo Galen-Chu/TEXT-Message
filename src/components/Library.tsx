@@ -96,8 +96,8 @@ export default function Library({ store }: { store: AppStore }) {
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-        <div style={{ width: 180, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="library-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div className="library-cats">
           {categories.map((cat) => {
             const active = category === cat;
             return (
