@@ -11,8 +11,17 @@
  */
 import type { Tone } from '../../constants';
 
-/** 模型名稱會隨 Google 更新淘汰,調整只需改這裡。 */
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+/**
+ * 模型候選(依序嘗試):新發行的 key(尤其新格式 AQ 開頭)未必有
+ * 舊模型的存取權,反之亦然 — TASK-Schedule 的經驗是逐一探測並記住
+ * 第一個可用的。404 = 換下一個;401/403 = key 問題,直接結束。
+ */
+export const GEMINI_MODEL_CANDIDATES = [
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
+  'gemini-2.0-flash',
+] as const;
 
 export type RewriteErrorCode =
   | 'invalid_key'
@@ -20,6 +29,7 @@ export type RewriteErrorCode =
   | 'server'
   | 'network'
   | 'no_content'
+  | 'model_unavailable'
   | 'unknown';
 
 export type RewriteResult = { ok: true; text: string } | { ok: false; code: RewriteErrorCode };
@@ -55,10 +65,31 @@ export function parseGeminiReply(json: unknown): string | null {
 
 /** fetch 回應的 HTTP 狀態 → 錯誤碼(純函式,便於測試)。 */
 export function statusToCode(status: number): RewriteErrorCode {
-  if (status === 400 || status === 401 || status === 403) return 'invalid_key';
+  if (status === 401 || status === 403) return 'invalid_key';
+  if (status === 400) return 'invalid_key';
+  if (status === 404) return 'model_unavailable';
   if (status === 429) return 'quota';
   if (status >= 500) return 'server';
   return 'unknown';
+}
+
+/** 已探測可用的模型(存 localStorage,之後直接用,不再逐一重試)。 */
+const MODEL_STORAGE = 'text-message:gemini-model';
+
+function loadResolvedModel(): string {
+  try {
+    return localStorage.getItem(MODEL_STORAGE) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function saveResolvedModel(model: string): void {
+  try {
+    localStorage.setItem(MODEL_STORAGE, model);
+  } catch {
+    // 記不住就每次重試,不影響功能
+  }
 }
 
 export async function rewriteWithGemini(input: {
@@ -68,32 +99,51 @@ export async function rewriteWithGemini(input: {
   limit?: number;
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
-  let resp: Response;
-  try {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': input.apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: buildRewritePrompt(input.text, input.tone, input.limit) }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-        }),
-        signal: input.signal,
-      },
-    );
-  } catch {
-    return { ok: false, code: 'network' };
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: buildRewritePrompt(input.text, input.tone, input.limit) }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+  });
+  const candidates = [loadResolvedModel(), ...GEMINI_MODEL_CANDIDATES].filter(
+    (m, i, arr): m is string => !!m && arr.indexOf(m) === i,
+  );
+
+  let lastCode: RewriteErrorCode = 'unknown';
+  for (const model of candidates) {
+    let resp: Response;
+    try {
+      resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': input.apiKey },
+          body,
+          signal: input.signal,
+        },
+      );
+    } catch {
+      return { ok: false, code: 'network' };
+    }
+    if (!resp.ok) {
+      lastCode = statusToCode(resp.status);
+      // 404 = 此 key 無此模型 → 試下一個候選;其餘錯誤(key/額度/服務)立即結束
+      if (lastCode !== 'model_unavailable') return { ok: false, code: lastCode };
+      continue;
+    }
+    let json: unknown;
+    try {
+      json = await resp.json();
+    } catch {
+      lastCode = 'unknown';
+      continue;
+    }
+    const text = parseGeminiReply(json);
+    if (text) {
+      saveResolvedModel(model);
+      return { ok: true, text };
+    }
+    lastCode = 'no_content';
   }
-  if (!resp.ok) return { ok: false, code: statusToCode(resp.status) };
-  let json: unknown;
-  try {
-    json = await resp.json();
-  } catch {
-    return { ok: false, code: 'unknown' };
-  }
-  const text = parseGeminiReply(json);
-  return text ? { ok: true, text } : { ok: false, code: 'no_content' };
+  return { ok: false, code: lastCode };
 }
 
 // ---- key 存取(僅使用者自己的瀏覽器;與內容資料的 text-message:v2 分開) ----

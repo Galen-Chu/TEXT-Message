@@ -84,6 +84,7 @@ export const GEMINI_ERROR_COPY: Record<string, string> = {
   server: 'Gemini 服務暫時無法使用,請稍後再試',
   network: '網路連線異常,請稍後再試',
   no_content: 'Gemini 沒有回傳改寫內容,請再試一次',
+  model_unavailable: '此 key 無法使用任何內建模型候選,請確認 key 已啟用 Generative Language API',
   unknown: '改寫失敗,草稿保持原狀,請再試一次',
 };
 
