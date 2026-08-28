@@ -97,7 +97,7 @@ export const GEMINI_KEY_MODAL = {
     + '不會傳給本站或其他任何伺服器。清除後即完全移除。',
   getKeyTip: '還沒有 key?到 Google AI Studio 免費申請:',
   getKeyUrl: 'https://aistudio.google.com/apikey',
-  placeholder: '貼上 API key(AIza 開頭)',
+  placeholder: '貼上 API key(AI Studio 提供,新舊格式皆可)',
   save: '儲存 key',
   clear: '清除 key',
   savedToast: '已儲存 Gemini API key,語氣改寫升級為真實 AI ✨',
