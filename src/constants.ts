@@ -16,6 +16,22 @@ export const GMAIL_ERROR_COPY: Record<GmailErrorCode, string> = {
   unknown: '發生未預期的錯誤,請重試',
 };
 
+/** 連接前提示:測試模式的「未驗證應用」警告是預期行為(對應 SETUP.md §7)。 */
+export const CONNECT_UNVERIFIED_HINT =
+  '首次連接若出現「未驗證的應用程式」警告,屬測試模式預期:點「進階」→「前往 文管庫(不安全)」即可繼續。';
+
+/** 已連接但收件匣空白時的引導(查詢條件=近 7 天且仍在收件匣)。 */
+export const INBOX_EMPTY_CONNECTED = {
+  title: '已連接成功,但收件匣沒有近 7 天的郵件',
+  desc: '這裡只顯示「近 7 天且仍在收件匣」的信——已封存、垃圾郵件不列入,所以 quiet 的信箱會是空的。',
+  action: '用 Gmail 寄一封測試信給自己',
+  after: '寄出後等約 30 秒,回來點上方「重新整理」;這封信會被自動分類為「電子報」。',
+  subject: '測試電子報:本週精選趨勢觀察',
+  body:
+    '這是「文管庫」驗收流程產生的測試信。收到後回到網站點「重新整理」,'
+    + '這封信應出現在清單中,並帶有「電子報」分類標籤與「✨ AI 建議可發文」。',
+};
+
 export const PLATFORM_META: Record<PlatformKey, PlatformMeta> = {
   fb: { key: 'fb', label: 'Facebook', color: '#1877F2', badge: 'f', limit: 63206 },
   ig: { key: 'ig', label: 'Instagram', color: '#C13584', badge: 'IG', limit: 2200 },

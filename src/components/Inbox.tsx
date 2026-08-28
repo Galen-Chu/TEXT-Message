@@ -1,4 +1,10 @@
-import { GMAIL_ERROR_COPY, INBOX_FILTERS } from '../constants';
+import {
+  CONNECT_UNVERIFIED_HINT,
+  GMAIL_ERROR_COPY,
+  INBOX_EMPTY_CONNECTED,
+  INBOX_FILTERS,
+} from '../constants';
+import { gmailComposeUrl } from '../services/gmail/compose';
 import type { AppStore } from '../hooks/useAppStore';
 
 export default function Inbox({ store }: { store: AppStore }) {
@@ -59,6 +65,12 @@ export default function Inbox({ store }: { store: AppStore }) {
           )}
         </div>
       </div>
+
+      {g.status === 'disconnected' && (
+        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 12, lineHeight: 1.6 }}>
+          {CONNECT_UNVERIFIED_HINT}
+        </div>
+      )}
 
       {g.status === 'error' && g.error && (
         <div
@@ -188,13 +200,33 @@ export default function Inbox({ store }: { store: AppStore }) {
             </button>
           </div>
         ))}
-        {!g.loadingEmails && filtered.length === 0 && (
+        {!g.loadingEmails && filtered.length === 0 && g.status === 'connected' && store.emails.length === 0 && (
+          <div style={{ padding: '36px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+              {INBOX_EMPTY_CONNECTED.title}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-weak)', lineHeight: 1.7, marginBottom: 16 }}>
+              {INBOX_EMPTY_CONNECTED.desc}
+            </div>
+            <a
+              href={gmailComposeUrl(g.accountEmail ?? '', INBOX_EMPTY_CONNECTED.subject, INBOX_EMPTY_CONNECTED.body)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+              style={{ textDecoration: 'none', display: 'inline-block', padding: '10px 18px' }}
+            >
+              {INBOX_EMPTY_CONNECTED.action}
+            </a>
+            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 14, lineHeight: 1.7 }}>
+              {INBOX_EMPTY_CONNECTED.after}
+            </div>
+          </div>
+        )}
+        {!g.loadingEmails && filtered.length === 0 && !(g.status === 'connected' && store.emails.length === 0) && (
           <div
             style={{ padding: '32px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
           >
-            {g.status === 'connected' && store.emails.length === 0
-              ? '近 7 天沒有郵件,可點選「重新整理」再試'
-              : '沒有符合條件的郵件'}
+            沒有符合條件的郵件
           </div>
         )}
       </div>
