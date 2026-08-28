@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import { PLATFORM_LIST, PLATFORM_META, TONE_OPTIONS } from '../constants';
+import {
+  GEMINI_KEY_MODAL,
+  GEMINI_MODE_LABEL,
+  PLATFORM_LIST,
+  PLATFORM_META,
+  TONE_OPTIONS,
+} from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { charCount, dateLabel } from '../utils/date';
 import Modal from './Modal';
+import GeminiKeyModal from './GeminiKeyModal';
 
 export default function Draft({ store }: { store: AppStore }) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showSocialPicker, setShowSocialPicker] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(store.tomorrowISO);
   const [scheduleTime, setScheduleTime] = useState('09:00');
 
@@ -106,9 +114,19 @@ export default function Draft({ store }: { store: AppStore }) {
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                  AI 語氣輔助改寫(輔助功能,可略過)
+                  {store.toneBusy
+                    ? GEMINI_MODE_LABEL.busy
+                    : store.geminiKey
+                      ? GEMINI_MODE_LABEL.on
+                      : GEMINI_MODE_LABEL.off}
                 </div>
                 <div style={{ display: 'flex', gap: 14 }}>
+                  <button
+                    onClick={() => setShowKeyModal(true)}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    ⚙️ AI 設定
+                  </button>
                   <button
                     onClick={() => setShowTemplatePicker(true)}
                     style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
@@ -127,7 +145,8 @@ export default function Draft({ store }: { store: AppStore }) {
                 {TONE_OPTIONS.map((tone) => (
                   <button
                     key={tone}
-                    onClick={() => store.applyTone(tone)}
+                    onClick={() => void store.applyTone(tone)}
+                    disabled={store.toneBusy}
                     style={{
                       padding: '7px 14px',
                       borderRadius: 9,
@@ -136,6 +155,8 @@ export default function Draft({ store }: { store: AppStore }) {
                       background: 'var(--bg)',
                       color: 'var(--brand)',
                       border: '1px solid var(--pill-purple-bg-2)',
+                      opacity: store.toneBusy ? 0.5 : 1,
+                      cursor: store.toneBusy ? 'wait' : 'pointer',
                     }}
                   >
                     {tone}
@@ -277,6 +298,21 @@ export default function Draft({ store }: { store: AppStore }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showKeyModal && (
+        <GeminiKeyModal
+          hasKey={!!store.geminiKey}
+          onSave={(key) => {
+            store.setGeminiKey(key);
+            store.showToast(GEMINI_KEY_MODAL.savedToast);
+          }}
+          onClear={() => {
+            store.setGeminiKey('');
+            store.showToast(GEMINI_KEY_MODAL.clearedToast);
+          }}
+          onClose={() => setShowKeyModal(false)}
+        />
       )}
 
       {showTemplatePicker && (

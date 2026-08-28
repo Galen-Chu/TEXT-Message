@@ -16,6 +16,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - `src/hooks/useAppStore.ts` — 核心 store(單一 hook,元件以 props 接 `store`)
 - `src/hooks/useGmail.ts` — Gmail 連線狀態機(`disabled|disconnected|connecting|connected|error`)
 - `src/services/gmail/` — Gmail 模組:`gis`(OAuth token model)/`gmailApi`(REST)/`mime`(中文 MIME 解析)/`classify`(規則式分類)/`mapToEmail`/`config`/`errors`;皆純邏輯、DOM-free(node 環境可測)
+- `src/services/gemini/rewrite.ts` — 語氣改寫(BYOK):prompt 組裝/回應解析/狀態碼對應為純函式;key 存 localStorage `text-message:gemini-key`(獨立於內容資料的 `text-message:v2`)
 - `src/components/` — 六頁面 + Sidebar / Modal / PlatformBadge
 - `src/data/mockData.ts` — 示範模式假資料(日期相對今天回推,不會過期)
 - `src/constants.ts` — 平台定義、分類、語氣規則、`GMAIL_ERROR_COPY`(UI 字串集中於此)
@@ -26,6 +27,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - `emails` 由 useAppStore 推導:**以 `gmail.status` 判斷、不是長度**——連線後空收件匣不得退回示範資料
 - localStorage 持久化僅限 templates / copyTemplates / scheduleItems(key `text-message:v2`);**emails 與 access token 絕不落地**(token 僅存記憶體,中斷連線即向 Google revoke)
 - 未設定 `VITE_GMAIL_CLIENT_ID` 的建置=純示範模式(不出現連接按鈕),且**建置不得失敗**——PR CI 常態驗證此路徑
+- 語氣改寫分流:`useAppStore.applyTone` 有 Gemini key → 真實 API(失敗時草稿不動、僅 toast);無 key → 規則示範(`TONE_REWRITES`),**任何路徑都不得影響建置/CI**
 - 分類器為規則式關鍵字(非 AI);「活動通知」一律不建議可發文(與示範資料行為一致)
 
 ## Gmail 串接設定
@@ -42,7 +44,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 ## 開發待辦(仍為示範資料/前端規則)
 
-社群平台發文歷史 API、排程後端與提醒、LLM 語氣改寫。
+社群平台發文歷史 API、排程後端與提醒。(LLM 語氣改寫已於 2026-08-28 以 BYOG/Gemini 上線:使用者自帶 key,`services/gemini/rewrite.ts`)
 
 ## 慣例
 

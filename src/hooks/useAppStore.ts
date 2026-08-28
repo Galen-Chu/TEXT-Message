@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGmail } from './useGmail';
-import { PLATFORM_LIST, TONE_REWRITES, type LibraryMainTab, type Tone } from '../constants';
+import {
+  GEMINI_ERROR_COPY,
+  PLATFORM_LIST,
+  PLATFORM_META,
+  TONE_REWRITES,
+  type LibraryMainTab,
+  type Tone,
+} from '../constants';
+import { clearGeminiKey, loadGeminiKey, rewriteWithGemini, saveGeminiKey } from '../services/gemini/rewrite';
 import {
   initialCopyTemplates,
   initialEmails,
@@ -112,9 +120,37 @@ export function useAppStore() {
     setDraftText('');
   };
 
-  const applyTone = (tone: Tone) => {
-    setDraftText((t) => TONE_REWRITES[tone](t));
-    showToast(`AI 已套用「${tone}」語氣`);
+  // Gemini BYOK:key 僅存使用者瀏覽器;未設定 → 規則示範路徑
+  const [geminiKey, setGeminiKeyState] = useState(() => loadGeminiKey());
+  const [toneBusy, setToneBusy] = useState(false);
+
+  const setGeminiKey = (key: string) => {
+    if (key) saveGeminiKey(key);
+    else clearGeminiKey();
+    setGeminiKeyState(key);
+  };
+
+  const applyTone = async (tone: Tone) => {
+    if (toneBusy) return;
+    if (!geminiKey) {
+      setDraftText((t) => TONE_REWRITES[tone](t));
+      showToast(`已套用「${tone}」語氣(規則示範;於「AI 設定」輸入 key 可啟用真實 AI)`);
+      return;
+    }
+    setToneBusy(true);
+    // 草稿可能發佈到多個平台:字數上限取���已選平台中最嚴格者」
+    const selectedLimits = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map(
+      (p) => PLATFORM_META[p.key].limit,
+    );
+    const limit = selectedLimits.length ? Math.min(...selectedLimits) : undefined;
+    const result = await rewriteWithGemini({ apiKey: geminiKey, text: draftText, tone, limit });
+    setToneBusy(false);
+    if (result.ok) {
+      setDraftText(result.text);
+      showToast(`Gemini 已套用「${tone}」語氣 ✨`);
+    } else {
+      showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+    }
   };
 
   const togglePlatform = (key: PlatformKey) => {
@@ -251,6 +287,9 @@ export function useAppStore() {
     convertToDraft,
     startBlankDraft,
     applyTone,
+    geminiKey,
+    setGeminiKey,
+    toneBusy,
     togglePlatform,
     insertTemplateIntoDraft,
     pickSocialPost,

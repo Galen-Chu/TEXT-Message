@@ -76,3 +76,36 @@ export const TONE_REWRITES: Record<Tone, (t: string) => string> = {
 };
 
 export const WEEKDAY_LABELS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+/** Gemini 語氣改寫(BYOK)的使用者文案。 */
+export const GEMINI_ERROR_COPY: Record<string, string> = {
+  invalid_key: 'Gemini API key 無效或已停用,請至「AI 設定」檢查',
+  quota: 'Gemini 用量暫時達到上限,請稍後再試',
+  server: 'Gemini 服務暫時無法使用,請稍後再試',
+  network: '網路連線異常,請稍後再試',
+  no_content: 'Gemini 沒有回傳改寫內容,請再試一次',
+  unknown: '改寫失敗,草稿保持原狀,請再試一次',
+};
+
+export const GEMINI_KEY_MODAL = {
+  title: 'AI 設定(Gemini API key)',
+  desc:
+    '輸入你自己的 Google AI Studio API key 後,語氣改寫會改用真實的 Gemini 模型;'
+    + '未設定時維持規則示範模式。',
+  privacy:
+    '🔒 key 只儲存在你目前的瀏覽器(localStorage),僅由你的瀏覽器直接呼叫 Google,'
+    + '不會傳給本站或其他任何伺服器。清除後即完全移除。',
+  getKeyTip: '還沒有 key?到 Google AI Studio 免費申請:',
+  getKeyUrl: 'https://aistudio.google.com/apikey',
+  placeholder: '貼上 API key(AIza 開頭)',
+  save: '儲存 key',
+  clear: '清除 key',
+  savedToast: '已儲存 Gemini API key,語氣改寫升級為真實 AI ✨',
+  clearedToast: '已清除 key,回到規則示範模式',
+};
+
+export const GEMINI_MODE_LABEL = {
+  off: 'AI 語氣輔助改寫(規則示範模式)',
+  on: 'AI 語氣改寫(Gemini)',
+  busy: 'Gemini 改寫中…',
+};
