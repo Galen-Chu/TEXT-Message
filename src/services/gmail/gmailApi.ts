@@ -43,14 +43,21 @@ export async function fetchProfile(token: string): Promise<GmailProfile> {
   return fetchGmail<GmailProfile>(`${API}/profile`, token);
 }
 
-/** 近 7 天收件匣的郵件 id 清單(依 Gmail 預設 newest first)。 */
-export async function listMessageIds(token: string): Promise<string[]> {
+/** 近 7 天收件匣的郵件 id 清單頁(依 Gmail 預設 newest first;nextPageToken 供載入更多)。 */
+export async function listMessageIds(
+  token: string,
+  pageToken?: string,
+): Promise<{ ids: string[]; nextPageToken: string | null }> {
   const params = new URLSearchParams({
     maxResults: String(GMAIL_MAX_RESULTS),
     q: GMAIL_LIST_QUERY,
   });
+  if (pageToken) params.set('pageToken', pageToken);
   const data = await fetchGmail<GmailMessageListResponse>(`${API}/messages?${params}`, token);
-  return (data.messages ?? []).map((m) => m.id);
+  return {
+    ids: (data.messages ?? []).map((m) => m.id),
+    nextPageToken: data.nextPageToken ?? null,
+  };
 }
 
 /** 逐封抓取完整郵件;併發受限,單封失敗跳過(不讓整批失敗)。 */

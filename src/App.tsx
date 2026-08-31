@@ -21,7 +21,11 @@ export default function App() {
         {store.activeTab === 'library' && <Library store={store} />}
         {store.activeTab === 'schedule' && <Schedule store={store} />}
       </main>
-      {store.toastMessage && <div className="toast">{store.toastMessage}</div>}
+      {store.toastMessage && (
+        <div className="toast" role="status" aria-live="polite">
+          {store.toastMessage}
+        </div>
+      )}
     </div>
   );
 }

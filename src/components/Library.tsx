@@ -85,7 +85,7 @@ export default function Library({ store }: { store: AppStore }) {
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 700,
-                background: active ? 'var(--brand)' : '#fff',
+                background: active ? 'var(--brand)' : 'var(--card)',
                 color: active ? '#fff' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
@@ -198,7 +198,7 @@ export default function Library({ store }: { store: AppStore }) {
       </div>
 
       {showNewModal && (
-        <Modal onClose={() => setShowNewModal(false)} width={440}>
+        <Modal onClose={() => setShowNewModal(false)} width={440} label="新增內容">
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
             新增內容
           </div>

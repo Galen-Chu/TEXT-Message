@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGmail } from './useGmail';
 import {
+  DRAFT_AI_COPY,
   GEMINI_ERROR_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
@@ -8,7 +9,14 @@ import {
   type LibraryMainTab,
   type Tone,
 } from '../constants';
-import { clearGeminiKey, loadGeminiKey, rewriteWithGemini, saveGeminiKey } from '../services/gemini/rewrite';
+import {
+  clearGeminiKey,
+  loadGeminiKey,
+  rewriteWithGemini,
+  rewriteWithInstruction,
+  saveGeminiKey,
+  summarizeWithGemini,
+} from '../services/gemini/rewrite';
 import {
   initialCopyTemplates,
   initialEmails,
@@ -25,7 +33,7 @@ import type {
   Tab,
   Template,
 } from '../types';
-import { getWeekDates, toISODate } from '../utils/date';
+import { charCount, getWeekDates, toISODate } from '../utils/date';
 
 export type AppStore = ReturnType<typeof useAppStore>;
 
@@ -47,6 +55,12 @@ function tomorrowISO(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return toISODate(d);
+}
+
+/** 新資料 id:crypto.randomUUID(防快速連續操作碰撞),不支援時���回時間戳+隨機。 */
+function newId(prefix: string): string {
+  const uuid = typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined;
+  return prefix + (uuid ?? Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
 }
 
 export function useAppStore() {
@@ -108,11 +122,41 @@ export function useAppStore() {
     toastTimer.current = setTimeout(() => setToastMessage(''), 2200);
   }, []);
 
-  const convertToDraft = (mail: Email) => {
+  /** 草稿可能發佈到多個平台:字數上限取「已選平台中最嚴格者」。 */
+  const strictestSelectedLimit = (): number | undefined => {
+    const limits = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map(
+      (p) => PLATFORM_META[p.key].limit,
+    );
+    return limits.length ? Math.min(...limits) : undefined;
+  };
+
+  /**
+   * 郵件 → 草稿:先以節錄內容立即開啟草稿頁;有 Gemini key 時再以真實 AI
+   * 摘要取代(使用者已手動編輯則不覆蓋),失敗時草稿保持節錄內容、僅 toast。
+   */
+  const convertToDraft = async (mail: Email) => {
     setSelectedMailId(mail.id);
-    setDraftText(mail.snippet + '\n\n(草稿已由 AI 從郵件內容摘要產生,歡迎編輯調整)');
+    const fallback = mail.snippet + '\n\n' + DRAFT_AI_COPY.convertFallbackNote;
+    setDraftText(fallback);
     setActiveTab('draft');
     showToast('已將郵件轉換為草稿 ✨');
+    if (!geminiKey || aiBusy) return;
+    setAiBusy(true);
+    const result = await summarizeWithGemini({
+      apiKey: geminiKey,
+      subject: mail.subject,
+      from: mail.sender,
+      body: mail.fullBody,
+      limit: strictestSelectedLimit(),
+    });
+    setAiBusy(false);
+    if (result.ok) {
+      const text = result.text;
+      setDraftText((t) => (t === fallback ? text : t));
+      showToast(DRAFT_AI_COPY.convertDoneToast);
+    } else {
+      showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+    }
   };
 
   const startBlankDraft = () => {
@@ -122,7 +166,7 @@ export function useAppStore() {
 
   // Gemini BYOK:key 僅存使用者瀏覽器;未設定 → 規則示範路徑
   const [geminiKey, setGeminiKeyState] = useState(() => loadGeminiKey());
-  const [toneBusy, setToneBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
 
   const setGeminiKey = (key: string) => {
     if (key) saveGeminiKey(key);
@@ -131,23 +175,57 @@ export function useAppStore() {
   };
 
   const applyTone = async (tone: Tone) => {
-    if (toneBusy) return;
+    if (aiBusy) return;
+    const limit = strictestSelectedLimit();
     if (!geminiKey) {
-      setDraftText((t) => TONE_REWRITES[tone](t));
-      showToast(`已套用「${tone}」語氣(規則示範;於「AI 設定」輸入 key 可啟用真實 AI)`);
+      const next = TONE_REWRITES[tone](draftText);
+      setDraftText(next);
+      // 規則示範不懂字數:超過所選平台最嚴格上限時明確告知,而不是默默通過
+      if (limit && charCount(next) > limit) {
+        showToast(DRAFT_AI_COPY.overLimitHint(limit));
+      } else {
+        showToast(`已套用「${tone}」語氣(規則示範;於「AI 設定」輸入 key 可啟用真實 AI)`);
+      }
       return;
     }
-    setToneBusy(true);
-    // 草稿可能發佈到多個平台:字數上限取���已選平台中最嚴格者」
-    const selectedLimits = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map(
-      (p) => PLATFORM_META[p.key].limit,
-    );
-    const limit = selectedLimits.length ? Math.min(...selectedLimits) : undefined;
+    setAiBusy(true);
     const result = await rewriteWithGemini({ apiKey: geminiKey, text: draftText, tone, limit });
-    setToneBusy(false);
+    setAiBusy(false);
     if (result.ok) {
       setDraftText(result.text);
       showToast(`Gemini 已套用「${tone}」語氣 ✨`);
+    } else {
+      showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+    }
+  };
+
+  /** 自訂指令改寫(僅真實 AI 路徑;規則示範無法對應任意指令)。 */
+  const applyCustomInstruction = async (instruction: string) => {
+    const inst = instruction.trim();
+    if (!inst) {
+      showToast(DRAFT_AI_COPY.customInstructionEmpty);
+      return;
+    }
+    if (!draftText.trim()) {
+      showToast(DRAFT_AI_COPY.customInstructionEmptyDraft);
+      return;
+    }
+    if (aiBusy) return;
+    if (!geminiKey) {
+      showToast(DRAFT_AI_COPY.customInstructionNeedKey);
+      return;
+    }
+    setAiBusy(true);
+    const result = await rewriteWithInstruction({
+      apiKey: geminiKey,
+      text: draftText,
+      instruction: inst,
+      limit: strictestSelectedLimit(),
+    });
+    setAiBusy(false);
+    if (result.ok) {
+      setDraftText(result.text);
+      showToast(DRAFT_AI_COPY.customInstructionDoneToast);
     } else {
       showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
     }
@@ -190,7 +268,7 @@ export function useAppStore() {
   const addTemplate = (title: string, text: string) => {
     if (libraryMainTab === 'copy') {
       const tpl: Template = {
-        id: 'nc' + Date.now(),
+        id: newId('nc'),
         category: copyCategory === '全部' ? '其他' : copyCategory,
         title,
         text,
@@ -200,7 +278,7 @@ export function useAppStore() {
       return;
     }
     const tpl: Template = {
-      id: 'nt' + Date.now(),
+      id: newId('nt'),
       category: libraryCategory === '全部' ? '其他' : libraryCategory,
       title,
       text,
@@ -217,7 +295,7 @@ export function useAppStore() {
     const title = (draftText || '未命名草稿').split('\n')[0].slice(0, 24);
     const newItems: ScheduleItem[] = (platforms.length ? platforms : ['fb' as const]).map(
       (p, i) => ({
-        id: 'ns' + Date.now() + i,
+        id: newId('ns' + i + '-'),
         date,
         time,
         platform: p,
@@ -233,7 +311,7 @@ export function useAppStore() {
 
   const addManualSchedule = (title: string, date: string, time: string, platform: PlatformKey) => {
     const item: ScheduleItem = {
-      id: 'ms' + Date.now(),
+      id: newId('ms'),
       date,
       time,
       platform,
@@ -287,9 +365,10 @@ export function useAppStore() {
     convertToDraft,
     startBlankDraft,
     applyTone,
+    applyCustomInstruction,
     geminiKey,
     setGeminiKey,
-    toneBusy,
+    aiBusy,
     togglePlatform,
     insertTemplateIntoDraft,
     pickSocialPost,

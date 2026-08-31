@@ -31,7 +31,7 @@ export default function Social({ store }: { store: AppStore }) {
                 borderRadius: 9,
                 fontSize: 12.5,
                 fontWeight: 600,
-                background: active ? 'var(--brand)' : '#fff',
+                background: active ? 'var(--brand)' : 'var(--card)',
                 color: active ? '#fff' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}

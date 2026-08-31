@@ -69,7 +69,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
         style={{
           marginTop: 'auto',
           padding: '14px 12px',
-          background: '#F8F7FD',
+          background: 'var(--surface-soft)',
           borderRadius: 12,
         }}
       >

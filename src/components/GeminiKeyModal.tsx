@@ -8,16 +8,18 @@ export default function GeminiKeyModal({
   onSave,
   onClear,
   onClose,
+  label,
 }: {
   hasKey: boolean;
   onSave: (key: string) => void;
   onClear: () => void;
   onClose: () => void;
+  label?: string;
 }) {
   const [value, setValue] = useState('');
 
   return (
-    <Modal onClose={onClose} width={460}>
+    <Modal onClose={onClose} width={460} label={label}>
       <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 10 }}>
         {GEMINI_KEY_MODAL.title}
       </div>

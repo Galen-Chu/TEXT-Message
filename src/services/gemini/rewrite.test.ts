@@ -1,9 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  buildInstructionPrompt,
   buildRewritePrompt,
+  buildSummarizePrompt,
   parseGeminiReply,
   rewriteWithGemini,
   statusToCode,
+  summarizeWithGemini,
 } from './rewrite';
 
 // node 環境沒有 localStorage:注入最小 stub 供模型快取測試
@@ -31,6 +34,37 @@ describe('buildRewritePrompt', () => {
   it('有限制字數時附加上限規則', () => {
     const p = buildRewritePrompt('x', '簡短', 500);
     expect(p).toContain('不得超過 500 字');
+  });
+});
+
+describe('buildSummarizePrompt', () => {
+  it('包含主旨、寄件者與內容,並要求輸出貼文', () => {
+    const p = buildSummarizePrompt({ subject: '週報', from: 'news@example.com', body: '本週重點…' });
+    expect(p).toContain('週報');
+    expect(p).toContain('news@example.com');
+    expect(p).toContain('本週重點…');
+    expect(p).toContain('只輸出貼文全文');
+    expect(p).not.toContain('不得超過');
+  });
+
+  it('有限制字數時附加上限規則', () => {
+    const p = buildSummarizePrompt({ subject: 's', from: 'f', body: 'b', limit: 500 });
+    expect(p).toContain('不得超過 500 字');
+  });
+});
+
+describe('buildInstructionPrompt', () => {
+  it('包含使用者指令與原始草稿', () => {
+    const p = buildInstructionPrompt('早安文', '改成 3 行重點');
+    expect(p).toContain('使用者指令:改成 3 行重點');
+    expect(p).toContain('早安文');
+    expect(p).toContain('嚴格遵守使用者指令');
+    expect(p).not.toContain('不得超過');
+  });
+
+  it('有限制字數時附加上限規則', () => {
+    const p = buildInstructionPrompt('x', 'y', 2200);
+    expect(p).toContain('不得超過 2200 字');
   });
 });
 
@@ -107,5 +141,26 @@ describe('rewriteWithGemini 模型降級', () => {
     globalThis.fetch = realFetch;
     expect(res).toEqual({ ok: false, code: 'invalid_key' });
     expect(calls.length).toBe(1);
+  });
+
+  it('summarizeWithGemini 走同一模型降級與回應解析', async () => {
+    localStorage.clear();
+    calls.length = 0;
+    globalThis.fetch = await fakeFetchSequence([
+      {
+        status: 200,
+        body: { candidates: [{ content: { parts: [{ text: '摘要貼文' }] } }] },
+      },
+    ]);
+    const res = await summarizeWithGemini({
+      apiKey: 'k',
+      subject: '週報',
+      from: 'news@example.com',
+      body: '本週重點',
+    });
+    globalThis.fetch = realFetch;
+    expect(res.ok && res.text).toBe('摘要貼文');
+    expect(calls[0]).toContain('generateContent');
+    localStorage.clear();
   });
 });

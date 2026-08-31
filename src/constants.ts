@@ -108,5 +108,19 @@ export const GEMINI_KEY_MODAL = {
 export const GEMINI_MODE_LABEL = {
   off: 'AI 語氣輔助改寫(規則示範模式)',
   on: 'AI 語氣改寫(Gemini)',
-  busy: 'Gemini 改寫中…',
+  busy: 'Gemini 處理中…',
+};
+
+/** 草稿頁 AI 相關文案(郵件摘要、自訂指令、超字數提示)。 */
+export const DRAFT_AI_COPY = {
+  convertFallbackNote: '(已節錄郵件內容,歡迎編輯調整;於「AI 設定」輸入 key 可改用 AI 摘要)',
+  convertDoneToast: 'Gemini 已將郵件摘要為草稿 ✨',
+  customInstructionLabel: '自訂指令',
+  customInstructionPlaceholder: '例如:改寫成 3 行重點、多加 emoji',
+  customInstructionApply: '套用',
+  customInstructionNeedKey: '自訂指令需要 Gemini key:於「AI 設定」輸入後即可使用',
+  customInstructionEmptyDraft: '請先撰寫草稿內容,再套用自訂指令',
+  customInstructionEmpty: '請先輸入自訂指令',
+  customInstructionDoneToast: 'Gemini 已套用自訂指令 ✨',
+  overLimitHint: (limit: number) => `目前內容超過所選平台中最嚴格的上限(${limit} 字),建議啟用 AI 或手動精簡`,
 };

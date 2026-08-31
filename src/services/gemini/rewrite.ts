@@ -54,6 +54,45 @@ export function buildRewritePrompt(text: string, tone: Tone, limit?: number): st
   return [...lines, '', '原始草稿:', text].join('\n');
 }
 
+/** 郵件 → 貼文草稿的摘要 prompt(輸入為已解析的 Email 欄位)。 */
+export function buildSummarizePrompt(input: {
+  subject: string;
+  from: string;
+  body: string;
+  limit?: number;
+}): string {
+  const lines = [
+    '你是社群媒體文案編輯。請把以下電子郵件摘要成一則適合社群平台的繁體中文貼文草稿。',
+    '規則:',
+    '- 只取郵件中值得分享的重點,不添加郵件裡沒有的內容',
+    '- 捨棄問候語、簽名檔與退訂等行銷雜訊',
+    '- 適度使用 emoji 與換行,讓貼文易讀',
+    '- 只輸出貼文全文,不要任何前言、說明或引號',
+  ];
+  if (input.limit && input.limit > 0) lines.push(`- 總長度不得超過 ${input.limit} 字(含空白與 emoji)`);
+  return [
+    ...lines,
+    '',
+    `郵件主旨:${input.subject}`,
+    `寄件者:${input.from}`,
+    '',
+    '郵件內容:',
+    input.body,
+  ].join('\n');
+}
+
+/** 自訂指令改寫 prompt:使用者自由輸入指令(例:「改成 3 行重點」)。 */
+export function buildInstructionPrompt(text: string, instruction: string, limit?: number): string {
+  const lines = [
+    '你是社群媒體文案編輯。請依「使用者指令」改寫「原始草稿」,輸出繁體中文貼文。',
+    '規則:',
+    '- 嚴格遵守使用者指令,但不改變任何事實',
+    '- 只輸出改寫後的全文,不要任何前言、說明或引號',
+  ];
+  if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
+  return [...lines, '', `使用者指令:${instruction}`, '', '原始草稿:', text].join('\n');
+}
+
 /** 從 generateContent 回應 JSON 取出文字;結構不符回 null。 */
 export function parseGeminiReply(json: unknown): string | null {
   const candidates = (json as { candidates?: unknown[] })?.candidates;
@@ -92,15 +131,14 @@ function saveResolvedModel(model: string): void {
   }
 }
 
-export async function rewriteWithGemini(input: {
-  apiKey: string;
-  text: string;
-  tone: Tone;
-  limit?: number;
-  signal?: AbortSignal;
-}): Promise<RewriteResult> {
+/** 共用呼叫:模型候選逐一降級、記住第一個可用的模型。三個對外函式皆走這裡。 */
+async function generateContent(
+  apiKey: string,
+  prompt: string,
+  signal?: AbortSignal,
+): Promise<RewriteResult> {
   const body = JSON.stringify({
-    contents: [{ parts: [{ text: buildRewritePrompt(input.text, input.tone, input.limit) }] }],
+    contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
   });
   const candidates = [loadResolvedModel(), ...GEMINI_MODEL_CANDIDATES].filter(
@@ -115,9 +153,9 @@ export async function rewriteWithGemini(input: {
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': input.apiKey },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
           body,
-          signal: input.signal,
+          signal,
         },
       );
     } catch {
@@ -144,6 +182,47 @@ export async function rewriteWithGemini(input: {
     lastCode = 'no_content';
   }
   return { ok: false, code: lastCode };
+}
+
+export async function rewriteWithGemini(input: {
+  apiKey: string;
+  text: string;
+  tone: Tone;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<RewriteResult> {
+  return generateContent(input.apiKey, buildRewritePrompt(input.text, input.tone, input.limit), input.signal);
+}
+
+/** 郵件 → 貼文草稿:把整封郵件交給 Gemini 摘要(useAppStore.convertToDraft 使用)。 */
+export async function summarizeWithGemini(input: {
+  apiKey: string;
+  subject: string;
+  from: string;
+  body: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<RewriteResult> {
+  return generateContent(
+    input.apiKey,
+    buildSummarizePrompt({ subject: input.subject, from: input.from, body: input.body, limit: input.limit }),
+    input.signal,
+  );
+}
+
+/** 自訂指令改寫:使用者自由下指令(無 key 時呼叫端不會走到這裡)。 */
+export async function rewriteWithInstruction(input: {
+  apiKey: string;
+  text: string;
+  instruction: string;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<RewriteResult> {
+  return generateContent(
+    input.apiKey,
+    buildInstructionPrompt(input.text, input.instruction, input.limit),
+    input.signal,
+  );
 }
 
 // ---- key 存取(僅使用者自己的瀏覽器;與內容資料的 text-message:v2 分開) ----

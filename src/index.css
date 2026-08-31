@@ -3,6 +3,7 @@
   --accent: #ff7a59;
   --bg: #f6f5fb;
   --card: #ffffff;
+  --surface-soft: #f8f7fd;
   --border-1: #eceaf7;
   --border-2: #f1effa;
   --border-3: #e4e1f5;
@@ -15,6 +16,27 @@
   --pill-orange-bg: #fff1ec;
   --error: #e74c3c;
   --shadow-card: 0 2px 10px rgba(108, 92, 231, 0.06);
+}
+
+/* 深色模式:僅覆寫語意變數(元件皆走變數),品牌色維持識別 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15152a;
+    --card: #22223a;
+    --surface-soft: #2a2a44;
+    --border-1: #2b2b45;
+    --border-2: #2e2e49;
+    --border-3: #3a3a5c;
+    --text-main: #eceaf7;
+    --text-sub: #c6c3dd;
+    --text-weak: #9b97b8;
+    --text-faint: #716d90;
+    --pill-purple-bg: #2f2a4e;
+    --pill-purple-bg-2: #342f57;
+    --pill-orange-bg: #45312a;
+    --error: #ff6b5e;
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * {
@@ -33,7 +55,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d9d4f0;
+  background: var(--border-3);
   border-radius: 8px;
 }
 
@@ -68,7 +90,7 @@ button {
   color: #fff;
 }
 .btn-outline {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border-3);
   color: var(--brand);
 }
@@ -125,7 +147,7 @@ button {
   z-index: 50;
 }
 .modal-card {
-  background: #fff;
+  background: var(--card);
   border-radius: 18px;
   padding: 24px;
 }
@@ -159,7 +181,7 @@ button {
 .app-sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: #fff;
+  background: var(--card);
   border-right: 1px solid var(--border-1);
   display: flex;
   flex-direction: column;

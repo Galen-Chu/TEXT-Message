@@ -75,7 +75,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                 textAlign: 'center',
                 padding: '10px 4px',
                 borderRadius: 12,
-                background: active ? 'var(--brand)' : '#fff',
+                background: active ? 'var(--brand)' : 'var(--card)',
                 color: active ? '#fff' : 'var(--text-sub)',
                 boxShadow: '0 2px 8px rgba(108,92,231,0.06)',
               }}
@@ -149,7 +149,7 @@ export default function Schedule({ store }: { store: AppStore }) {
               alignItems: 'center',
               gap: 12,
               padding: '10px 0',
-              borderBottom: '1px solid #F8F7FD',
+              borderBottom: '1px solid var(--border-2)',
             }}
           >
             <PlatformBadge platform={item.platform} size={28} radius={8} fontSize={10.5} />
@@ -167,7 +167,7 @@ export default function Schedule({ store }: { store: AppStore }) {
       </div>
 
       {showNewModal && (
-        <Modal onClose={() => setShowNewModal(false)} width={440}>
+        <Modal onClose={() => setShowNewModal(false)} width={440} label="手動新增排程">
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
             手動新增排程
           </div>
@@ -212,7 +212,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                     borderRadius: 9,
                     fontSize: 12.5,
                     fontWeight: 600,
-                    background: active ? p.color : '#fff',
+                    background: active ? p.color : 'var(--card)',
                     color: active ? '#fff' : 'var(--text-sub)',
                     border: `1px solid ${active ? p.color : 'var(--pill-purple-bg-2)'}`,
                   }}

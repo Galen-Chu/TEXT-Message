@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  DRAFT_AI_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
   PLATFORM_LIST,
@@ -18,6 +19,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(store.tomorrowISO);
   const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [customInstruction, setCustomInstruction] = useState('');
 
   const hasDraftTarget = !!store.selectedMailId;
   const sourceMail =
@@ -114,7 +116,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                  {store.toneBusy
+                  {store.aiBusy
                     ? GEMINI_MODE_LABEL.busy
                     : store.geminiKey
                       ? GEMINI_MODE_LABEL.on
@@ -146,7 +148,7 @@ export default function Draft({ store }: { store: AppStore }) {
                   <button
                     key={tone}
                     onClick={() => void store.applyTone(tone)}
-                    disabled={store.toneBusy}
+                    disabled={store.aiBusy}
                     style={{
                       padding: '7px 14px',
                       borderRadius: 9,
@@ -155,13 +157,42 @@ export default function Draft({ store }: { store: AppStore }) {
                       background: 'var(--bg)',
                       color: 'var(--brand)',
                       border: '1px solid var(--pill-purple-bg-2)',
-                      opacity: store.toneBusy ? 0.5 : 1,
-                      cursor: store.toneBusy ? 'wait' : 'pointer',
+                      opacity: store.aiBusy ? 0.5 : 1,
+                      cursor: store.aiBusy ? 'wait' : 'pointer',
                     }}
                   >
                     {tone}
                   </button>
                 ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <input
+                  className="text-input"
+                  value={customInstruction}
+                  onChange={(e) => setCustomInstruction(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void store.applyCustomInstruction(customInstruction);
+                  }}
+                  placeholder={DRAFT_AI_COPY.customInstructionPlaceholder}
+                  aria-label={DRAFT_AI_COPY.customInstructionLabel}
+                  style={{ flex: 1, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
+                />
+                <button
+                  onClick={() => void store.applyCustomInstruction(customInstruction)}
+                  disabled={store.aiBusy}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 9,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    background: 'var(--pill-purple-bg)',
+                    color: 'var(--brand)',
+                    opacity: store.aiBusy ? 0.5 : 1,
+                    cursor: store.aiBusy ? 'wait' : 'pointer',
+                  }}
+                >
+                  {DRAFT_AI_COPY.customInstructionApply}
+                </button>
               </div>
             </div>
 
@@ -207,9 +238,9 @@ export default function Draft({ store }: { store: AppStore }) {
                         borderRadius: 9,
                         fontSize: 12.5,
                         fontWeight: 600,
-                        background: active ? 'var(--pill-purple-bg)' : '#fff',
+                        background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? '#D9D0FA' : 'var(--pill-purple-bg-2)'}`,
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
                       }}
                     >
                       <span
@@ -276,7 +307,7 @@ export default function Draft({ store }: { store: AppStore }) {
                         {draftLength} / {p.limit} 字
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: '#3A3750', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
                       {store.draftText || '(尚未輸入內容)'}
                     </div>
                   </div>
@@ -302,6 +333,7 @@ export default function Draft({ store }: { store: AppStore }) {
 
       {showKeyModal && (
         <GeminiKeyModal
+          label={GEMINI_KEY_MODAL.title}
           hasKey={!!store.geminiKey}
           onSave={(key) => {
             store.setGeminiKey(key);
@@ -319,6 +351,7 @@ export default function Draft({ store }: { store: AppStore }) {
         <Modal
           onClose={() => setShowTemplatePicker(false)}
           width={480}
+          label="插入文管庫內容"
           style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
         >
           <div
@@ -332,6 +365,7 @@ export default function Draft({ store }: { store: AppStore }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入文管庫內容</div>
             <button
               onClick={() => setShowTemplatePicker(false)}
+              aria-label="關閉"
               style={{ fontSize: 18, color: 'var(--text-faint)' }}
             >
               ✕
@@ -368,6 +402,7 @@ export default function Draft({ store }: { store: AppStore }) {
         <Modal
           onClose={() => setShowSocialPicker(false)}
           width={480}
+          label="從社群媒體挑選"
           style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
         >
           <div
@@ -381,6 +416,7 @@ export default function Draft({ store }: { store: AppStore }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>從社群媒體挑選</div>
             <button
               onClick={() => setShowSocialPicker(false)}
+              aria-label="關閉"
               style={{ fontSize: 18, color: 'var(--text-faint)' }}
             >
               ✕
@@ -438,7 +474,7 @@ export default function Draft({ store }: { store: AppStore }) {
       )}
 
       {showScheduleModal && (
-        <Modal onClose={() => setShowScheduleModal(false)} width={420}>
+        <Modal onClose={() => setShowScheduleModal(false)} width={420} label="加入排程">
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
             加入排程
           </div>

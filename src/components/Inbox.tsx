@@ -106,7 +106,7 @@ export default function Inbox({ store }: { store: AppStore }) {
                 borderRadius: 9,
                 fontSize: 12.5,
                 fontWeight: 600,
-                background: active ? 'var(--brand)' : '#fff',
+                background: active ? 'var(--brand)' : 'var(--card)',
                 color: active ? '#fff' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
@@ -200,6 +200,13 @@ export default function Inbox({ store }: { store: AppStore }) {
             </button>
           </div>
         ))}
+        {!g.loadingEmails && g.status === 'connected' && g.canLoadMore && (
+          <div style={{ padding: '12px 0', textAlign: 'center' }}>
+            <button className="btn btn-ghost" onClick={() => void g.loadMore()} disabled={g.loadingMore}>
+              {g.loadingMore ? '載入中…' : '載入更多'}
+            </button>
+          </div>
+        )}
         {!g.loadingEmails && filtered.length === 0 && g.status === 'connected' && store.emails.length === 0 && (
           <div style={{ padding: '36px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
