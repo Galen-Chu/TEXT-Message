@@ -316,6 +316,12 @@ export default function Draft({ store }: { store: AppStore }) {
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={store.discardDraft}
+                style={{ padding: '11px 12px', fontSize: 12.5, fontWeight: 700, color: 'var(--error)' }}
+              >
+                捨棄草稿
+              </button>
               <button className="btn btn-outline" style={{ padding: '11px 20px' }} onClick={store.saveDraft}>
                 儲存草稿
               </button>

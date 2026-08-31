@@ -20,6 +20,7 @@ function filterTemplates(list: Template[], category: string, search: string): Te
 
 export default function Library({ store }: { store: AppStore }) {
   const [showNewModal, setShowNewModal] = useState(false);
+  const [editing, setEditing] = useState<Template | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newText, setNewText] = useState('');
 
@@ -36,8 +37,16 @@ export default function Library({ store }: { store: AppStore }) {
   );
 
   const openNewModal = () => {
+    setEditing(null);
     setNewTitle('');
     setNewText('');
+    setShowNewModal(true);
+  };
+
+  const openEditModal = (tpl: Template) => {
+    setEditing(tpl);
+    setNewTitle(tpl.title);
+    setNewText(tpl.text);
     setShowNewModal(true);
   };
 
@@ -46,7 +55,8 @@ export default function Library({ store }: { store: AppStore }) {
       store.showToast('請輸入標題');
       return;
     }
-    store.addTemplate(newTitle, newText);
+    if (editing) store.updateTemplate(editing.id, { title: newTitle, text: newText });
+    else store.addTemplate(newTitle, newText);
     setShowNewModal(false);
   };
 
@@ -171,6 +181,19 @@ export default function Library({ store }: { store: AppStore }) {
                     套用到草稿
                   </button>
                   <button
+                    onClick={() => openEditModal(tpl)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--brand)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    編輯
+                  </button>
+                  <button
                     onClick={() => store.copyTemplate(tpl)}
                     style={{
                       padding: '8px 12px',
@@ -182,6 +205,19 @@ export default function Library({ store }: { store: AppStore }) {
                     }}
                   >
                     複製
+                  </button>
+                  <button
+                    onClick={() => store.deleteTemplate(tpl.id)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--error)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    刪除
                   </button>
                 </div>
               </div>
@@ -198,9 +234,13 @@ export default function Library({ store }: { store: AppStore }) {
       </div>
 
       {showNewModal && (
-        <Modal onClose={() => setShowNewModal(false)} width={440} label="新增內容">
+        <Modal
+          onClose={() => setShowNewModal(false)}
+          width={440}
+          label={editing ? '編輯內容' : '新增內容'}
+        >
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
-            新增內容
+            {editing ? '編輯內容' : '新增內容'}
           </div>
           <div className="field-label">標題</div>
           <input
@@ -223,7 +263,7 @@ export default function Library({ store }: { store: AppStore }) {
               取消
             </button>
             <button className="btn btn-primary" style={{ borderRadius: 9 }} onClick={saveNewTemplate}>
-              儲存範本
+              {editing ? '儲存變更' : '儲存範本'}
             </button>
           </div>
         </Modal>

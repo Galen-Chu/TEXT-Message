@@ -91,3 +91,42 @@ test('持久化:新增範本重新整理後仍在', async ({ page }) => {
   await gotoTab(page, '文管庫');
   await expect(page.getByText('E2E持久化範本')).toBeVisible();
 });
+
+test('持久化:草稿重新整理後仍在,捨棄後清除', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, 'Gmail 郵件匣');
+  await page.getByRole('button', { name: '轉為草稿' }).first().click();
+  await page.locator('textarea').fill('E2E持久化草稿');
+
+  await page.reload();
+  await gotoTab(page, '草稿撰寫');
+  await expect(page.locator('textarea')).toHaveValue(/E2E持久化草稿/);
+
+  await page.getByRole('button', { name: '捨棄草稿' }).click();
+  await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
+
+  await page.reload();
+  await gotoTab(page, '草稿撰寫');
+  await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
+});
+
+test('文管庫:編輯與刪除範本', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '文管庫');
+  await page.getByRole('button', { name: '+ 新增內容' }).click();
+  await page.getByPlaceholder('例如:感謝訂閱電子報').fill('E2E編輯目標');
+  await page.getByRole('button', { name: '儲存範本' }).click();
+  await expect(page.getByText('E2E編輯目標')).toBeVisible();
+
+  // 標題 div 的上一層即為卡片,編輯/複製/刪除按鈕在卡片底部
+  const card = page.getByText('E2E編輯目標').first().locator('..');
+  await card.getByRole('button', { name: '編輯' }).click();
+  await expect(page.getByText('編輯內容', { exact: true })).toBeVisible();
+  await page.getByPlaceholder('例如:感謝訂閱電子報').fill('E2E已編輯');
+  await page.getByRole('button', { name: '儲存變更' }).click();
+  await expect(page.getByText('E2E已編輯')).toBeVisible();
+
+  const editedCard = page.getByText('E2E已編輯').first().locator('..');
+  await editedCard.getByRole('button', { name: '刪除' }).click();
+  await expect(page.getByText('E2E已編輯')).toHaveCount(0);
+});

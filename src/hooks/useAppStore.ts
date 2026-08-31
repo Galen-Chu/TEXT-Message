@@ -51,13 +51,25 @@ function loadPersisted<T>(field: string, fallback: T): T {
   }
 }
 
+/** 同上,但供非陣列欄位(草稿文字/來源/平台選擇)使用,以 isValid 校驗形狀。 */
+function loadPersistedValue<T>(field: string, fallback: T, isValid: (v: unknown) => v is T): T {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : null;
+    const v = data ? (data as Record<string, unknown>)[field] : undefined;
+    return isValid(v) ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function tomorrowISO(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return toISODate(d);
 }
 
-/** 新資料 id:crypto.randomUUID(防快速連續操作碰撞),不支援時���回時間戳+隨機。 */
+/** 新資料 id:crypto.randomUUID(防快速連續操作碰撞),不支援時退回時間戳+隨機。 */
 function newId(prefix: string): string {
   const uuid = typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined;
   return prefix + (uuid ?? Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
@@ -82,26 +94,41 @@ export function useAppStore() {
     loadPersisted('scheduleItems', initialSchedule()),
   );
 
+  // 草稿:來源郵件 id、'blank'(空白草稿)或 null(尚未開始)。
+  // 與範本/排程一併持久化(草稿屬使用者內容;emails 與 token 仍不落地)。
+  const [selectedMailId, setSelectedMailId] = useState<string | null>(() =>
+    loadPersistedValue('draftSourceId', null, (v): v is string => typeof v === 'string'),
+  );
+  const [draftText, setDraftText] = useState(() =>
+    loadPersistedValue('draftText', '', (v): v is string => typeof v === 'string'),
+  );
+  const [draftPlatforms, setDraftPlatforms] = useState<Record<PlatformKey, boolean>>(() => {
+    const stored = loadPersistedValue<Partial<Record<PlatformKey, boolean>>>(
+      'draftPlatforms',
+      {},
+      (v): v is Partial<Record<PlatformKey, boolean>> =>
+        !!v && typeof v === 'object' && Object.values(v).every((x) => typeof x === 'boolean'),
+    );
+    return { fb: true, ig: true, threads: false, line: false, ...stored };
+  });
+
   useEffect(() => {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ templates, copyTemplates, scheduleItems }),
+        JSON.stringify({
+          templates,
+          copyTemplates,
+          scheduleItems,
+          draftText,
+          draftPlatforms,
+          draftSourceId: selectedMailId,
+        }),
       );
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems]);
-
-  // 草稿:來源郵件 id、'blank'(空白草稿)或 null(尚未開始)
-  const [selectedMailId, setSelectedMailId] = useState<string | null>(null);
-  const [draftText, setDraftText] = useState('');
-  const [draftPlatforms, setDraftPlatforms] = useState<Record<PlatformKey, boolean>>({
-    fb: true,
-    ig: true,
-    threads: false,
-    line: false,
-  });
+  }, [templates, copyTemplates, scheduleItems, draftText, draftPlatforms, selectedMailId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -162,6 +189,14 @@ export function useAppStore() {
   const startBlankDraft = () => {
     setSelectedMailId('blank');
     setDraftText('');
+  };
+
+  /** 捨棄草稿:清空內容與來源,回到「尚未選擇內容來源」空狀態(持久化隨之清除)。 */
+  const discardDraft = () => {
+    setSelectedMailId(null);
+    setDraftText('');
+    setDraftPlatforms({ fb: true, ig: true, threads: false, line: false });
+    showToast('已捨棄草稿');
   };
 
   // Gemini BYOK:key 僅存使用者瀏覽器;未設定 → 規則示範路徑
@@ -287,6 +322,25 @@ export function useAppStore() {
     showToast('已新增至訊息管理');
   };
 
+  /** 編輯範本:依 id 找到所屬資料集(訊息/文案)更新標題與內容;分類維持原值。 */
+  const updateTemplate = (id: string, patch: { title: string; text: string }) => {
+    const inTemplates = templates.some((t) => t.id === id);
+    const inCopy = copyTemplates.some((t) => t.id === id);
+    if (!inTemplates && !inCopy) return;
+    const map = (list: Template[]) => list.map((t) => (t.id === id ? { ...t, ...patch } : t));
+    if (inTemplates) setTemplates(map);
+    if (inCopy) setCopyTemplates(map);
+    showToast('已更新內容');
+  };
+
+  /** 刪除範本:兩個資料集皆以 id 過濾(mock 與新增 id 前綴互不重疊)。 */
+  const deleteTemplate = (id: string) => {
+    setTemplates((list) => list.filter((t) => t.id !== id));
+    setCopyTemplates((list) => list.filter((t) => t.id !== id));
+    showToast('已刪除內容');
+  };
+
+  // 草稿已隨內容變動自動持久化(見上方 effect);按鈕僅回饋確認
   const saveDraft = () => showToast('草稿已儲存');
 
   /** 「加入排程」:依已選平台各建立一筆排程,並跳轉排程頁。 */
@@ -375,7 +429,10 @@ export function useAppStore() {
     applyTemplateToDraft,
     copyTemplate,
     addTemplate,
+    updateTemplate,
+    deleteTemplate,
     saveDraft,
+    discardDraft,
     confirmSchedule,
     addManualSchedule,
     deleteScheduleItem,
