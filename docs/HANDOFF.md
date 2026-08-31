@@ -29,7 +29,7 @@
 ### 2. Inbox(Gmail 郵件匣)
 - **Purpose**: 瀏覽/搜尋/篩選 Gmail 內容,標示 AI 判斷適合轉發文的郵件,一鍵轉草稿。
 - **Layout**: 頂部搜尋框 + 篩選 chip 群(全部/電子報/合作邀約/讀者來信/活動通知)。下方白底卡片列表,每列含頭像縮寫、寄件者/主旨/摘要、標籤 pill、右側「轉為草稿」按鈕。
-- **Note**: 頁面標題已改為「Gmail 郵件匣」(原「Gmail 收件匣」),實作時請統一沿用此名稱;Draft 頁空狀態按鈕文字目前仍寫「前往收件匣挑選」,建議實作時一併統一為「前往郵件匣挑選」以維持一致性。
+- **Note**: 頁面標題已改為「Gmail 郵件匣」(原「Gmail 收件匣」),實作時請統一沿用此名稱(Draft 頁空狀態按鈕亦已統一為「前往郵件匣挑選」)。實作補充:已連線時支援「載入更多」分頁(Gmail pageToken)與視窗重回前景靜默刷新(60 秒冷卻)。
 
 ### 3. 社群媒體(Social,新增頁面)
 - **Purpose**: 呈現各社群平台過去已發佈貼文的歷史記錄,作為草稿撰寫時的內容參考來源。
@@ -46,7 +46,7 @@
 - **Purpose**: 核心編輯頁——來源參考(郵件或社群歷史貼文)+ 文字編輯 + AI 語氣輔助 + 文管庫插入 + 社群媒體挑選 + 多平台預覽與字數檢查。
 - **Layout**: 空狀態時置中提示卡,提供三個入口:「前往收件匣挑選」「從社群媒體挑選」「空白草稿開始撰寫」。有目標時三段式:左側 280px 原始郵件參考卡(僅來源為 Gmail 時顯示)+ 右側主欄(工具列含「📋 從文管庫插入」與「📣 從社群媒體挑選」兩個按鈕、AI 語氣 chip 列、textarea 編輯框、平台勾選 chip、逐平台預覽卡、底部「儲存草稿」/「加入排程」按鈕)。
 - **社群媒體串接邏輯**: 點擊「從社群媒體挑選」開啟 modal,列出 `socialHistory` 全部貼文供選擇;點擊任一則會將該貼文內容附加到目前 `draftText` 尾端(若尚無草稿目標則視為空白草稿開始),並關閉 modal、顯示 toast「已套用社群媒體歷史貼文」。此功能在空狀態卡片與編輯區工具列都提供入口,行為一致。
-- **Components**: AI 語氣 chip(專業/親切/活潑/簡短,前端規則示範改寫);textarea(min-height 160px,右下角字數);平台 chip(多選,含 20px 色塊 + 文字);逐平台預覽卡(顯示字數 / 上限,超字數變 `#E74C3C`)。
+- **Components**: AI 語氣 chip(專業/親切/活潑/簡短)+ 自訂指令輸入框(Enter 或「套用」送出);textarea(min-height 160px,右下角字數);平台 chip(多選,含 20px 色塊 + 文字);逐平台預覽卡(顯示字數 / 上限,超字數變 `#E74C3C`)。
 
 ### 6. 文管庫(Library,原「罐頭訊息庫」重構)
 - **Purpose**: 管理兩類可套用草稿的內容,以分頁(segmented tab)切分職責:
@@ -62,14 +62,14 @@
 - **社群媒體挑選 modal**(標題「從社群媒體挑選」):列出全部歷史貼文,點擊即套用到草稿。
 - **新增內容 modal**(標題「新增內容」):標題輸入 + 內容 textarea,依文管庫當前分頁寫入對應資料集。
 - **加入排程 modal** / **手動新增排程 modal**:日期/時間輸入,顯示目標平台文字。
-- 所有 modal:遮罩 `rgba(31,35,51,0.45)`,卡片白底 radius 18px padding 24px,置中顯示。
+- 所有 modal:遮罩 `rgba(31,35,51,0.45)`,卡片白底 radius 18px padding 24px,置中顯示;支援 Esc 關閉、focus trap(`role="dialog"`),關閉時焦點還原給開啟者。
 - **Toast**:右下角固定,`#1F2333` 底白字,radius 10px,2.2 秒自動消失,進場動畫 `translateY(12px)→0` + fade,0.2s ease。
 
 ## Interactions & Behavior
 - 側邊導覽 6 個分頁,依上列順序排列,點擊切換 `activeTab`,active 態文字 `#6C5CE7` + 底色 `#F1EDFF`。
-- Gmail 列表「轉為草稿」→ 寫入 draftText(郵件摘要 + AI 產生提示文字)、記錄來源郵件 id、跳轉 Draft 分頁。
+- Gmail 列表「轉為草稿」→ 先以郵件節錄立即寫入 draftText 並跳轉 Draft 分頁;已設定 Gemini key 時再以真實 AI 摘要取代(使用者已手動編輯則不覆蓋,失敗僅 toast),無 key 時維持節錄文案。
 - 社群媒體歷史貼文「套用」→ 附加內容到 draftText、跳轉 Draft 分頁(從草稿頁內觸發時停留在原頁)。
-- Draft 頁 AI 語氣 chip:純前端規則示範(非真實 AI),生產環境應接後端 AI 改寫 API。
+- Draft 頁 AI 功能(BYOK,已上線):有 Gemini key → 語氣改寫 / 郵件摘要 / 自訂指令皆為真實 API(字數上限取所選平台最嚴格者);無 key → 語氣改寫為規則示範(超過平台上限時明確提示)、自訂指令僅提示不動作。
 - 平台 chip 為多選(toggle),對應顯示/隱藏該平台的預覽卡與字數上限檢查。
 - 「加入排程」→ 開 modal 選日期時間 → 確認後依已選平台各建立一筆排程,寫回 Schedule 分頁對應日期並自動跳轉。若當下未勾選任何平台,則 fallback 以 Facebook 建立一筆(目前實作行為,見 `useAppStore.confirmSchedule`)。
 - 文管庫套用範本 → 附加到目前 draftText 尾端(用兩個換行分隔),若尚無草稿目標則視為空白草稿開始。
@@ -96,11 +96,11 @@
 - 各 modal 開關與暫存輸入值(showTemplatePicker、showSocialPicker、showNewTemplateModal、showScheduleModal、showNewScheduleModal)
 
 ### 資料串接需求(下一階段)
-- Gmail API 串接(OAuth、讀取郵件匣、真實分類/建議邏輯取代假資料標記)
+- ~~Gmail API 串接~~(已上線:瀏覽器端唯讀 OAuth + 本機規則分類;見 `docs/SETUP.md`)
+- ~~AI 語氣改寫需接真實 LLM API~~(已上線:Gemini BYOK,含語氣改寫/郵件摘要/自訂指令;無 key 退回規則示範)
 - 文管庫(訊息管理 + 文案管理)需接後端儲存,目前以瀏覽器 localStorage 暫存(排程亦同,重新整理不消失,無跨裝置同步)
 - 社群媒體發文歷史需接各平台 API(Facebook/IG/Threads/LINE)讀取真實已發佈貼文
 - 排程需接各平台發文 API 或內部排程資料庫 + 提醒機制
-- AI 語氣改寫需接真實 LLM API(目前為前端字串規則示範)
 
 ## Design Tokens
 
@@ -118,6 +118,7 @@
 - 已發佈狀態綠:`#06C755`
 - 錯誤/超字數:`#E74C3C`
 - 平台色:Facebook `#1877F2`、Instagram `#C13584`、Threads `#101010`、LINE `#06C755`
+- 深色模式:系統 `prefers-color-scheme: dark` 時僅覆寫語意變數(背景/卡片/邊框/文字/pill 底),品牌紫與平台色維持不變;元件一律使用 CSS 變數,不出現寫死色碼
 
 ### Typography
 - 字體:`Noto Sans TC`(中文)+ `Poppins`(數字/英文標題),sans-serif fallback
