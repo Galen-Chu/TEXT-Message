@@ -74,7 +74,7 @@ src/
 
 ## 發展路線(2026-09-02 收尾歸檔後現況)
 
-**前端為主、後端輔助(可選)**。已完成:排程管理與發佈輔助(階段一)、**YouTube 影片/Shorts 上傳**(階段二,瀏覽器端 Google OAuth、零後端)、平台代發後端骨架(階段三第一增量——`worker/` 與部署手冊 [`docs/BACKEND.md`](docs/BACKEND.md),**暫停開發、恢復時從前端串接開始**)。**現行工作流:文管庫(文案管理)功能深化**,規劃設計見 [`docs/LIBRARY-PLAN.md`](docs/LIBRARY-PLAN.md)。各階段細節與後端形態比較見 [`docs/HANDOFF.md`](docs/HANDOFF.md) 架構決策記錄。
+**前端為主、後端輔助(可選)**。已完成:排程管理與發佈輔助(階段一)、**YouTube 影片/Shorts 上傳**(階段二,瀏覽器端 Google OAuth、零後端)、**文管庫功能深化四期**(範本填值、平台變體、發文趨勢、AI 平台版本與標籤建議——[`docs/LIBRARY-PLAN.md`](docs/LIBRARY-PLAN.md));平台代發後端骨架(階段三第一增量——`worker/` 與部署手冊 [`docs/BACKEND.md`](docs/BACKEND.md),**暫停開發、恢復時從前端串接開始**)。接續開發候選:階段三前端串接(Threads 代發 UI)、階段四 Web Push 提醒、遠期 F8。各階段細節與後端形態比較見 [`docs/HANDOFF.md`](docs/HANDOFF.md) 架構決策記錄。
 
 ## 設計參考
 

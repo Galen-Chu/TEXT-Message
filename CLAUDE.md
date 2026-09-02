@@ -48,11 +48,11 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 ## 開發待辦與優化清單(2026-09-02 社群管理開發收尾歸檔)
 
-**階段現況(2026-09-02 收尾確立)**:階段 0(定位調整)／階段 1(排程管理與發佈輔助)／階段 2(YouTube 上傳)**完成**;階段 3(平台代發)**暫停於第一增量**——`worker/` 骨架(Threads OAuth 代管、加密 token、代發、排程 cron)已歸檔保留並完成測試與部署手冊(`docs/BACKEND.md`),前端串接與 IG/X 未開工;階段 4(Web Push)未開工。**恢復社群串接開發時,從「階段 3 前端串接」開始**。
+**階段現況(2026-09-02 收尾歸檔)**:階段 0(定位調整)／階段 1(排程管理與發佈輔助)／階段 2(YouTube 上傳)**完成**;階段 3(平台代發)**暫停於第一增量**——`worker/` 骨架(Threads OAuth 代管、加密 token、代發、排程 cron)已歸檔保留並完成測試與部署手冊(`docs/BACKEND.md`),前端串接與 IG/X 未開工;階段 4(Web Push)未開工。**文管庫功能深化四期已於同日全數完成**(`docs/LIBRARY-PLAN.md`;遠期 F8 未做)。**恢復社群串接開發時,從「階段 3 前端串接」開始**。
 
 已上線:Gmail 唯讀收件匣(2026-08-18)、Gemini BYOK 語氣改寫(2026-08-28,`services/gemini/rewrite.ts`)。以下各項動手時仍受「重要行為」紅線約束。
 
-### 待開發功能(依現行優先序)
+### 待開發功能(2026-09-02 收尾歸檔;接續開發由此挑選)
 
 1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
 2. **階段 3 前端串接(暫停中)** — `VITE_API_BASE` + Threads 代發 UI + 排程同步 worker 佇列;恢復時機由維護者決定(Threads App 審核與 worker 部署見 `docs/BACKEND.md`)。待辦提醒:送出 Google API 稽核申請(表單制)——稽核前 YouTube 上傳一律鎖私人
