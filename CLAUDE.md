@@ -6,8 +6,8 @@
 
 ```bash
 npm run dev        # 開發伺服器(localhost:5173)
-npm run build      # tsc -b 型別檢查 + vite build
-npm test           # 單元測試(vitest,src/**/*.test.ts)
+npm run build      # tsc -b + worker 型別檢查 + vite build
+npm test           # 單元測試(vitest,src/** 與 worker/src/** 的 *.test.ts)
 npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 ```
 
@@ -17,6 +17,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - `src/hooks/useGmail.ts` — Gmail 連線狀態機(`disabled|disconnected|connecting|connected|error`)
 - `src/services/gmail/` — Gmail 模組:`gis`(OAuth token model)/`gmailApi`(REST)/`mime`(中文 MIME 解析)/`classify`(規則式分類)/`mapToEmail`/`config`/`errors`;皆純邏輯、DOM-free(node 環境可測)
 - `src/services/youtube/` — YouTube 上傳模組(階段二):`gis`(沿用 gmail 的 GIS script 載入、獨立 token client,僅 `youtube.upload` scope)/`uploadApi`(resumable 兩步上傳,XHR 進度)/`video`(metadata 組裝與發佈計畫,UTF-8 bytes 上限,純邏輯)/`config`/`errors`;`src/hooks/useYoutube.ts` 為連線狀態機(鏡像 useGmail)
+- `worker/` — 平台代發後端(階段三,Cloudflare Workers + KV,零額外依賴):`src/index.ts`(路由 + 每分鐘 cron)/`threads/`(OAuth 交換/刷新 + container 發佈,可注入 fetcher 測試)/`store/`(AES-GCM 加密 + KV 存取)/`queue/`(到期/退避純邏輯);部署手冊 `docs/BACKEND.md`;worker 有獨立 tsconfig,`npm run build` 會一併型別檢查
 - `src/services/gemini/rewrite.ts` — AI 文案(BYOK):語氣改寫/郵件摘要/自訂指令三個入口共用模型降級迴圈;prompt 組裝/回應解析/狀態碼對應為純函式;key 存 localStorage `text-message:gemini-key`(獨立於內容資料的 `text-message:v2`)
 - `src/components/` — 六頁面 + Sidebar / Modal / PlatformBadge
 - `src/data/mockData.ts` — 示範模式假資料(日期相對今天回推,不會過期)
@@ -45,17 +46,17 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - main push:`deploy.yml`(test → build → E2E → Pages 部署;**E2E 是部署閘門**)
 - E2E 跑在 `npm run preview`(含 base 路徑);CI 環境為示範模式建置,不觸碰 Google 網路
 
-## 開發待辦與優化清單(2026-08-31 依程式碼實況盤點)
+## 開發待辦與優化清單(2026-09-02 社群管理開發收尾歸檔)
+
+**階段現況(2026-09-02 收尾確立)**:階段 0(定位調整)／階段 1(排程管理與發佈輔助)／階段 2(YouTube 上傳)**完成**;階段 3(平台代發)**暫停於第一增量**——`worker/` 骨架(Threads OAuth 代管、加密 token、代發、排程 cron)已歸檔保留並完成測試與部署手冊(`docs/BACKEND.md`),前端串接與 IG/X 未開工;階段 4(Web Push)未開工。**恢復社群串接開發時,從「階段 3 前端串接」開始**。
 
 已上線:Gmail 唯讀收件匣(2026-08-18)、Gemini BYOK 語氣改寫(2026-08-28,`services/gemini/rewrite.ts`)。以下各項動手時仍受「重要行為」紅線約束。
 
-### 待開發功能(2026-09-02 決議重排:前端為主、後端輔助(可選),YouTube 先行;草稿持久化與範本編輯/刪除已於 2026-08-31 完成)
+### 待開發功能(依現行優先序)
 
-1. ~~**階段 1(純前端)— 排程管理與發佈輔助**~~(2026-09-02 完成)— 排程狀態流轉(`published` 為儲存狀態;`overdue` 依時間即時推導、不落地,`utils/schedule.ts`)+ 逾期提示(Dashboard/Schedule 橫幅)+ 排程編輯(新增/編輯共用 modal,含選填貼文全文 `content`)+ 發佈輔助(`utils/publish.ts`:Threads intent 預填文字;FB/IG/LINE 先複製再開平台頁)+ 標記已發佈寫入 `publishedHistory`(有真實記錄時 Social 頁脫離示範資料)
-2. ~~**階段 2(零後端)— YouTube 影片/Shorts 上傳串接**~~(2026-09-02 完成)— `services/youtube/` 模組 + `useYoutube` 狀態機(僅 `youtube.upload` scope,token 不落地);草稿頁勾選 YouTube 後可直接上傳(草稿首行=標題、全文=說明,UTF-8 bytes 截斷);「立即公開」成功即寫入 `publishedHistory`,「預約發佈」以原生 `publishAt` 排程(零後端)+ 建立排程項目;`yt` 成為 `PlatformKey` 一員(排程/社群歷史/發佈輔助全適用,`utils/publish.ts` 開 YouTube Studio)。社群貼文(純文字)無公開 API,不做;影音編輯整合另案評估。**待辦:送出 Google API 稽核申請(表單制)——稽核前上傳一律鎖私人**
-3. **階段 3(後端輔助)— 平台代發** — 順序 Threads(免費、審核較輕)→ IG(需商業帳號+綁粉專)→ X(量計費約 $0.015/則);IG/Threads 無原生排程參數,全自動需後端 cron;LINE 個人動態無 API,永遠手動;後端形態比較見 `docs/HANDOFF.md` 決策記錄,定案前不動工
-4. **階段 4(可選)— Web Push + Service Worker 提醒**
-5. **文管庫功能深化(2026-09-02 決議:排於階段 3/4 之後)** — placeholder(`{{變數}}`)填值流程、平台變體欄位、範本使用統計、「以發文記錄建立範本」、發文趨勢分析(僅真實資料)、Gemini 平台適配變體生成/hashtag 建議;完整評估見 `docs/HANDOFF.md` 文管庫評估區
+1. **文管庫功能深化(現行工作流;2026-09-02 決議自「階段 3/4 之後」提前)** — placeholder(`{{變數}}`)填值流程、平台變體欄位、範本使用統計、「以發文記錄建立範本」、發文趨勢分析(僅真實資料)、Gemini 平台適配變體生成/hashtag 建議;**規劃設計見 `docs/LIBRARY-PLAN.md`**,動工範圍依維護者對該計畫的確認
+2. **階段 3 前端串接(暫停中)** — `VITE_API_BASE` + Threads 代發 UI + 排程同步 worker 佇列;恢復時機由維護者決定(Threads App 審核與 worker 部署見 `docs/BACKEND.md`)。待辦提醒:送出 Google API 稽核申請(表單制)——稽核前 YouTube 上傳一律鎖私人
+3. **階段 4(可選)— Web Push + Service Worker 提醒**
 
 ### 既有功能可優化(2026-08-31 完成第一輪)
 
@@ -67,11 +68,12 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 - 相依套件升級:2026-08-31 評估過,可用更新全為跨大版本(React 19、Vite 8、TS 7、Vitest 4),semver 範圍內無小版可升;建議另立技術債 sprint 一次處理並完整驗證,需同步 `package-lock.json`
 
-### 架構決策點(2026-09-02 維護者決議)
+### 架構決策點(2026-09-02 維護者決議;同日收尾歸檔)
 
 - 大方向定案:**前端為主、後端輔助(可選)**——後端漸進式、可退回;未設定後端=完整半自動模式,純前端 CI 路徑不變
 - 真實串接以 **YouTube 先行**(影片/Shorts 搭配文字說明;沿用 GIS、零後端);影音編輯等產品整合另案評估,勿自行擴大範圍
-- **後端形態定案(2026-09-02):Cloudflare Workers + KV 為主,GitHub Actions cron 混合為輔助變體**(比較記錄見 `docs/HANDOFF.md` 決策記錄);動工時機依階段 2 YouTube 串接的產品驗證結果
+- **後端形態定案:Cloudflare Workers + KV 為主,GitHub Actions cron 混合為輔助變體**(比較記錄見 `docs/HANDOFF.md` 決策記錄)
+- **2026-09-02 收尾決議:社群串接開發暫停**(時間因素)——`worker/` 骨架歸檔保留(含測試與 `docs/BACKEND.md` 部署手冊),恢復開發時從前端串接開始;**文管庫功能深化提前為現行工作流**(規劃見 `docs/LIBRARY-PLAN.md`)
 - LINE 個人動態無公開發文 API,永遠維持手動/深連結輔助
 
 ## 慣例

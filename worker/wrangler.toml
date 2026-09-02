@@ -1,0 +1,23 @@
+# text-message-worker:平台代發後端(Cloudflare Workers + KV)
+# 部署步驟與 secrets 設定見 docs/BACKEND.md;本檔需在部署前:
+#   1. 建立 KV namespace 並將 id 填入下方 QUEUE
+#   2. 確認 FRONTEND_URL 指向你的前端網址(含路徑)
+
+name = "text-message-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# 排程 cron:每分鐘掃描到期項目(IG/Threads 無原生排程,由後端代發)
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "QUEUE"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+[vars]
+# 前端完整網址(CORS 白名單與 OAuth 完成後回跳目標)
+FRONTEND_URL = "https://galen-chu.github.io/TEXT-Message/"
+
+# secrets(wrangler secret put 設定,勿寫進本檔):
+#   THREADS_CLIENT_ID / THREADS_CLIENT_SECRET / TOKEN_ENCRYPTION_KEY

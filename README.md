@@ -72,9 +72,9 @@ src/
 - **排程**:狀態流轉、逾期提示與發佈輔助(一鍵複製 + 平台深連結)已上線(純前端半自動);全自動發佈屬後端輔助階段——IG/Threads 無原生排程參數需後端 cron,YouTube 與 Facebook 粉專支援原生預約發佈
 - **YouTube 上傳已上線**(瀏覽器端 OAuth,僅 `youtube.upload` 範圍,設定見 [`docs/SETUP.md`](docs/SETUP.md) §11):未完成 Google API 稽核的專案,上傳影片會被鎖定為私人(可至 YouTube Studio 手動公開);YouTube 社群貼文(純文字)無公開 API
 
-## 發展路線(2026-09 決議)
+## 發展路線(2026-09-02 收尾歸檔後現況)
 
-**前端為主、後端輔助(可選)**;真實串接以 **YouTube 先行**(影片/Shorts + 文字說明,沿用瀏覽器端 Google OAuth、零後端),平台代發後端(Threads → IG → X)於形態定案後啟動。各階段細節與後端形態比較見 [`docs/HANDOFF.md`](docs/HANDOFF.md) 架構決策記錄。
+**前端為主、後端輔助(可選)**。已完成:排程管理與發佈輔助(階段一)、**YouTube 影片/Shorts 上傳**(階段二,瀏覽器端 Google OAuth、零後端)、平台代發後端骨架(階段三第一增量——`worker/` 與部署手冊 [`docs/BACKEND.md`](docs/BACKEND.md),**暫停開發、恢復時從前端串接開始**)。**現行工作流:文管庫(文案管理)功能深化**,規劃設計見 [`docs/LIBRARY-PLAN.md`](docs/LIBRARY-PLAN.md)。各階段細節與後端形態比較見 [`docs/HANDOFF.md`](docs/HANDOFF.md) 架構決策記錄。
 
 ## 設計參考
 

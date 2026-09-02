@@ -112,12 +112,13 @@
 1. 專案定位由「純前端、無後端」調整為「**前端為主、後端輔助(可選)**」。後端為漸進式、可退回的輔助角色:只負責 OAuth 代管、平台代發文(解決 CORS)、排程 cron;未設定後端時產品為完整半自動模式(一鍵複製 + 平台深連結),純前端 CI 路徑不變、建置不得失敗。
 2. 後端資料邊界(紅線):後端僅接收**排程貼文內容**與平台 token(加密保存、可隨時 revoke);**emails 與 AI key 永遠只留在使用者瀏覽器**,不落地也不上傳。
 3. 真實串接以 **YouTube 先行**(影片/Shorts + 文字說明;沿用 `services/gmail/gis` 模式加 `youtube.upload` scope,零後端)。注意:未過 Google API 稽核的專案,API 上傳影片一律鎖私人(2020-07-28 後建立的專案適用);YouTube 社群貼文(純文字)無公開 API;排程可用原生 `publishAt`(privacyStatus private + publishAt),免 cron。影音編輯等產品整合另案評估。
-4. ~~後端形態:評估中~~(2026-09-02 定案:**Cloudflare Workers + KV 為主形態,GitHub Actions cron 混合為輔助變體**,於文件提供自架者作「零基建個人自用」選項;動工時機依階段 2 YouTube 串接的產品驗證結果。比較表見下方)。
+4. ~~後端形態:評估中~~(2026-09-02 定案:**Cloudflare Workers + KV 為主形態,GitHub Actions cron 混合為輔助變體**,於文件提供自架者作「零基建個人自用」選項。比較表見下方)。
+5. **2026-09-02 收尾歸檔**:社群串接開發暫停(維護者時間因素)——階段 0/1/2 完成、階段 3 暫停於第一增量(`worker/` 骨架歸檔保留)、階段 4 未開工;**文管庫功能深化提前為現行工作流**,規劃設計見 `docs/LIBRARY-PLAN.md`。
 
-### 發展階段
+### 發展階段(2026-09-02 收尾歸檔:0/1/2 完成,3 暫停於第一增量,4 未開工)
 1. ~~**階段 1(純前端)**~~(2026-09-02 完成):排程狀態流轉(`published` 為儲存狀態、`overdue` 依時間推導不落地)+ 逾期提示(Dashboard/Schedule 橫幅)+ 排程編輯(新增/編輯共用 modal,含選填貼文全文);發佈輔助(一鍵複製 + 平台深連結——Threads intent 可預填文字,FB/IG/LINE 先複製再開平台頁);手動標記已發佈寫入 `publishedHistory`(Social 頁隨之真實化)
-2. ~~**階段 2(零後端)**:YouTube 影片/Shorts 上傳(GIS + `youtube.upload`;Google API 稽核申請先行;排程用原生 publishAt)~~(2026-09-02 完成;**Google API 稽核申請待送出**——稽核前上傳一律鎖私人,見 SETUP.md §11)
-3. **階段 3(後端輔助)**:平台代發,順序 Threads(免費、審核較輕)→ IG(需商業帳號+綁粉專)→ X(量計費約 $0.015/則);cron 僅為無原生排程的平台存在;LINE 永遠手動
+2. ~~**階段 2(零後端)**:YouTube 影片/Shorts 上傳(GIS + `youtube.upload`;排程用原生 publishAt)~~(2026-09-02 完成;**Google API 稽核申請待送出**——稽核前上傳一律鎖私人,見 SETUP.md §11)
+3. **階段 3(後端輔助)**(**暫停中,骨架歸檔**):平台代發,順序 Threads(免費、審核較輕)→ IG(需商業帳號+綁粉專)→ X(量計費約 $0.015/則);cron 僅為無原生排程的平台存在;LINE 永遠手動。第一增量已完成並歸檔:`worker/` 骨架(Threads OAuth 代管、AES-GCM token 保存、立即代發、排程佇列 + 每分鐘 cron、部署手冊 `docs/BACKEND.md`);**恢復時從前端串接(`VITE_API_BASE` + 代發 UI)開始**
 4. **階段 4(可選)**:Web Push + Service Worker 提醒
 
 ### 後端形態比較(2026-09-02 查證;待定案)
@@ -134,7 +135,7 @@
 
 **定案(2026-09-02)**:Cloudflare Workers + KV 為**主形態**——需求全覆蓋、免費層足夠、TS 原生可與前端共用型別、自架故事乾淨(fork → wrangler deploy → 設 3 個 secret);GitHub Actions cron 混合為**輔助變體**,於文件提供「零基建個人自用」選項。Vercel(免費層無分鐘級 cron)、Supabase(能力過剩)、自架 VPS(維運負擔)不採用。
 
-## 文管庫(文案管理)功能評估(2026-09-02;**排程定案:整體安排於社群管理開發階段(階段 3/4)之後**,屆時再依下述節奏挑選範圍)
+## 文管庫(文案管理)功能評估(2026-09-02;**排程更新:社群管理開發已於同日收尾歸檔,本工作流提前為現行優先——完整規劃設計見 `docs/LIBRARY-PLAN.md`,本區保留為評估原始記錄**)
 
 **現況**:Template 為 `{category, title, text}` 平面結構;發文記錄已真實化(`publishedHistory`);AI 已有語氣改寫/郵件摘要/自訂指令(Gemini BYOK)。
 
