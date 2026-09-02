@@ -161,6 +161,30 @@ export const SCHEDULE_COPY = {
   publishedToast: '已標記發佈,寫入社群媒體歷史 ✅',
 };
 
+/** 文管庫深化(第一期:範本填值、存為範本、使用統計)的使用者文案。 */
+export const LIBRARY_COPY = {
+  fillTitle: '填寫範本變數',
+  fillDesc: (n: number) => `此範本包含 ${n} 個 {{變數}},填寫後套用;留空的變數會保留原樣,之後可在草稿補上`,
+  fillPlaceholder: (name: string) => `輸入 ${name} 的內容`,
+  fillPreview: '預覽',
+  fillSkip: '略過,直接用原文',
+  fillApply: '填完套用到草稿',
+  fillCopy: '填完複製',
+  copiedFilledToast: '已複製到剪貼簿(變數已填入)',
+  copyFailToast: '複製失敗,請手動選取複製',
+  saveAsTemplate: '存為範本',
+  saveAsTemplateTitle: '存為文案範本',
+  saveAsTemplateCategory: '分類(文案管理)',
+  saveAsTemplateContentLabel: '範本內容(來自發文記錄,可稍後編輯)',
+  savedToast: '已存入文管庫 · 文案管理 ✅',
+  titleRequiredToast: '請輸入標題',
+  sortDefault: '預設',
+  sortMostUsed: '最常用',
+  sortRecent: '最近使用',
+  usedCount: (n: number) => `已用 ${n} 次`,
+  lastUsedAt: (d: string) => `最近 ${d}`,
+};
+
 /** YouTube 上傳(階段二:零後端,沿用瀏覽器端 Google OAuth)的使用者文案。 */
 export const YOUTUBE_COPY = {
   cardTitle: '🎬 YouTube 上傳',

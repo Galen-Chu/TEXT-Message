@@ -4,6 +4,7 @@ import { useYoutube } from './useYoutube';
 import {
   DRAFT_AI_COPY,
   GEMINI_ERROR_COPY,
+  LIBRARY_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
   SCHEDULE_COPY,
@@ -37,6 +38,7 @@ import type {
 } from '../types';
 import { charCount, getWeekDates, toISODate } from '../utils/date';
 import { buildPublishTarget } from '../utils/publish';
+import { applyVariables } from '../utils/variables';
 
 export type AppStore = ReturnType<typeof useAppStore>;
 
@@ -281,8 +283,24 @@ export function useAppStore() {
     setDraftPlatforms((p) => ({ ...p, [key]: !p[key] }));
   };
 
-  const insertTemplateIntoDraft = (tpl: Template) => {
-    setDraftText((t) => (t ? t + '\n\n' : '') + tpl.text);
+  /** 使用統計:套用/複製成功時遞增(文管庫深化第一期)。 */
+  const markTemplateApplied = (id: string) => {
+    const patch = (t: Template): Template => ({
+      ...t,
+      appliedCount: (t.appliedCount ?? 0) + 1,
+      lastAppliedAt: new Date().toISOString(),
+    });
+    if (templates.some((t) => t.id === id)) {
+      setTemplates((list) => list.map((t) => (t.id === id ? patch(t) : t)));
+    }
+    if (copyTemplates.some((t) => t.id === id)) {
+      setCopyTemplates((list) => list.map((t) => (t.id === id ? patch(t) : t)));
+    }
+  };
+
+  const insertTemplateIntoDraft = (tpl: Template, values?: Record<string, string>) => {
+    setDraftText((t) => (t ? t + '\n\n' : '') + applyVariables(tpl.text, values ?? {}));
+    markTemplateApplied(tpl.id);
     showToast('已插入文管庫內容');
   };
 
@@ -294,16 +312,18 @@ export function useAppStore() {
     showToast('已套用社群媒體歷史貼文');
   };
 
-  const applyTemplateToDraft = (tpl: Template) => {
+  const applyTemplateToDraft = (tpl: Template, values?: Record<string, string>) => {
     setSelectedMailId((id) => id ?? 'blank');
-    setDraftText((t) => (t ? t + '\n\n' : '') + tpl.text);
+    setDraftText((t) => (t ? t + '\n\n' : '') + applyVariables(tpl.text, values ?? {}));
     setActiveTab('draft');
+    markTemplateApplied(tpl.id);
     showToast('已套用範本到草稿');
   };
 
-  const copyTemplate = async (tpl: Template) => {
+  const copyTemplate = async (tpl: Template, values?: Record<string, string>) => {
     try {
-      await navigator.clipboard.writeText(tpl.text);
+      await navigator.clipboard.writeText(applyVariables(tpl.text, values ?? {}));
+      markTemplateApplied(tpl.id);
       showToast('已複製到剪貼簿');
     } catch {
       showToast('複製失敗,請手動選取複製');
@@ -349,6 +369,18 @@ export function useAppStore() {
     setTemplates((list) => list.filter((t) => t.id !== id));
     setCopyTemplates((list) => list.filter((t) => t.id !== id));
     showToast('已刪除內容');
+  };
+
+  /** 以社群發文記錄建立文案範本(文管庫深化第一期:F2)。 */
+  const saveSocialPostAsTemplate = (post: SocialPost, title: string, category: string) => {
+    const tpl: Template = {
+      id: newId('sc'),
+      category: category || '日常分享',
+      title,
+      text: post.content,
+    };
+    setCopyTemplates((list) => [tpl, ...list]);
+    showToast(LIBRARY_COPY.savedToast);
   };
 
   // 草稿已隨內容變動自動持久化(見上方 effect);按鈕僅回饋確認
@@ -523,6 +555,7 @@ export function useAppStore() {
     addTemplate,
     updateTemplate,
     deleteTemplate,
+    saveSocialPostAsTemplate,
     saveDraft,
     discardDraft,
     confirmSchedule,

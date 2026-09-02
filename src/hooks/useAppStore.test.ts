@@ -242,3 +242,62 @@ describe('useAppStore:排程狀態流轉與發佈記錄', () => {
     expect(readStore().scheduleItems).toEqual(result.current.scheduleItems);
   });
 });
+
+describe('useAppStore:文管庫深化第一期', () => {
+  it('applyTemplateToDraft 帶填值:變數替換、未填保留、統計遞增並持久化', () => {
+    const { result } = renderHook(() => useAppStore());
+    const target = result.current.copyTemplates.find((t) => t.text.includes('{{品牌名稱}}'))!;
+
+    act(() => {
+      result.current.applyTemplateToDraft(target, { 品牌名稱: '光影香氛' });
+    });
+    // 草稿含替換後文字與未填變數的原樣佔位符
+    expect(result.current.draftText).toContain('光影香氛');
+    expect(result.current.draftText).toContain('{{產品名稱}}');
+    expect(result.current.draftText).not.toContain('{{品牌名稱}}');
+    expect(result.current.activeTab).toBe('draft');
+    // 統計
+    const after = result.current.copyTemplates.find((t) => t.id === target.id)!;
+    expect(after.appliedCount).toBe(1);
+    expect(after.lastAppliedAt).toBeTruthy();
+    expect(readStore().copyTemplates).toEqual(result.current.copyTemplates);
+  });
+
+  it('insertTemplateIntoDraft 帶填值附加到草稿並計數', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('既有內容');
+    });
+    const target = result.current.copyTemplates.find((t) => t.text.includes('{{品牌名稱}}'))!;
+    act(() => {
+      result.current.insertTemplateIntoDraft(target, { 品牌名稱: 'B', 產品名稱: 'P' });
+    });
+    expect(result.current.draftText.startsWith('既有內容')).toBe(true);
+    expect(result.current.draftText).toContain('B');
+    expect(result.current.draftText).toContain('P');
+    expect(result.current.draftText).not.toContain('{{');
+    expect(
+      result.current.copyTemplates.find((t) => t.id === target.id)!.appliedCount,
+    ).toBe(1);
+  });
+
+  it('saveSocialPostAsTemplate:以記錄內容建立文案範本並持久化', () => {
+    const { result } = renderHook(() => useAppStore());
+    const post = result.current.socialHistory[0];
+    const before = result.current.copyTemplates.length;
+
+    act(() => {
+      result.current.saveSocialPostAsTemplate(post, '我的新範本', '日常分享');
+    });
+    const saved = result.current.copyTemplates[0];
+    expect(saved.title).toBe('我的新範本');
+    expect(saved.category).toBe('日常分享');
+    expect(saved.text).toBe(post.content);
+    expect(saved.appliedCount).toBeUndefined();
+    expect(result.current.copyTemplates.length).toBe(before + 1);
+    expect(readStore().copyTemplates).toEqual(result.current.copyTemplates);
+  });
+});

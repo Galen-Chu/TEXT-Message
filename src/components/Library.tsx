@@ -1,12 +1,28 @@
 import { useState } from 'react';
-import { COPY_CATEGORIES, LIBRARY_CATEGORIES, type LibraryMainTab } from '../constants';
+import {
+  COPY_CATEGORIES,
+  LIBRARY_CATEGORIES,
+  LIBRARY_COPY,
+  type LibraryMainTab,
+} from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import type { Template } from '../types';
+import { shortDateLabel } from '../utils/date';
+import { extractVariables } from '../utils/variables';
 import Modal from './Modal';
+import VariableFillModal from './VariableFillModal';
 
 const MAIN_TABS: Array<{ key: LibraryMainTab; label: string }> = [
   { key: 'message', label: '訊息管理' },
   { key: 'copy', label: '文案管理' },
+];
+
+type SortBy = 'default' | 'used' | 'recent';
+
+const SORT_OPTIONS: Array<{ key: SortBy; label: string }> = [
+  { key: 'default', label: LIBRARY_COPY.sortDefault },
+  { key: 'used', label: LIBRARY_COPY.sortMostUsed },
+  { key: 'recent', label: LIBRARY_COPY.sortRecent },
 ];
 
 function filterTemplates(list: Template[], category: string, search: string): Template[] {
@@ -18,11 +34,25 @@ function filterTemplates(list: Template[], category: string, search: string): Te
   });
 }
 
+/** 排序:最常用(次數降序)/最近使用(時間降序);default = 原始順序(新加入在前)。 */
+function sortTemplates(list: Template[], sortBy: SortBy): Template[] {
+  if (sortBy === 'default') return list;
+  return [...list].sort((a, b) =>
+    sortBy === 'used'
+      ? (b.appliedCount ?? 0) - (a.appliedCount ?? 0)
+      : (b.lastAppliedAt ?? '').localeCompare(a.lastAppliedAt ?? ''),
+  );
+}
+
 export default function Library({ store }: { store: AppStore }) {
   const [showNewModal, setShowNewModal] = useState(false);
   const [editing, setEditing] = useState<Template | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newText, setNewText] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('default');
+  const [fillTarget, setFillTarget] = useState<{ tpl: Template; mode: 'apply' | 'copy' } | null>(
+    null,
+  );
 
   const isMessageTab = store.libraryMainTab === 'message';
   const categories = isMessageTab ? LIBRARY_CATEGORIES : COPY_CATEGORIES;
@@ -30,11 +60,20 @@ export default function Library({ store }: { store: AppStore }) {
   const setCategory = isMessageTab ? store.setLibraryCategory : store.setCopyCategory;
   const search = isMessageTab ? store.librarySearch : store.copySearch;
   const setSearch = isMessageTab ? store.setLibrarySearch : store.setCopySearch;
-  const filtered = filterTemplates(
-    isMessageTab ? store.templates : store.copyTemplates,
-    category,
-    search,
+  const filtered = sortTemplates(
+    filterTemplates(isMessageTab ? store.templates : store.copyTemplates, category, search),
+    sortBy,
   );
+
+  /** 含 {{變數}} 的範本先填值再套用/複製;無變數直接執行。 */
+  const runTemplateAction = (tpl: Template, mode: 'apply' | 'copy') => {
+    if (extractVariables(tpl.text).length > 0) {
+      setFillTarget({ tpl, mode });
+      return;
+    }
+    if (mode === 'copy') void store.copyTemplate(tpl);
+    else store.applyTemplateToDraft(tpl);
+  };
 
   const openNewModal = () => {
     setEditing(null);
@@ -141,8 +180,32 @@ export default function Library({ store }: { store: AppStore }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={isMessageTab ? '搜尋內容標題或文字…' : '搜尋文案標題或內容…'}
-            style={{ maxWidth: 360, borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}
+            style={{ maxWidth: 360, borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}
           />
+
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>排序</span>
+            {SORT_OPTIONS.map((opt) => {
+              const active = sortBy === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setSortBy(opt.key)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: 8,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    color: active ? 'var(--brand)' : 'var(--text-faint)',
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {filtered.map((tpl) => (
@@ -158,15 +221,24 @@ export default function Library({ store }: { store: AppStore }) {
                     fontSize: 12.5,
                     color: 'var(--text-weak)',
                     lineHeight: 1.6,
-                    marginBottom: 12,
+                    marginBottom: 8,
                     whiteSpace: 'pre-line',
                   }}
                 >
                   {tpl.text}
                 </div>
+                {tpl.appliedCount ? (
+                  <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginBottom: 10 }}>
+                    {LIBRARY_COPY.usedCount(tpl.appliedCount)}
+                    {tpl.lastAppliedAt
+                      ? ' · ' +
+                        LIBRARY_COPY.lastUsedAt(shortDateLabel(new Date(tpl.lastAppliedAt)))
+                      : ''}
+                  </div>
+                ) : null}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => store.applyTemplateToDraft(tpl)}
+                    onClick={() => runTemplateAction(tpl, 'apply')}
                     style={{
                       flex: 1,
                       textAlign: 'center',
@@ -194,7 +266,7 @@ export default function Library({ store }: { store: AppStore }) {
                     編輯
                   </button>
                   <button
-                    onClick={() => store.copyTemplate(tpl)}
+                    onClick={() => runTemplateAction(tpl, 'copy')}
                     style={{
                       padding: '8px 12px',
                       borderRadius: 8,
@@ -267,6 +339,20 @@ export default function Library({ store }: { store: AppStore }) {
             </button>
           </div>
         </Modal>
+      )}
+
+      {fillTarget && (
+        <VariableFillModal
+          template={fillTarget.tpl}
+          mode={fillTarget.mode}
+          onClose={() => setFillTarget(null)}
+          onApply={(values) => {
+            const { tpl, mode } = fillTarget;
+            setFillTarget(null);
+            if (mode === 'copy') void store.copyTemplate(tpl, values);
+            else store.applyTemplateToDraft(tpl, values);
+          }}
+        />
       )}
     </div>
   );

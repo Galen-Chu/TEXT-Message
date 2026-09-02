@@ -21,6 +21,9 @@ export interface Template {
   category: string;
   title: string;
   text: string;
+  /** 使用統計(2026-09 文管庫深化):套用/複製成功時遞增;舊資料無此欄位 = 未啟用 */
+  appliedCount?: number;
+  lastAppliedAt?: string; // ISO
 }
 
 /**

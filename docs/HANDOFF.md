@@ -60,6 +60,7 @@
 - **編輯/刪除邏輯**: 每張內容卡提供「編輯」(開啟同一個 modal,預填標題與內容,儲存僅更新標題/內容、分類維持原值)與「刪除」(即時移除,toast 回覆)按鈕,與既有「套用到草稿」「複製」並列。
 - **草稿插入邏輯**: 草稿頁「從文管庫插入」modal 會合併「訊息管理」與「文案管理」兩個資料集一併列出供選擇,不分頁籤。
 - **Components**: 分頁按鈕(選中態 `#6C5CE7` 底白字);分類清單項(選中態 `#F1EDFF` 底 / `#6C5CE7` 字);內容卡片(分類 pill + 標題 + 內文 + 「套用到草稿」主按鈕 + 「複製」次按鈕)。
+- **實作補充(2026-09-02,文管庫深化第一期)**:含 `{{變數}}` 的範本在套用/複製(與草稿頁插入)前先開填值 modal(即時預覽、留空保留原樣、可略過用原文);卡片顯示使用統計(「已用 N 次 · 最近 M/D」)並提供「最常用/最近使用」排序;社群媒體頁每筆記錄可「存為範本」寫入文案管理(選分類)。
 
 ### Modals(共用互動層)
 - **文管庫插入 modal**(標題「插入文管庫內容」):合併訊息管理+文案管理內容供草稿頁選用。
@@ -87,8 +88,8 @@
 建議的核心狀態:
 - `activeTab`: 'dashboard' | 'inbox' | 'social' | 'schedule' | 'draft' | 'library'
 - `emails[]`: Gmail 郵件列表 — 實作時應改為呼叫 Gmail API
-- `templates[]`: 訊息管理內容(id, category, title, text)
-- `copyTemplates[]`: 文案管理內容(id, category, title, text)— 分類集與 templates 不同
+- `templates[]`: 訊息管理內容(id, category, title, text, appliedCount?, lastAppliedAt?)
+- `copyTemplates[]`: 文案管理內容(同上)— 分類集與 templates 不同
 - `socialHistory[]`: 社群媒體發文歷史(id, platform, title, content, date, time)— 「標記已發佈」的真實記錄(`publishedHistory`,持久化)優先,無記錄時為示範資料
 - `scheduleItems[]`: 排程項目(id, date, time, platform, title, content?, status: draft|scheduled|published;「逾期」為依時間推導的顯示狀態,不儲存)
 - `selectedMailId`: 目前草稿來源郵件 id、'blank' 或 null(三者皆隨草稿持久化)

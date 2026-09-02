@@ -13,8 +13,11 @@ import type { AppStore } from '../hooks/useAppStore';
 import { YOUTUBE_ENABLED } from '../services/youtube/config';
 import { fileSizeMb, resolvePublishPlan } from '../services/youtube/video';
 import { charCount, dateLabel } from '../utils/date';
+import { extractVariables } from '../utils/variables';
+import type { Template } from '../types';
 import Modal from './Modal';
 import GeminiKeyModal from './GeminiKeyModal';
+import VariableFillModal from './VariableFillModal';
 
 export default function Draft({ store }: { store: AppStore }) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -27,6 +30,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
+  const [fillInsert, setFillInsert] = useState<Template | null>(null);
 
   const yt = store.youtube;
 
@@ -541,6 +545,18 @@ export default function Draft({ store }: { store: AppStore }) {
         />
       )}
 
+      {fillInsert && (
+        <VariableFillModal
+          template={fillInsert}
+          mode="apply"
+          onClose={() => setFillInsert(null)}
+          onApply={(values) => {
+            store.insertTemplateIntoDraft(fillInsert, values);
+            setFillInsert(null);
+          }}
+        />
+      )}
+
       {showTemplatePicker && (
         <Modal
           onClose={() => setShowTemplatePicker(false)}
@@ -570,7 +586,11 @@ export default function Draft({ store }: { store: AppStore }) {
               <button
                 key={tpl.id}
                 onClick={() => {
-                  store.insertTemplateIntoDraft(tpl);
+                  if (extractVariables(tpl.text).length > 0) {
+                    setFillInsert(tpl);
+                  } else {
+                    store.insertTemplateIntoDraft(tpl);
+                  }
                   setShowTemplatePicker(false);
                 }}
                 style={{
