@@ -183,6 +183,14 @@ export const LIBRARY_COPY = {
   sortRecent: '最近使用',
   usedCount: (n: number) => `已用 ${n} 次`,
   lastUsedAt: (d: string) => `最近 ${d}`,
+  variantSectionLabel: '平台版本(選填)',
+  variantSectionHint: '為特定平台撰寫專屬版本;留空 = 套用時使用上方通用內容',
+  variantPicker: (label: string) => `${label} 版`,
+  variantPickerGeneric: '通用版',
+  variantClear: '清除本平台版本',
+  variantClearedToast: '已清除該平台版本',
+  copyVariantTitle: '選擇要複製的版本',
+  hasVariantBadge: '含平台版本',
 };
 
 /** YouTube 上傳(階段二:零後端,沿用瀏覽器端 Google OAuth)的使用者文案。 */

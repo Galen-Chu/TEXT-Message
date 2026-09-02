@@ -54,7 +54,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 ### 待開發功能(依現行優先序)
 
-1. **文管庫功能深化(現行工作流;2026-09-02 決議自「階段 3/4 之後」提前)** — **第一期已完成(2026-09-02)**:範本變數填值(`utils/variables.ts`,`{{變數}}` 偵測/填值 modal,套用與複製皆支援,未填保留原樣)、Social 頁「存為範本」寫入文案管理、範本使用統計(`appliedCount`/`lastAppliedAt`,卡片顯示 + 最常用/最近使用排序);決策點 D1–D5 已確認(見 `docs/LIBRARY-PLAN.md` §6)。**待續:第二期平台變體 → 第三期發文趨勢(Social 完整 + Dashboard 精簡)→ 第四期 Gemini 平台適配變體/hashtag(無 key 顯示但提示)**
+1. **文管庫功能深化(現行工作流;2026-09-02 決議自「階段 3/4 之後」提前)** — **第一、二期已完成(2026-09-02)**。第一期:範本變數填值(`utils/variables.ts`,套用/複製/插入皆支援,未填保留原樣)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`——依草稿勾選平台插入 `[平台名 版]`/`[通用版]` 段落(D3 決議),複製可選版本,新增/編輯 modal 有平台版本區,卡片標示「含平台版本」;空變體不落地)。決策點 D1–D5 已確認(見 `docs/LIBRARY-PLAN.md` §6)。**待續:第三期發文趨勢(Social 完整 + Dashboard 精簡)→ 第四期 Gemini 平台適配變體/hashtag(無 key 顯示但提示)**
 2. **階段 3 前端串接(暫停中)** — `VITE_API_BASE` + Threads 代發 UI + 排程同步 worker 佇列;恢復時機由維護者決定(Threads App 審核與 worker 部署見 `docs/BACKEND.md`)。待辦提醒:送出 Google API 稽核申請(表單制)——稽核前 YouTube 上傳一律鎖私人
 3. **階段 4(可選)— Web Push + Service Worker 提醒**
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from './useAppStore';
 
 // 測試環境未設 VITE_GMAIL_CLIENT_ID → Gmail 為 disabled(示範模式),不需 mock Google 服務
@@ -299,5 +299,72 @@ describe('useAppStore:文管庫深化第一期', () => {
     expect(saved.appliedCount).toBeUndefined();
     expect(result.current.copyTemplates.length).toBe(before + 1);
     expect(readStore().copyTemplates).toEqual(result.current.copyTemplates);
+  });
+});
+
+describe('useAppStore:文管庫深化第二期(平台變體)', () => {
+  it('applyTemplateToDraft 依勾選平台插入變體段([平台名 版] 與 [通用版])', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.updateTemplate(result.current.copyTemplates[0].id, {
+        title: 'T',
+        text: '通用文字',
+        platformVariants: { threads: '短版' },
+      });
+    });
+    // 預設勾選 fb+ig(皆無變體)→ 通用文字(第一期行為)
+    act(() => {
+      result.current.applyTemplateToDraft(result.current.copyTemplates[0]);
+    });
+    expect(result.current.draftText).toBe('通用文字');
+
+    act(() => {
+      result.current.togglePlatform('threads');
+    });
+    act(() => {
+      result.current.applyTemplateToDraft(result.current.copyTemplates[0]);
+    });
+    // 附加段落:threads 變體 + 其餘勾選平台共用通用版
+    expect(result.current.draftText.endsWith('[Threads 版]\n短版\n\n[通用版]\n通用文字')).toBe(
+      true,
+    );
+  });
+
+  it('copyTemplate 指定平台版本:複製該變體(含填值)', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.updateTemplate(result.current.copyTemplates[0].id, {
+        title: 'T',
+        text: '通用',
+        platformVariants: { threads: '短版 {{x}}' },
+      });
+    });
+    await act(async () => {
+      await result.current.copyTemplate(result.current.copyTemplates[0], { x: '填值' }, 'threads');
+    });
+    expect(writeText).toHaveBeenCalledWith('短版 填值');
+  });
+
+  it('addTemplate/updateTemplate 帶平台變體並持久化;清空變體則移除欄位', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.setLibraryMainTab('copy');
+    });
+    act(() => {
+      result.current.addTemplate('V', 'text', { threads: 't 版' });
+    });
+    const added = result.current.copyTemplates[0];
+    expect(added.platformVariants).toEqual({ threads: 't 版' });
+    expect(readStore().copyTemplates).toEqual(result.current.copyTemplates);
+
+    act(() => {
+      result.current.updateTemplate(added.id, { title: 'V', text: 'text', platformVariants: {} });
+    });
+    expect(result.current.copyTemplates[0].platformVariants).toBeUndefined();
+    expect(
+      (readStore().copyTemplates as Array<Record<string, unknown>>)[0].platformVariants,
+    ).toBeUndefined();
   });
 });

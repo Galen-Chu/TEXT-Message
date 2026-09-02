@@ -13,6 +13,7 @@ import type { AppStore } from '../hooks/useAppStore';
 import { YOUTUBE_ENABLED } from '../services/youtube/config';
 import { fileSizeMb, resolvePublishPlan } from '../services/youtube/video';
 import { charCount, dateLabel } from '../utils/date';
+import { buildTemplateInsertText } from '../utils/variants';
 import { extractVariables } from '../utils/variables';
 import type { Template } from '../types';
 import Modal from './Modal';
@@ -30,7 +31,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
-  const [fillInsert, setFillInsert] = useState<Template | null>(null);
+  const [fillInsert, setFillInsert] = useState<{ tpl: Template; text: string } | null>(null);
 
   const yt = store.youtube;
 
@@ -547,11 +548,10 @@ export default function Draft({ store }: { store: AppStore }) {
 
       {fillInsert && (
         <VariableFillModal
-          template={fillInsert}
-          mode="apply"
+          text={fillInsert.text}
           onClose={() => setFillInsert(null)}
           onApply={(values) => {
-            store.insertTemplateIntoDraft(fillInsert, values);
+            store.insertTemplateIntoDraft(fillInsert.tpl, values);
             setFillInsert(null);
           }}
         />
@@ -586,8 +586,12 @@ export default function Draft({ store }: { store: AppStore }) {
               <button
                 key={tpl.id}
                 onClick={() => {
-                  if (extractVariables(tpl.text).length > 0) {
-                    setFillInsert(tpl);
+                  const selected = PLATFORM_LIST.filter((p) => store.draftPlatforms[p.key]).map(
+                    (p) => p.key,
+                  );
+                  const text = buildTemplateInsertText(tpl, selected);
+                  if (extractVariables(text).length > 0) {
+                    setFillInsert({ tpl, text });
                   } else {
                     store.insertTemplateIntoDraft(tpl);
                   }

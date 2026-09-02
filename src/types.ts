@@ -24,6 +24,8 @@ export interface Template {
   /** 使用統計(2026-09 文管庫深化):套用/複製成功時遞增;舊資料無此欄位 = 未啟用 */
   appliedCount?: number;
   lastAppliedAt?: string; // ISO
+  /** 平台變體(第二期):各平台的專屬版本,留空的平台使用通用 text;舊資料無此欄位 = 僅通用版 */
+  platformVariants?: Partial<Record<PlatformKey, string>>;
 }
 
 /**

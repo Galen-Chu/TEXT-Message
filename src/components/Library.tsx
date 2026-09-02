@@ -3,11 +3,14 @@ import {
   COPY_CATEGORIES,
   LIBRARY_CATEGORIES,
   LIBRARY_COPY,
+  PLATFORM_LIST,
+  PLATFORM_META,
   type LibraryMainTab,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import type { Template } from '../types';
+import type { PlatformKey, Template } from '../types';
 import { shortDateLabel } from '../utils/date';
+import { buildTemplateInsertText, templateCopyText } from '../utils/variants';
 import { extractVariables } from '../utils/variables';
 import Modal from './Modal';
 import VariableFillModal from './VariableFillModal';
@@ -44,15 +47,26 @@ function sortTemplates(list: Template[], sortBy: SortBy): Template[] {
   );
 }
 
+/** 範本實際擁有的(非空白)平台變體鍵值。 */
+function variantKeys(tpl: Template): PlatformKey[] {
+  return PLATFORM_LIST.map((p) => p.key).filter((k) => (tpl.platformVariants?.[k] ?? '').trim());
+}
+
 export default function Library({ store }: { store: AppStore }) {
   const [showNewModal, setShowNewModal] = useState(false);
   const [editing, setEditing] = useState<Template | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newText, setNewText] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('default');
-  const [fillTarget, setFillTarget] = useState<{ tpl: Template; mode: 'apply' | 'copy' } | null>(
-    null,
-  );
+  const [newVariants, setNewVariants] = useState<Partial<Record<PlatformKey, string>>>({});
+  const [activeVariant, setActiveVariant] = useState<PlatformKey>('fb');
+  const [applyFill, setApplyFill] = useState<{ tpl: Template; text: string } | null>(null);
+  const [copyChoice, setCopyChoice] = useState<{ tpl: Template } | null>(null);
+  const [copyFill, setCopyFill] = useState<{
+    tpl: Template;
+    choice: PlatformKey | 'generic';
+    text: string;
+  } | null>(null);
 
   const isMessageTab = store.libraryMainTab === 'message';
   const categories = isMessageTab ? LIBRARY_CATEGORIES : COPY_CATEGORIES;
@@ -65,20 +79,41 @@ export default function Library({ store }: { store: AppStore }) {
     sortBy,
   );
 
-  /** 含 {{變數}} 的範本先填值再套用/複製;無變數直接執行。 */
-  const runTemplateAction = (tpl: Template, mode: 'apply' | 'copy') => {
-    if (extractVariables(tpl.text).length > 0) {
-      setFillTarget({ tpl, mode });
+  /** 套用:先組出「依勾選平台 + 變體」的插入文字,含變數先填值。 */
+  const runApply = (tpl: Template) => {
+    const selected = PLATFORM_LIST.filter((p) => store.draftPlatforms[p.key]).map((p) => p.key);
+    const text = buildTemplateInsertText(tpl, selected);
+    if (extractVariables(text).length > 0) {
+      setApplyFill({ tpl, text });
       return;
     }
-    if (mode === 'copy') void store.copyTemplate(tpl);
-    else store.applyTemplateToDraft(tpl);
+    store.applyTemplateToDraft(tpl);
+  };
+
+  /** 複製:有平台變體先選版本;含變數先填值。 */
+  const startCopy = (tpl: Template) => {
+    if (variantKeys(tpl).length > 0) {
+      setCopyChoice({ tpl });
+      return;
+    }
+    continueCopy(tpl, 'generic');
+  };
+
+  const continueCopy = (tpl: Template, choice: PlatformKey | 'generic') => {
+    const text = templateCopyText(tpl, choice);
+    if (extractVariables(text).length > 0) {
+      setCopyFill({ tpl, choice, text });
+      return;
+    }
+    void store.copyTemplate(tpl, {}, choice);
   };
 
   const openNewModal = () => {
     setEditing(null);
     setNewTitle('');
     setNewText('');
+    setNewVariants({});
+    setActiveVariant('fb');
     setShowNewModal(true);
   };
 
@@ -86,6 +121,8 @@ export default function Library({ store }: { store: AppStore }) {
     setEditing(tpl);
     setNewTitle(tpl.title);
     setNewText(tpl.text);
+    setNewVariants({ ...(tpl.platformVariants ?? {}) });
+    setActiveVariant(variantKeys(tpl)[0] ?? 'fb');
     setShowNewModal(true);
   };
 
@@ -94,8 +131,15 @@ export default function Library({ store }: { store: AppStore }) {
       store.showToast('請輸入標題');
       return;
     }
-    if (editing) store.updateTemplate(editing.id, { title: newTitle, text: newText });
-    else store.addTemplate(newTitle, newText);
+    if (editing) {
+      store.updateTemplate(editing.id, {
+        title: newTitle,
+        text: newText,
+        platformVariants: newVariants,
+      });
+    } else {
+      store.addTemplate(newTitle, newText, newVariants);
+    }
     setShowNewModal(false);
   };
 
@@ -210,8 +254,15 @@ export default function Library({ store }: { store: AppStore }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {filtered.map((tpl) => (
               <div key={tpl.id} className="card" style={{ borderRadius: 14, padding: 16 }}>
-                <div className="pill pill-purple" style={{ display: 'inline-block', marginBottom: 8 }}>
-                  {tpl.category}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+                  <span className="pill pill-purple">{tpl.category}</span>
+                  {variantKeys(tpl).length > 0 && (
+                    <span className="pill pill-purple" title={variantKeys(tpl)
+                      .map((k) => PLATFORM_META[k].label)
+                      .join('、')}>
+                      {LIBRARY_COPY.hasVariantBadge}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
                   {tpl.title}
@@ -238,7 +289,7 @@ export default function Library({ store }: { store: AppStore }) {
                 ) : null}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => runTemplateAction(tpl, 'apply')}
+                    onClick={() => runApply(tpl)}
                     style={{
                       flex: 1,
                       textAlign: 'center',
@@ -266,7 +317,7 @@ export default function Library({ store }: { store: AppStore }) {
                     編輯
                   </button>
                   <button
-                    onClick={() => runTemplateAction(tpl, 'copy')}
+                    onClick={() => startCopy(tpl)}
                     style={{
                       padding: '8px 12px',
                       borderRadius: 8,
@@ -328,8 +379,81 @@ export default function Library({ store }: { store: AppStore }) {
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             placeholder="輸入範本內容…"
-            style={{ minHeight: 100, lineHeight: 1.6, marginBottom: 16, resize: 'vertical' }}
+            style={{ minHeight: 100, lineHeight: 1.6, marginBottom: 14, resize: 'vertical' }}
           />
+
+          <div className="field-label">{LIBRARY_COPY.variantSectionLabel}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>
+            {LIBRARY_COPY.variantSectionHint}
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+            {PLATFORM_LIST.map((p) => {
+              const active = activeVariant === p.key;
+              const has = !!(newVariants[p.key] ?? '').trim();
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => setActiveVariant(p.key)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    color: active ? 'var(--brand)' : 'var(--text-faint)',
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 4,
+                      background: p.color,
+                      color: '#fff',
+                      fontSize: 8,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {p.badge}
+                  </span>
+                  {p.label}
+                  {has && <span style={{ color: 'var(--brand)' }}>●</span>}
+                </button>
+              );
+            })}
+          </div>
+          <textarea
+            className="text-input"
+            value={newVariants[activeVariant] ?? ''}
+            onChange={(e) =>
+              setNewVariants((v) => ({ ...v, [activeVariant]: e.target.value }))
+            }
+            placeholder={`${PLATFORM_META[activeVariant].label} 的專屬版本(留空 = 使用通用內容)…`}
+            aria-label={`${PLATFORM_META[activeVariant].label} 版本`}
+            style={{ minHeight: 72, lineHeight: 1.6, marginBottom: 8, resize: 'vertical' }}
+          />
+          {(newVariants[activeVariant] ?? '').trim() && (
+            <button
+              onClick={() => setNewVariants((v) => ({ ...v, [activeVariant]: '' }))}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--error)',
+                marginBottom: 16,
+                padding: '2px 4px',
+              }}
+            >
+              {LIBRARY_COPY.variantClear}
+            </button>
+          )}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" style={{ borderRadius: 9 }} onClick={() => setShowNewModal(false)}>
               取消
@@ -341,16 +465,66 @@ export default function Library({ store }: { store: AppStore }) {
         </Modal>
       )}
 
-      {fillTarget && (
+      {applyFill && (
         <VariableFillModal
-          template={fillTarget.tpl}
-          mode={fillTarget.mode}
-          onClose={() => setFillTarget(null)}
+          text={applyFill.text}
+          onClose={() => setApplyFill(null)}
           onApply={(values) => {
-            const { tpl, mode } = fillTarget;
-            setFillTarget(null);
-            if (mode === 'copy') void store.copyTemplate(tpl, values);
-            else store.applyTemplateToDraft(tpl, values);
+            const { tpl } = applyFill;
+            setApplyFill(null);
+            store.applyTemplateToDraft(tpl, values);
+          }}
+        />
+      )}
+
+      {copyChoice && (
+        <Modal
+          onClose={() => setCopyChoice(null)}
+          width={360}
+          label={LIBRARY_COPY.copyVariantTitle}
+        >
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 14 }}>
+            {LIBRARY_COPY.copyVariantTitle}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              className="btn btn-outline"
+              style={{ borderRadius: 9 }}
+              onClick={() => {
+                const { tpl } = copyChoice;
+                setCopyChoice(null);
+                continueCopy(tpl, 'generic');
+              }}
+            >
+              {LIBRARY_COPY.variantPickerGeneric}
+            </button>
+            {variantKeys(copyChoice.tpl).map((k) => (
+              <button
+                key={k}
+                className="btn btn-outline"
+                style={{ borderRadius: 9 }}
+                onClick={() => {
+                  const { tpl } = copyChoice;
+                  setCopyChoice(null);
+                  continueCopy(tpl, k);
+                }}
+              >
+                {LIBRARY_COPY.variantPicker(PLATFORM_META[k].label)}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {copyFill && (
+        <VariableFillModal
+          text={copyFill.text}
+          confirmLabel={LIBRARY_COPY.fillCopy}
+          onClose={() => setCopyFill(null)}
+          onApply={(values) => {
+            const { tpl, choice } = copyFill;
+            setCopyFill(null);
+            void store.copyTemplate(tpl, values, choice);
           }}
         />
       )}

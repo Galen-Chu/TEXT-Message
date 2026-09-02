@@ -38,7 +38,7 @@ import type {
 } from '../types';
 import { charCount, getWeekDates, toISODate } from '../utils/date';
 import { buildPublishTarget } from '../utils/publish';
-import { applyVariables } from '../utils/variables';
+import { buildTemplateInsertText, templateCopyText } from '../utils/variants';
 
 export type AppStore = ReturnType<typeof useAppStore>;
 
@@ -78,6 +78,17 @@ function tomorrowISO(): string {
 function newId(prefix: string): string {
   const uuid = typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined;
   return prefix + (uuid ?? Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+}
+
+/** 平台變體清理:移除空白內容;全空回 undefined(不落地該欄位,維持舊資料形狀)。 */
+function cleanVariants(
+  variants?: Partial<Record<PlatformKey, string>>,
+): Partial<Record<PlatformKey, string>> | undefined {
+  if (!variants) return undefined;
+  const cleaned = Object.fromEntries(
+    Object.entries(variants).filter(([, v]) => typeof v === 'string' && v.trim()),
+  ) as Partial<Record<PlatformKey, string>>;
+  return Object.keys(cleaned).length ? cleaned : undefined;
 }
 
 export function useAppStore() {
@@ -283,6 +294,10 @@ export function useAppStore() {
     setDraftPlatforms((p) => ({ ...p, [key]: !p[key] }));
   };
 
+  /** 目前草稿勾選的平台鍵值(範本插入時決定要帶入哪些平台變體)。 */
+  const selectedDraftPlatformKeys = (): PlatformKey[] =>
+    PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map((p) => p.key);
+
   /** 使用統計:套用/複製成功時遞增(文管庫深化第一期)。 */
   const markTemplateApplied = (id: string) => {
     const patch = (t: Template): Template => ({
@@ -299,7 +314,11 @@ export function useAppStore() {
   };
 
   const insertTemplateIntoDraft = (tpl: Template, values?: Record<string, string>) => {
-    setDraftText((t) => (t ? t + '\n\n' : '') + applyVariables(tpl.text, values ?? {}));
+    setDraftText(
+      (t) =>
+        (t ? t + '\n\n' : '') +
+        buildTemplateInsertText(tpl, selectedDraftPlatformKeys(), values ?? {}),
+    );
     markTemplateApplied(tpl.id);
     showToast('已插入文管庫內容');
   };
@@ -314,15 +333,24 @@ export function useAppStore() {
 
   const applyTemplateToDraft = (tpl: Template, values?: Record<string, string>) => {
     setSelectedMailId((id) => id ?? 'blank');
-    setDraftText((t) => (t ? t + '\n\n' : '') + applyVariables(tpl.text, values ?? {}));
+    setDraftText(
+      (t) =>
+        (t ? t + '\n\n' : '') +
+        buildTemplateInsertText(tpl, selectedDraftPlatformKeys(), values ?? {}),
+    );
     setActiveTab('draft');
     markTemplateApplied(tpl.id);
     showToast('已套用範本到草稿');
   };
 
-  const copyTemplate = async (tpl: Template, values?: Record<string, string>) => {
+  /** 複製範本:choice 指定平台變體或 'generic' 通用版(第二期)。 */
+  const copyTemplate = async (
+    tpl: Template,
+    values?: Record<string, string>,
+    choice: PlatformKey | 'generic' = 'generic',
+  ) => {
     try {
-      await navigator.clipboard.writeText(applyVariables(tpl.text, values ?? {}));
+      await navigator.clipboard.writeText(templateCopyText(tpl, choice, values ?? {}));
       markTemplateApplied(tpl.id);
       showToast('已複製到剪貼簿');
     } catch {
@@ -331,13 +359,19 @@ export function useAppStore() {
   };
 
   /** 「+ 新增內容」:依文管庫當前分頁寫入對應資料集,分類取該分頁當前選取分類。 */
-  const addTemplate = (title: string, text: string) => {
+  const addTemplate = (
+    title: string,
+    text: string,
+    platformVariants?: Partial<Record<PlatformKey, string>>,
+  ) => {
+    const variants = cleanVariants(platformVariants);
     if (libraryMainTab === 'copy') {
       const tpl: Template = {
         id: newId('nc'),
         category: copyCategory === '全部' ? '其他' : copyCategory,
         title,
         text,
+        ...(variants ? { platformVariants: variants } : {}),
       };
       setCopyTemplates((list) => [tpl, ...list]);
       showToast('已新增至文案管理');
@@ -348,17 +382,28 @@ export function useAppStore() {
       category: libraryCategory === '全部' ? '其他' : libraryCategory,
       title,
       text,
+      ...(variants ? { platformVariants: variants } : {}),
     };
     setTemplates((list) => [tpl, ...list]);
     showToast('已新增至訊息管理');
   };
 
   /** 編輯範本:依 id 找到所屬資料集(訊息/文案)更新標題與內容;分類維持原值。 */
-  const updateTemplate = (id: string, patch: { title: string; text: string }) => {
+  const updateTemplate = (
+    id: string,
+    patch: { title: string; text: string; platformVariants?: Partial<Record<PlatformKey, string>> },
+  ) => {
     const inTemplates = templates.some((t) => t.id === id);
     const inCopy = copyTemplates.some((t) => t.id === id);
     if (!inTemplates && !inCopy) return;
-    const map = (list: Template[]) => list.map((t) => (t.id === id ? { ...t, ...patch } : t));
+    const map = (list: Template[]) =>
+      list.map((t) => {
+        if (t.id !== id) return t;
+        const next = { ...t, ...patch };
+        // 僅在呼叫端明確傳入變體欄位時處理(空物件 = 清除全部變體;未傳 = 維持原值)
+        if ('platformVariants' in patch) next.platformVariants = cleanVariants(patch.platformVariants);
+        return next;
+      });
     if (inTemplates) setTemplates(map);
     if (inCopy) setCopyTemplates(map);
     showToast('已更新內容');
