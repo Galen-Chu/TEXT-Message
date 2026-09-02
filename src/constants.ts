@@ -37,6 +37,7 @@ export const PLATFORM_META: Record<PlatformKey, PlatformMeta> = {
   ig: { key: 'ig', label: 'Instagram', color: '#C13584', badge: 'IG', limit: 2200 },
   threads: { key: 'threads', label: 'Threads', color: '#101010', badge: '@', limit: 500 },
   line: { key: 'line', label: 'LINE', color: '#06C755', badge: 'L', limit: 1000 },
+  yt: { key: 'yt', label: 'YouTube', color: '#FF0000', badge: '▶', limit: 5000 },
 };
 
 export const PLATFORM_LIST: PlatformMeta[] = Object.values(PLATFORM_META);
@@ -123,4 +124,80 @@ export const DRAFT_AI_COPY = {
   customInstructionEmpty: '請先輸入自訂指令',
   customInstructionDoneToast: 'Gemini 已套用自訂指令 ✨',
   overLimitHint: (limit: number) => `目前內容超過所選平台中最嚴格的上限(${limit} 字),建議啟用 AI 或手動精簡`,
+};
+
+/** 排程即時狀態(含推導的 overdue)的顯示文案與顏色。 */
+export const SCHEDULE_STATUS_META: Record<
+  'draft' | 'scheduled' | 'overdue' | 'published',
+  { label: string; color: string }
+> = {
+  draft: { label: '草稿排程', color: 'var(--text-faint)' },
+  scheduled: { label: '已確認排程', color: 'var(--brand)' },
+  overdue: { label: '逾期未發佈', color: '#E74C3C' },
+  published: { label: '✓ 已發佈', color: '#06C755' },
+};
+
+/** 排程管理與發佈輔助的使用者文案。 */
+export const SCHEDULE_COPY = {
+  overdueBanner: (n: number) => `⚠ 有 ${n} 筆排程已逾期未發佈`,
+  overdueBannerAction: '查看逾期排程',
+  copyAction: '複製',
+  openAction: '前往發佈',
+  publishAction: '標記已發佈',
+  editAction: '編輯',
+  deleteAction: '刪除',
+  contentLabel: '貼文內容(選填,供複製與預填)',
+  contentPlaceholder: '輸入完整貼文內容,排程後可一鍵複製或帶入平台',
+  editModalTitle: '編輯排程',
+  newModalTitle: '手動新增排程',
+  emptyTitleToast: '請輸入貼文標題',
+  addedToast: '已新增排程',
+  updatedToast: '已更新排程',
+  deletedToast: '已刪除排程',
+  copyDoneToast: '已複製貼文內容',
+  copyFailToast: '複製失敗,請手動選取複製',
+  openPrefillToast: (label: string) => `已開啟 ${label} 並預填文字,送出前請檢查`,
+  openPasteToast: (label: string) => `已複製內容並開啟 ${label},貼上後即可發佈`,
+  publishedToast: '已標記發佈,寫入社群媒體歷史 ✅',
+};
+
+/** YouTube 上傳(階段二:零後端,沿用瀏覽器端 Google OAuth)的使用者文案。 */
+export const YOUTUBE_COPY = {
+  cardTitle: '🎬 YouTube 上傳',
+  cardDesc: '選擇影片/Shorts 檔案,以草稿內容作為影片標題與說明上傳',
+  connect: '連接 YouTube 帳號',
+  connecting: '連接中…',
+  connectedHint: '已連線(僅申請上傳權限;token 僅存記憶體,中斷連線即撤銷)',
+  disconnect: '中斷連線',
+  pickFile: '選擇影片檔案',
+  fileSize: (mb: string) => `${mb} MB`,
+  publishNowLabel: '立即公開',
+  publishScheduleLabel: '預約發佈',
+  publishAtLabel: '排定公開時間(YouTube 將於此時間自動設為公開)',
+  upload: '上傳到 YouTube',
+  uploading: (pct: number) => `上傳中 ${pct}%…`,
+  uploadedToast: '已上傳至 YouTube 並公開 ✅(已記錄至社群媒體歷史)',
+  scheduledToast: '已上傳,YouTube 將於排定時間自動公開(已加入排程,屆時可標記已發佈)',
+  noFileToast: '請先選擇影片檔案',
+  noTextToast: '請先撰寫草稿內容(將作為影片標題與說明)',
+  pastTimeToast: '排定時間已過,請選擇未來時間',
+  auditCaveat:
+    '注意:Google API 專案完成 YouTube 稽核前,上傳的影片會被鎖定為私人(可至 YouTube 手動改為公開);測試模式/自架說明見 docs/SETUP.md',
+};
+
+/** YouTube 模組錯誤的使用者文案(依 services/youtube/errors.ts 的 code 對應)。 */
+export const YOUTUBE_ERROR_COPY: Record<string, string> = {
+  disabled: '此版本未設定 YouTube 連線',
+  gis_load_failed: 'Google 登入服務載入失敗,請確認網路後重試',
+  popup_blocked: '無法開啟 Google 登入視窗,請允許彈出視窗後重試',
+  access_denied: '已取消授權,未連接 YouTube',
+  cancelled: '已取消連接',
+  network: '網路連線異常,請稍後再試',
+  unauthorized: 'YouTube 授權已過期,請重新連接',
+  quota: '暫時達到 YouTube API 用量上限(每日上傳配額),請稍後再試',
+  forbidden: 'YouTube API 拒絕請求(專案可能未啟用 YouTube Data API,見 SETUP.md)',
+  invalid_request: '上傳參數無效,請檢查影片檔案與排定時間',
+  server: 'YouTube 服務暫時無法使用,請稍後再試',
+  parse: 'YouTube 回應解析失敗',
+  unknown: '發生未預期的錯誤,請重試',
 };

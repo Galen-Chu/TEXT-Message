@@ -6,8 +6,12 @@ import {
   PLATFORM_LIST,
   PLATFORM_META,
   TONE_OPTIONS,
+  YOUTUBE_COPY,
+  YOUTUBE_ERROR_COPY,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
+import { YOUTUBE_ENABLED } from '../services/youtube/config';
+import { fileSizeMb, resolvePublishPlan } from '../services/youtube/video';
 import { charCount, dateLabel } from '../utils/date';
 import Modal from './Modal';
 import GeminiKeyModal from './GeminiKeyModal';
@@ -20,6 +24,48 @@ export default function Draft({ store }: { store: AppStore }) {
   const [scheduleDate, setScheduleDate] = useState(store.tomorrowISO);
   const [scheduleTime, setScheduleTime] = useState('09:00');
   const [customInstruction, setCustomInstruction] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
+  const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
+
+  const yt = store.youtube;
+
+  const handleYoutubeUpload = async () => {
+    if (!videoFile) {
+      store.showToast(YOUTUBE_COPY.noFileToast);
+      return;
+    }
+    if (!store.draftText.trim()) {
+      store.showToast(YOUTUBE_COPY.noTextToast);
+      return;
+    }
+    let plan;
+    try {
+      plan = resolvePublishPlan(publishMode, publishAtLocal);
+    } catch {
+      store.showToast(YOUTUBE_COPY.pastTimeToast);
+      return;
+    }
+    const title = store.draftText.split('\n')[0];
+    try {
+      await yt.upload({
+        file: videoFile,
+        title,
+        description: store.draftText,
+        privacyStatus: plan.privacyStatus,
+        publishAt: plan.mode === 'schedule' ? plan.publishAt : undefined,
+      });
+      if (plan.mode === 'now') {
+        store.appendPublishedHistory('yt', title, store.draftText);
+        store.showToast(YOUTUBE_COPY.uploadedToast);
+      } else {
+        store.addManualSchedule(title, plan.date, plan.time, 'yt', store.draftText);
+        store.showToast(YOUTUBE_COPY.scheduledToast);
+      }
+    } catch {
+      // 錯誤已由 useYoutube 記錄(yt.error),於卡片內顯示,此處不再 toast
+    }
+  };
 
   const hasDraftTarget = !!store.selectedMailId;
   const sourceMail =
@@ -314,6 +360,148 @@ export default function Draft({ store }: { store: AppStore }) {
                 );
               })}
             </div>
+
+            {store.draftPlatforms.yt && YOUTUBE_ENABLED && (
+              <div className="card" style={{ padding: 18 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                    {YOUTUBE_COPY.cardTitle}
+                  </div>
+                  {yt.status === 'connected' && (
+                    <button
+                      onClick={yt.disconnect}
+                      style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+                    >
+                      {YOUTUBE_COPY.disconnect}
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+                  {YOUTUBE_COPY.cardDesc}
+                </div>
+
+                {yt.status !== 'connected' ? (
+                  <div>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => void yt.connect()}
+                      disabled={yt.status === 'connecting'}
+                    >
+                      {yt.status === 'connecting' ? YOUTUBE_COPY.connecting : YOUTUBE_COPY.connect}
+                    </button>
+                    {yt.status === 'error' && yt.error && (
+                      <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+                        {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
+                      {YOUTUBE_COPY.connectedHint}
+                    </div>
+                    <input
+                      id="yt-video-file"
+                      type="file"
+                      accept="video/*"
+                      hidden
+                      onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                    />
+                    <label
+                      htmlFor="yt-video-file"
+                      className="btn btn-outline"
+                      style={{ display: 'inline-block', cursor: 'pointer', marginBottom: 12 }}
+                    >
+                      {videoFile
+                        ? `🎬 ${videoFile.name}(${fileSizeMb(videoFile.size)} MB)`
+                        : `📎 ${YOUTUBE_COPY.pickFile}`}
+                    </label>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      {(
+                        [
+                          ['now', YOUTUBE_COPY.publishNowLabel],
+                          ['schedule', YOUTUBE_COPY.publishScheduleLabel],
+                        ] as const
+                      ).map(([mode, label]) => {
+                        const active = publishMode === mode;
+                        return (
+                          <button
+                            key={mode}
+                            onClick={() => setPublishMode(mode)}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: 9,
+                              fontSize: 12.5,
+                              fontWeight: 600,
+                              background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                              color: active ? 'var(--brand)' : 'var(--text-faint)',
+                              border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {publishMode === 'schedule' && (
+                      <input
+                        className="text-input"
+                        type="datetime-local"
+                        value={publishAtLocal}
+                        onChange={(e) => setPublishAtLocal(e.target.value)}
+                        aria-label={YOUTUBE_COPY.publishAtLabel}
+                        style={{ marginBottom: 12 }}
+                      />
+                    )}
+                    <button
+                      className="btn btn-accent"
+                      onClick={() => void handleYoutubeUpload()}
+                      disabled={!videoFile || yt.uploadState === 'uploading'}
+                      style={{ width: '100%' }}
+                    >
+                      {yt.uploadState === 'uploading'
+                        ? YOUTUBE_COPY.uploading(Math.round(yt.uploadProgress * 100))
+                        : YOUTUBE_COPY.upload}
+                    </button>
+                    {yt.uploadState === 'uploading' && (
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 3,
+                          background: 'var(--bg)',
+                          marginTop: 10,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${Math.round(yt.uploadProgress * 100)}%`,
+                            height: '100%',
+                            background: 'var(--brand)',
+                            transition: 'width 0.2s ease',
+                          }}
+                        />
+                      </div>
+                    )}
+                    {yt.error && (
+                      <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+                        {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 10 }}>
+                      {YOUTUBE_COPY.auditCaveat}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button

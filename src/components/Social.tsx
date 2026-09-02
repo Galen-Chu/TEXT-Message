@@ -17,6 +17,11 @@ export default function Social({ store }: { store: AppStore }) {
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
         各社群平台發文歷史記錄
+        {store.socialHistoryIsDemo && (
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 6 }}>
+            (示範資料;於排程頁「標記已發佈」後即為真實記錄)
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

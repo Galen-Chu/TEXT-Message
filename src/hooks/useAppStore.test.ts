@@ -77,6 +77,7 @@ describe('useAppStore:草稿持久化', () => {
       ig: true,
       threads: true,
       line: false,
+      yt: false,
     });
   });
 
@@ -112,6 +113,7 @@ describe('useAppStore:草稿持久化', () => {
       ig: true,
       threads: false,
       line: false,
+      yt: false,
     });
   });
 });
@@ -146,6 +148,97 @@ describe('useAppStore:其他操作', () => {
     const items = result.current.scheduleItems.filter((i) => i.date === '2030-01-01');
     expect(items.map((i) => i.platform).sort()).toEqual(['fb', 'ig']);
     expect(result.current.activeTab).toBe('schedule');
+    expect(readStore().scheduleItems).toEqual(result.current.scheduleItems);
+  });
+});
+
+describe('useAppStore:排程狀態流轉與發佈記錄', () => {
+  it('confirmSchedule 建立的排程附帶貼文全文,addManualSchedule 可帶內容', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('第一行標題\n第二行內容');
+    });
+    act(() => {
+      result.current.confirmSchedule('2030-01-01', '09:00');
+    });
+    const fromDraft = result.current.scheduleItems.find((i) => i.date === '2030-01-01');
+    expect(fromDraft?.title).toBe('第一行標題');
+    expect(fromDraft?.content).toBe('第一行標題\n第二行內容');
+
+    act(() => {
+      result.current.addManualSchedule('手動排程', '2030-01-02', '10:00', 'threads', '手動內容');
+    });
+    const manual = result.current.scheduleItems.find((i) => i.title === '手動排程');
+    expect(manual?.content).toBe('手動內容');
+  });
+
+  it('markSchedulePublished:狀態轉 published,以真實記錄寫入 socialHistory 並持久化', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.addManualSchedule('將發佈的排程', '2030-01-01', '09:00', 'threads', '實際發佈內容');
+    });
+    expect(result.current.socialHistoryIsDemo).toBe(true);
+
+    const target = result.current.scheduleItems.find((i) => i.title === '將發佈的排程');
+    act(() => {
+      result.current.markSchedulePublished(target!.id);
+    });
+    expect(
+      result.current.scheduleItems.find((i) => i.id === target!.id)?.status,
+    ).toBe('published');
+    expect(result.current.socialHistoryIsDemo).toBe(false);
+    const record = result.current.socialHistory[0];
+    expect(record.platform).toBe('threads');
+    expect(record.title).toBe('將發佈的排程');
+    expect(record.content).toBe('實際發佈內容');
+    expect(readStore().publishedHistory).toEqual([record]);
+    // 重複標記不重複寫入
+    act(() => {
+      result.current.markSchedulePublished(target!.id);
+    });
+    expect(result.current.socialHistory.length).toBe(1);
+  });
+
+  it('publishedHistory 在重新掛載後還原,socialHistory 維持真實記錄(不退回示範)', () => {
+    const first = renderHook(() => useAppStore());
+    act(() => {
+      first.result.current.addManualSchedule('持久化發佈', '2030-01-01', '09:00', 'fb', '內容');
+    });
+    const target = first.result.current.scheduleItems.find((i) => i.title === '持久化發佈');
+    act(() => {
+      first.result.current.markSchedulePublished(target!.id);
+    });
+    first.unmount();
+
+    const second = renderHook(() => useAppStore());
+    expect(second.result.current.socialHistoryIsDemo).toBe(false);
+    expect(second.result.current.socialHistory.some((p) => p.title === '持久化發佈')).toBe(true);
+  });
+
+  it('updateScheduleItem 更新欄位且狀態不變,日期變動時 selectedDay 跟隨', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.addManualSchedule('原始標題', '2030-01-01', '09:00', 'fb');
+    });
+    const target = result.current.scheduleItems.find((i) => i.title === '原始標題')!;
+
+    act(() => {
+      result.current.updateScheduleItem(target.id, {
+        title: '新標題',
+        time: '14:00',
+        platform: 'ig',
+        date: '2030-02-02',
+      });
+    });
+    const updated = result.current.scheduleItems.find((i) => i.id === target.id)!;
+    expect(updated.title).toBe('新標題');
+    expect(updated.time).toBe('14:00');
+    expect(updated.platform).toBe('ig');
+    expect(updated.status).toBe('scheduled');
+    expect(result.current.selectedDay).toBe('2030-02-02');
     expect(readStore().scheduleItems).toEqual(result.current.scheduleItems);
   });
 });

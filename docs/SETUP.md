@@ -103,6 +103,7 @@ npm run dev        # http://localhost:5173
 - 郵件內容只在你的瀏覽器處理(解析、分類),不會送到 Google 以外的任何伺服器——本專案沒有後端
 - 分類標籤與「建議可發文」為本機關鍵字規則(非 AI),判斷都在瀏覽器內完成
 - 應用維持 Google OAuth **Testing** 模式:這是免驗證使用受限範圍的合法路徑,代價是 100 位測試使用者上限與測試者會看到未驗證警告;若未來要正式公開,需依 Google 政策完成驗證(可能含獨立資安評估),詳見 Google 官方文件
+- YouTube 上傳(§11)授權僅 `youtube.upload`(上傳影片與設定說明,不含讀取頻道數據);影片檔由瀏覽器直傳 Google,不經任何第三方
 
 ## 10. 疑難排解
 
@@ -115,3 +116,29 @@ npm run dev        # http://localhost:5173
 | 操作一段時間後跳「授權已過期」 | Google 工作階段結束,靜默續約失敗 | 點「重新連接」重新授權(通常一鍵完成) |
 | Google 登入服務載入失敗 | 網路/代理擋了 `accounts.google.com` | 換網路或確認可存取 Google |
 | 正式站沒有連接按鈕 | repo 未設 `GMAIL_CLIENT_ID` secret | 依 §6 設定;此為設計上的示範模式 |
+
+## 11. YouTube 影片/Shorts 上傳(選用,2026-09 新增)
+
+階段二功能:在草稿頁勾選 YouTube 平台後,可直接以草稿內容作為影片標題與說明,從瀏覽器上傳影片(Shorts 亦同),支援「立即公開」與「預約發佈」(YouTube 原生排程,到點自動轉公開——零後端)。
+
+### 設定步驟
+
+1. 在 §2 的同一個 Google Cloud 專案中,另啟用 **YouTube Data API v3**(APIs & Services → Library → 搜尋 YouTube Data API v3 → Enable)
+2. OAuth 用戶端沿用 §4 建立的那個即可(`VITE_YOUTUBE_CLIENT_ID` 留空 = 沿用 `VITE_GMAIL_CLIENT_ID`);要獨立用戶端時才另建並填入 `VITE_YOUTUBE_CLIENT_ID`
+3. 同意畫面(§3)的測試使用者清單同樣適用:受權帳號必須在清單內
+4. 正式部署:預設部署流程只注入 `GMAIL_CLIENT_ID`,YouTube 會沿用;需要獨立用戶端時請比照 `deploy.yml` 再加一組 secret
+
+### 重要注意事項
+
+- **未完成 Google API 稽核的專案,所有 API 上傳的影片會被 YouTube 鎖定為私人**(2020-07-28 後建立的專案一律適用)。上傳成功後可到 YouTube Studio 手動改為公開;要讓「立即公開」真正直接公開、且開放給測試使用者以外的帳號,需完成 [YouTube API 稽核表單](https://support.google.com/youtube/contact/yt_api_form)(免費,約數週)
+- 授權範圍僅 `youtube.upload`(最小權限);access token 僅存記憶體,中斷連線即向 Google 撤銷,與 Gmail 一致
+- 每日上傳配額:預設 10,000 units/日,一次上傳約 1,600 units(≈ 每日 6 支);超額時會出現明確的配額錯誤提示
+- 純示範模式建置(未設 Client ID)完全不會出現 YouTube 上傳區,建置與 CI 不受影響
+
+### 驗收測試
+
+1. 草稿頁:勾選「YouTube」平台 → 出現「🎬 YouTube 上傳」卡片
+2. 點「連接 YouTube 帳號」→ 同意授權(測試模式會出現未驗證警告,同 §7 的繼續方式)
+3. 選一支短影片檔 → 選「立即公開」→ 上傳 → 進度條跑完後出現成功 toast,且社群媒體頁頂端多一筆 YouTube 真實記錄
+4. 再試「預約發佈」:選未來時間 → 上傳後排程頁多一筆 YouTube 排程(YouTube 會在排定時間自動公開,屆時手動「標記已發佈」即可)
+5. 到 YouTube Studio 確認影片存在;若顯示「私人(鎖定)」屬上述稽核前預期行為

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGmail } from './useGmail';
+import { useYoutube } from './useYoutube';
 import {
   DRAFT_AI_COPY,
   GEMINI_ERROR_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
+  SCHEDULE_COPY,
   TONE_REWRITES,
   type LibraryMainTab,
   type Tone,
@@ -34,10 +36,11 @@ import type {
   Template,
 } from '../types';
 import { charCount, getWeekDates, toISODate } from '../utils/date';
+import { buildPublishTarget } from '../utils/publish';
 
 export type AppStore = ReturnType<typeof useAppStore>;
 
-// 使用者建立的內容(範本/排程)存 localStorage,重新整理不消失;
+// 使用者建立的內容(範本/排程/已發佈記錄/草稿)存 localStorage,重新整理不消失;
 // 讀寫失敗(隱私模式等)時靜默退回記憶體模式。
 const STORAGE_KEY = 'text-message:v2';
 
@@ -78,6 +81,7 @@ function newId(prefix: string): string {
 export function useAppStore() {
   const weekDates = getWeekDates();
   const gmail = useGmail();
+  const youtube = useYoutube();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [demoEmails] = useState<Email[]>(initialEmails);
@@ -89,7 +93,13 @@ export function useAppStore() {
   const [copyTemplates, setCopyTemplates] = useState<Template[]>(() =>
     loadPersisted('copyTemplates', initialCopyTemplates()),
   );
-  const [socialHistory] = useState<SocialPost[]>(initialSocialHistory);
+  // 已發佈記錄:由「標記已發佈」產生的真實資料,隨其他使用者內容持久化;
+  // 有真實記錄時 socialHistory 完全取代示範資料(同 emails 的連線分流哲學)。
+  const [publishedHistory, setPublishedHistory] = useState<SocialPost[]>(() =>
+    loadPersisted('publishedHistory', [] as SocialPost[]),
+  );
+  const socialHistory = publishedHistory.length ? publishedHistory : initialSocialHistory();
+  const socialHistoryIsDemo = publishedHistory.length === 0;
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() =>
     loadPersisted('scheduleItems', initialSchedule()),
   );
@@ -109,7 +119,7 @@ export function useAppStore() {
       (v): v is Partial<Record<PlatformKey, boolean>> =>
         !!v && typeof v === 'object' && Object.values(v).every((x) => typeof x === 'boolean'),
     );
-    return { fb: true, ig: true, threads: false, line: false, ...stored };
+    return { fb: true, ig: true, threads: false, line: false, yt: false, ...stored };
   });
 
   useEffect(() => {
@@ -120,6 +130,7 @@ export function useAppStore() {
           templates,
           copyTemplates,
           scheduleItems,
+          publishedHistory,
           draftText,
           draftPlatforms,
           draftSourceId: selectedMailId,
@@ -128,7 +139,7 @@ export function useAppStore() {
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems, draftText, draftPlatforms, selectedMailId]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -195,7 +206,7 @@ export function useAppStore() {
   const discardDraft = () => {
     setSelectedMailId(null);
     setDraftText('');
-    setDraftPlatforms({ fb: true, ig: true, threads: false, line: false });
+    setDraftPlatforms({ fb: true, ig: true, threads: false, line: false, yt: false });
     showToast('已捨棄草稿');
   };
 
@@ -343,7 +354,7 @@ export function useAppStore() {
   // 草稿已隨內容變動自動持久化(見上方 effect);按鈕僅回饋確認
   const saveDraft = () => showToast('草稿已儲存');
 
-  /** 「加入排程」:依已選平台各建立一筆排程,並跳轉排程頁。 */
+  /** 「加入排程」:依已選平台各建立一筆排程(附全文供發佈輔助),並跳轉排程頁。 */
   const confirmSchedule = (date: string, time: string) => {
     const platforms = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map((p) => p.key);
     const title = (draftText || '未命名草稿').split('\n')[0].slice(0, 24);
@@ -354,6 +365,7 @@ export function useAppStore() {
         time,
         platform: p,
         title,
+        content: draftText,
         status: 'scheduled',
       }),
     );
@@ -363,23 +375,101 @@ export function useAppStore() {
     showToast('已加入排程 🎉');
   };
 
-  const addManualSchedule = (title: string, date: string, time: string, platform: PlatformKey) => {
+  const addManualSchedule = (
+    title: string,
+    date: string,
+    time: string,
+    platform: PlatformKey,
+    content = '',
+  ) => {
     const item: ScheduleItem = {
       id: newId('ms'),
       date,
       time,
       platform,
       title,
+      content,
       status: 'scheduled',
     };
     setScheduleItems((list) => [...list, item]);
     setSelectedDay(date);
-    showToast('已新增排程');
+    showToast(SCHEDULE_COPY.addedToast);
+  };
+
+  /** 編輯排程:更新標題/內容/日期/時間/平台;狀態維持原值。 */
+  const updateScheduleItem = (
+    id: string,
+    patch: Partial<Pick<ScheduleItem, 'title' | 'content' | 'date' | 'time' | 'platform'>>,
+  ) => {
+    setScheduleItems((list) => list.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    if (patch.date) setSelectedDay(patch.date);
+    showToast(SCHEDULE_COPY.updatedToast);
+  };
+
+  /** 以「現在」寫入一筆真實已發佈記錄(標記已發佈/YouTube 立即公開共用)。 */
+  const appendPublishedHistory = (platform: PlatformKey, title: string, content: string) => {
+    const now = new Date();
+    const post: SocialPost = {
+      id: newId('hp'),
+      platform,
+      title,
+      content: content.trim() || title,
+      date: toISODate(now),
+      time: now.toTimeString().slice(0, 5),
+    };
+    setPublishedHistory((list) => [post, ...list]);
+  };
+
+  /** 標記已發佈:狀態轉為 published,並以實際發佈時間寫入社群媒體歷史(真實資料)。 */
+  const markSchedulePublished = (id: string) => {
+    const item = scheduleItems.find((i) => i.id === id);
+    if (!item || item.status === 'published') return;
+    setScheduleItems((list) =>
+      list.map((i) => (i.id === id ? { ...i, status: 'published' as const } : i)),
+    );
+    appendPublishedHistory(item.platform, item.title, item.content ?? '');
+    showToast(SCHEDULE_COPY.publishedToast);
+  };
+
+  /** 發佈輔助:複製排程貼文內容(無全文時退回標題)。 */
+  const copyScheduleText = async (item: ScheduleItem) => {
+    const text = item.content?.trim() || item.title;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(SCHEDULE_COPY.copyDoneToast);
+    } catch {
+      showToast(SCHEDULE_COPY.copyFailToast);
+    }
+  };
+
+  /**
+   * 發佈輔助:開啟平台發佈頁——Threads/X 以 intent 預填文字;
+   * FB/IG/LINE 無法預填,先複製到剪貼簿再開啟平台,由使用者貼上(半自動模式)。
+   */
+  const openSchedulePublish = async (item: ScheduleItem) => {
+    const label = PLATFORM_META[item.platform].label;
+    const text = item.content?.trim() || item.title;
+    const target = buildPublishTarget(item.platform, text);
+    if (!target.canPrefill) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // 複製失敗仍開啟平台頁,toast 提示改走手動
+        showToast(SCHEDULE_COPY.copyFailToast);
+        window.open(target.url, '_blank', 'noopener');
+        return;
+      }
+      window.open(target.url, '_blank', 'noopener');
+      showToast(SCHEDULE_COPY.openPasteToast(label));
+      return;
+    }
+    window.open(target.url, '_blank', 'noopener');
+    showToast(SCHEDULE_COPY.openPrefillToast(label));
   };
 
   const deleteScheduleItem = (id: string) => {
     setScheduleItems((list) => list.filter((i) => i.id !== id));
-    showToast('已刪除排程');
+    showToast(SCHEDULE_COPY.deletedToast);
   };
 
   return {
@@ -387,10 +477,12 @@ export function useAppStore() {
     activeTab,
     setActiveTab,
     gmail,
+    youtube,
     emails,
     templates,
     copyTemplates,
     socialHistory,
+    socialHistoryIsDemo,
     scheduleItems,
     selectedMailId,
     draftText,
@@ -435,6 +527,11 @@ export function useAppStore() {
     discardDraft,
     confirmSchedule,
     addManualSchedule,
+    updateScheduleItem,
+    markSchedulePublished,
+    appendPublishedHistory,
+    copyScheduleText,
+    openSchedulePublish,
     deleteScheduleItem,
     tomorrowISO,
   };

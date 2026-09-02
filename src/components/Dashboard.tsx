@@ -1,9 +1,16 @@
+import { SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { dateLabel, fullDateLabel, greeting, toISODate } from '../utils/date';
+import { effectiveStatus, overdueItems } from '../utils/schedule';
 import PlatformBadge from './PlatformBadge';
 
 export default function Dashboard({ store }: { store: AppStore }) {
-  const upcoming = [...store.scheduleItems]
+  const now = Date.now();
+  const overdue = overdueItems(store.scheduleItems, now);
+
+  // 近期排程只列尚未發佈的項目(已發佈的屬於社群媒體歷史)
+  const upcoming = store.scheduleItems
+    .filter((i) => effectiveStatus(i, now) !== 'published')
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
     .slice(0, 3);
 
@@ -53,6 +60,32 @@ export default function Dashboard({ store }: { store: AppStore }) {
           </button>
         </div>
       </div>
+
+      {overdue.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: '12px 18px',
+            marginBottom: 20,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            border: '1px solid rgba(231,76,60,0.35)',
+            background: 'rgba(231,76,60,0.06)',
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#E74C3C' }}>
+            {SCHEDULE_COPY.overdueBanner(overdue.length)}
+          </div>
+          <button
+            style={{ fontSize: 12, fontWeight: 700, color: '#E74C3C', whiteSpace: 'nowrap' }}
+            onClick={() => store.setActiveTab('schedule')}
+          >
+            {SCHEDULE_COPY.overdueBannerAction} →
+          </button>
+        </div>
+      )}
 
       <div className="stat-row" style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {statCards.map((stat) => (
@@ -108,8 +141,15 @@ export default function Dashboard({ store }: { store: AppStore }) {
                 >
                   {item.title}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-weak)', marginTop: 2 }}>
-                  {dateLabel(item.date)} · {item.time}
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: SCHEDULE_STATUS_META[effectiveStatus(item, now)].color,
+                    marginTop: 2,
+                  }}
+                >
+                  {dateLabel(item.date)} · {item.time} ·{' '}
+                  {SCHEDULE_STATUS_META[effectiveStatus(item, now)].label}
                 </div>
               </div>
             </div>

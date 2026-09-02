@@ -1,6 +1,6 @@
 export type Tab = 'dashboard' | 'inbox' | 'social' | 'schedule' | 'draft' | 'library';
 
-export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line';
+export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt';
 
 export type EmailTag = '電子報' | '合作邀約' | '讀者來信' | '活動通知';
 
@@ -23,7 +23,11 @@ export interface Template {
   text: string;
 }
 
-export type ScheduleStatus = 'scheduled' | 'draft';
+/**
+ * 排程狀態:'published' 由使用者「標記已發佈」寫入;「逾期」不是儲存狀態,
+ * 而是依目前時間即時推導(scheduled 且已過排定時間)——見 utils/schedule.ts。
+ */
+export type ScheduleStatus = 'scheduled' | 'draft' | 'published';
 
 export interface ScheduleItem {
   id: string;
@@ -31,6 +35,8 @@ export interface ScheduleItem {
   time: string; // HH:mm
   platform: PlatformKey;
   title: string;
+  /** 貼文全文(供複製/深連結預填);手動新增或舊資料可為空 */
+  content?: string;
   status: ScheduleStatus;
 }
 

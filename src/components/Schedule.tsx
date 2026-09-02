@@ -1,18 +1,29 @@
-import { useState } from 'react';
-import { PLATFORM_LIST, WEEKDAY_LABELS } from '../constants';
+import { useEffect, useState } from 'react';
+import { PLATFORM_LIST, SCHEDULE_COPY, SCHEDULE_STATUS_META, WEEKDAY_LABELS } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import type { PlatformKey, ScheduleStatus } from '../types';
+import type { PlatformKey, ScheduleItem } from '../types';
 import { dateLabel } from '../utils/date';
+import { effectiveStatus, overdueItems } from '../utils/schedule';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
 
-function statusLabel(status: ScheduleStatus): string {
-  return status === 'draft' ? '草稿排程' : '已確認排程';
+/** 排程列動作按鈕(發佈輔助為純前端半自動:複製 + 平台深連結)。 */
+function actionButtonStyle(color: string) {
+  return { fontSize: 11.5, fontWeight: 700, color, padding: '4px 8px', borderRadius: 7 };
 }
 
 export default function Schedule({ store }: { store: AppStore }) {
-  const [showNewModal, setShowNewModal] = useState(false);
+  // 逾期狀態依「現在」推導:每分鐘更新一次,頁面開著也會即時反映
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [manualTitle, setManualTitle] = useState('');
+  const [manualContent, setManualContent] = useState('');
   const [manualDate, setManualDate] = useState(store.tomorrowISO);
   const [manualTime, setManualTime] = useState('09:00');
   const [manualPlatform, setManualPlatform] = useState<PlatformKey>('fb');
@@ -25,13 +36,45 @@ export default function Schedule({ store }: { store: AppStore }) {
     (a.date + a.time).localeCompare(b.date + b.time),
   );
 
-  const saveManualSchedule = () => {
+  const overdue = overdueItems(store.scheduleItems, now);
+
+  const openNewModal = () => {
+    setEditingId(null);
+    setManualTitle('');
+    setManualContent('');
+    setManualDate(store.tomorrowISO);
+    setManualTime('09:00');
+    setManualPlatform('fb');
+    setShowModal(true);
+  };
+
+  const openEditModal = (item: ScheduleItem) => {
+    setEditingId(item.id);
+    setManualTitle(item.title);
+    setManualContent(item.content ?? '');
+    setManualDate(item.date);
+    setManualTime(item.time);
+    setManualPlatform(item.platform);
+    setShowModal(true);
+  };
+
+  const saveModal = () => {
     if (!manualTitle.trim()) {
-      store.showToast('請輸入貼文標題');
+      store.showToast(SCHEDULE_COPY.emptyTitleToast);
       return;
     }
-    store.addManualSchedule(manualTitle, manualDate, manualTime, manualPlatform);
-    setShowNewModal(false);
+    if (editingId) {
+      store.updateScheduleItem(editingId, {
+        title: manualTitle,
+        content: manualContent,
+        date: manualDate,
+        time: manualTime,
+        platform: manualPlatform,
+      });
+    } else {
+      store.addManualSchedule(manualTitle, manualDate, manualTime, manualPlatform, manualContent);
+    }
+    setShowModal(false);
   };
 
   return (
@@ -50,16 +93,36 @@ export default function Schedule({ store }: { store: AppStore }) {
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>跨平台發佈排程一覽</div>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setManualTitle('');
-            setShowNewModal(true);
-          }}
-        >
+        <button className="btn btn-primary" onClick={openNewModal}>
           + 新增排程
         </button>
       </div>
+
+      {overdue.length > 0 && (
+        <div
+          className="card"
+          style={{
+            padding: '12px 18px',
+            marginBottom: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            border: '1px solid rgba(231,76,60,0.35)',
+            background: 'rgba(231,76,60,0.06)',
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#E74C3C' }}>
+            {SCHEDULE_COPY.overdueBanner(overdue.length)}
+          </div>
+          <button
+            style={{ fontSize: 12, fontWeight: 700, color: '#E74C3C', whiteSpace: 'nowrap' }}
+            onClick={() => store.setSelectedDay(overdue[0].date)}
+          >
+            {SCHEDULE_COPY.overdueBannerAction} →
+          </button>
+        </div>
+      )}
 
       <div
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8, marginBottom: 20 }}
@@ -109,67 +172,119 @@ export default function Schedule({ store }: { store: AppStore }) {
             這天還沒有排程,點右上角新增一則吧
           </div>
         )}
-        {selectedDayItems.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '12px 0',
-              borderBottom: '1px solid var(--border-2)',
-            }}
-          >
-            <PlatformBadge platform={item.platform} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>{item.title}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-weak)', marginTop: 2 }}>
-                {item.time} · {statusLabel(item.status)}
-              </div>
-            </div>
-            <button
-              onClick={() => store.deleteScheduleItem(item.id)}
-              style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 600, padding: '6px 10px' }}
+        {selectedDayItems.map((item) => {
+          const status = effectiveStatus(item, now);
+          const meta = SCHEDULE_STATUS_META[status];
+          return (
+            <div
+              key={item.id}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: '12px 0',
+                borderBottom: '1px solid var(--border-2)',
+              }}
             >
-              刪除
-            </button>
-          </div>
-        ))}
+              <PlatformBadge platform={item.platform} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                  {item.title}
+                </div>
+                <div style={{ fontSize: 12, color: meta.color, marginTop: 2, fontWeight: 600 }}>
+                  {item.time} · {meta.label}
+                </div>
+                {status !== 'published' && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 2,
+                      marginTop: 6,
+                      marginLeft: -8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <button
+                      style={actionButtonStyle('var(--brand)')}
+                      onClick={() => store.copyScheduleText(item)}
+                    >
+                      {SCHEDULE_COPY.copyAction}
+                    </button>
+                    <button
+                      style={actionButtonStyle('var(--accent)')}
+                      onClick={() => store.openSchedulePublish(item)}
+                    >
+                      {SCHEDULE_COPY.openAction}
+                    </button>
+                    <button
+                      style={actionButtonStyle('#06C755')}
+                      onClick={() => store.markSchedulePublished(item.id)}
+                    >
+                      {SCHEDULE_COPY.publishAction}
+                    </button>
+                    <button
+                      style={actionButtonStyle('var(--text-sub)')}
+                      onClick={() => openEditModal(item)}
+                    >
+                      {SCHEDULE_COPY.editAction}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => store.deleteScheduleItem(item.id)}
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-faint)',
+                  fontWeight: 600,
+                  padding: '6px 10px',
+                }}
+              >
+                刪除
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <div className="card" style={{ padding: 18 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 12 }}>
           所有排程(依日期)
         </div>
-        {allSorted.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 0',
-              borderBottom: '1px solid var(--border-2)',
-            }}
-          >
-            <PlatformBadge platform={item.platform} size={28} radius={8} fontSize={10.5} />
-            <div style={{ fontSize: 12.5, color: 'var(--text-weak)', width: 120, flexShrink: 0 }}>
-              {dateLabel(item.date)} {item.time}
+        {allSorted.map((item) => {
+          const meta = SCHEDULE_STATUS_META[effectiveStatus(item, now)];
+          return (
+            <div
+              key={item.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 0',
+                borderBottom: '1px solid var(--border-2)',
+              }}
+            >
+              <PlatformBadge platform={item.platform} size={28} radius={8} fontSize={10.5} />
+              <div style={{ fontSize: 12.5, color: 'var(--text-weak)', width: 120, flexShrink: 0 }}>
+                {dateLabel(item.date)} {item.time}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600, flex: 1 }}>
+                {item.title}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600, flex: 1 }}>
-              {item.title}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 700 }}>
-              {statusLabel(item.status)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {showNewModal && (
-        <Modal onClose={() => setShowNewModal(false)} width={440} label="手動新增排程">
+      {showModal && (
+        <Modal
+          onClose={() => setShowModal(false)}
+          width={440}
+          label={editingId ? SCHEDULE_COPY.editModalTitle : SCHEDULE_COPY.newModalTitle}
+        >
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
-            手動新增排程
+            {editingId ? SCHEDULE_COPY.editModalTitle : SCHEDULE_COPY.newModalTitle}
           </div>
           <div className="field-label">貼文標題</div>
           <input
@@ -178,6 +293,15 @@ export default function Schedule({ store }: { store: AppStore }) {
             onChange={(e) => setManualTitle(e.target.value)}
             placeholder="例如:週末生活分享"
             style={{ marginBottom: 14 }}
+          />
+          <div className="field-label">{SCHEDULE_COPY.contentLabel}</div>
+          <textarea
+            className="text-input"
+            value={manualContent}
+            onChange={(e) => setManualContent(e.target.value)}
+            placeholder={SCHEDULE_COPY.contentPlaceholder}
+            rows={4}
+            style={{ marginBottom: 14, resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
             <div style={{ flex: 1 }}>
@@ -200,7 +324,7 @@ export default function Schedule({ store }: { store: AppStore }) {
             </div>
           </div>
           <div className="field-label">平台</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
             {PLATFORM_LIST.map((p) => {
               const active = manualPlatform === p.key;
               return (
@@ -223,11 +347,11 @@ export default function Schedule({ store }: { store: AppStore }) {
             })}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" style={{ borderRadius: 9 }} onClick={() => setShowNewModal(false)}>
+            <button className="btn btn-ghost" style={{ borderRadius: 9 }} onClick={() => setShowModal(false)}>
               取消
             </button>
-            <button className="btn btn-primary" style={{ borderRadius: 9 }} onClick={saveManualSchedule}>
-              新增
+            <button className="btn btn-primary" style={{ borderRadius: 9 }} onClick={saveModal}>
+              {editingId ? '儲存變更' : '新增'}
             </button>
           </div>
         </Modal>

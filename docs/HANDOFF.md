@@ -36,17 +36,20 @@
 - **Layout**: 頂部平台篩選 chip(全部 + Facebook/Instagram/Threads/LINE),下方白底卡片列表。
 - **Components**: 每列含 34×34px 平台色塊圖示、標題、日期時間、內容摘要(單行截斷)、綠色「✓ 已發佈」狀態文字(`#06C755`)。
 - **資料需求**: 為唯讀歷史記錄,正式環境應接各平台發文 API 或內部發文紀錄資料庫,欄位對應:platform、title、content、date、time。
+- **實作補充(2026-09-02)**:「標記已發佈」產生的真實記錄寫入 `publishedHistory`(隨其他使用者內容持久化);有真實記錄時本頁完全取代示範資料(同 Gmail 連線的分流哲學),「(示範資料)」提示僅在無真實記錄時顯示。
 
 ### 4. 排程管理(Schedule)
 - **Purpose**: 週曆檢視 + 選定日排程清單 + 全部排程總表,可新增/刪除。
 - **Layout**: 7 欄週曆格,選中日高亮 `#6C5CE7`,有排程日顯示小圓點。下方「選定日排程」卡與「所有排程(依日期排序)」卡。
 - **Components**: 排程列同 Dashboard 排程項樣式;新增排程走 modal(標題、日期、時間、平台單選)。
+- **實作補充(2026-09-02)**:狀態新增 `published`(標記已發佈)與推導的「逾期」(scheduled 且過排定時間,不落地儲存,每分鐘重算);新增/編輯共用一個 modal(含選填貼文全文 `content`);每筆排程提供「複製 / 前往發佈 / 標記已發佈 / 編輯 / 刪除」——「前往發佈」在 Threads 以 intent 預填文字,FB/IG/LINE 先複製到剪貼簿再開平台頁;Dashboard 與本頁頂部均有逾期提示橫幅(點擊跳至最早逾期日/排程頁)。
 
 ### 5. 草稿撰寫(Draft)
 - **Purpose**: 核心編輯頁——來源參考(郵件或社群歷史貼文)+ 文字編輯 + AI 語氣輔助 + 文管庫插入 + 社群媒體挑選 + 多平台預覽與字數檢查。
 - **Layout**: 空狀態時置中提示卡,提供三個入口:「前往郵件匣挑選」「從社群媒體挑選」「空白草稿開始撰寫」。有目標時三段式:左側 280px 原始郵件參考卡(僅來源為 Gmail 時顯示)+ 右側主欄(工具列含「📋 從文管庫插入」與「📣 從社群媒體挑選」兩個按鈕、AI 語氣 chip 列、textarea 編輯框、平台勾選 chip、逐平台預覽卡、底部「捨棄草稿」/「儲存草稿」/「加入排程」按鈕)。草稿內容、平台選擇與來源自動持久化於 localStorage(重新整理不消失),「捨棄草稿」清空回到空狀態。
 - **社群媒體串接邏輯**: 點擊「從社群媒體挑選」開啟 modal,列出 `socialHistory` 全部貼文供選擇;點擊任一則會將該貼文內容附加到目前 `draftText` 尾端(若尚無草稿目標則視為空白草稿開始),並關閉 modal、顯示 toast「已套用社群媒體歷史貼文」。此功能在空狀態卡片與編輯區工具列都提供入口,行為一致。
 - **Components**: AI 語氣 chip(專業/親切/活潑/簡短)+ 自訂指令輸入框(Enter 或「套用」送出);textarea(min-height 160px,右下角字數);平台 chip(多選,含 20px 色塊 + 文字);逐平台預覽卡(顯示字數 / 上限,超字數變 `#E74C3C`)。
+- **實作補充(2026-09-02,階段二)**:平台新增 **YouTube**(`yt`,色 `#FF0000`,說明上限 5000 字);勾選後出現「🎬 YouTube 上傳」卡片——瀏覽器端 Google OAuth(僅 `youtube.upload` 範圍,token 僅存記憶體),選影片檔後以草稿首行為標題、全文為說明(依 UTF-8 bytes 截斷)上傳;「立即公開」成功即寫入發文歷史,「預約發佈」以 YouTube 原生 `publishAt` 排程(零後端)並建立排程項目。未設定 Client ID 的建置不出現此卡片。
 
 ### 6. 文管庫(Library,原「罐頭訊息庫」重構)
 - **Purpose**: 管理兩類可套用草稿的內容,以分頁(segmented tab)切分職責:
@@ -86,8 +89,8 @@
 - `emails[]`: Gmail 郵件列表 — 實作時應改為呼叫 Gmail API
 - `templates[]`: 訊息管理內容(id, category, title, text)
 - `copyTemplates[]`: 文案管理內容(id, category, title, text)— 分類集與 templates 不同
-- `socialHistory[]`: 社群媒體發文歷史(id, platform, title, content, date, time)— 唯讀,來自各平台 API
-- `scheduleItems[]`: 排程項目(id, date, time, platform, title, status)
+- `socialHistory[]`: 社群媒體發文歷史(id, platform, title, content, date, time)— 「標記已發佈」的真實記錄(`publishedHistory`,持久化)優先,無記錄時為示範資料
+- `scheduleItems[]`: 排程項目(id, date, time, platform, title, content?, status: draft|scheduled|published;「逾期」為依時間推導的顯示狀態,不儲存)
 - `selectedMailId`: 目前草稿來源郵件 id、'blank' 或 null(三者皆隨草稿持久化)
 - `draftText` / `draftPlatforms`(隨內容變動自動寫入 localStorage,與範本/排程同 key)
 - `libraryMainTab`: 'message' | 'copy'(文管庫目前分頁)
@@ -99,9 +102,50 @@
 ### 資料串接需求(下一階段)
 - ~~Gmail API 串接~~(已上線:瀏覽器端唯讀 OAuth + 本機規則分類;見 `docs/SETUP.md`)
 - ~~AI 語氣改寫需接真實 LLM API~~(已上線:Gemini BYOK,含語氣改寫/郵件摘要/自訂指令;無 key 退回規則示範)
-- 文管庫(訊息管理 + 文案管理)需接後端儲存,目前以瀏覽器 localStorage 暫存(排程亦同,重新整理不消失,無跨裝置同步)
-- 社群媒體發文歷史需接各平台 API(Facebook/IG/Threads/LINE)讀取真實已發佈貼文
-- 排程需接各平台發文 API 或內部排程資料庫 + 提醒機制
+- 文管庫(訊息管理 + 文案管理)後端儲存:目前以瀏覽器 localStorage 暫存(排程亦同,重新整理不消失,無跨裝置同步);跨裝置同步屬未定案的遠期項,非現階段後端的職責
+- 社群媒體發文歷史:近期為純前端「手動標記已發佈寫入 `socialHistory`」;讀取各平台 API 屬後端輔助階段(Facebook/IG/Threads;LINE 個人動態無 API)
+- 排程:狀態流轉/逾期提示/發佈輔助為純前端近期工作;全自動發佈屬後端輔助階段——IG/Threads 無原生排程參數需自建 cron,YouTube 與 Facebook 粉專支援原生預約發佈
+
+## 架構決策記錄(2026-09-02,維護者決議)
+
+### 決議
+1. 專案定位由「純前端、無後端」調整為「**前端為主、後端輔助(可選)**」。後端為漸進式、可退回的輔助角色:只負責 OAuth 代管、平台代發文(解決 CORS)、排程 cron;未設定後端時產品為完整半自動模式(一鍵複製 + 平台深連結),純前端 CI 路徑不變、建置不得失敗。
+2. 後端資料邊界(紅線):後端僅接收**排程貼文內容**與平台 token(加密保存、可隨時 revoke);**emails 與 AI key 永遠只留在使用者瀏覽器**,不落地也不上傳。
+3. 真實串接以 **YouTube 先行**(影片/Shorts + 文字說明;沿用 `services/gmail/gis` 模式加 `youtube.upload` scope,零後端)。注意:未過 Google API 稽核的專案,API 上傳影片一律鎖私人(2020-07-28 後建立的專案適用);YouTube 社群貼文(純文字)無公開 API;排程可用原生 `publishAt`(privacyStatus private + publishAt),免 cron。影音編輯等產品整合另案評估。
+4. ~~後端形態:評估中~~(2026-09-02 定案:**Cloudflare Workers + KV 為主形態,GitHub Actions cron 混合為輔助變體**,於文件提供自架者作「零基建個人自用」選項;動工時機依階段 2 YouTube 串接的產品驗證結果。比較表見下方)。
+
+### 發展階段
+1. ~~**階段 1(純前端)**~~(2026-09-02 完成):排程狀態流轉(`published` 為儲存狀態、`overdue` 依時間推導不落地)+ 逾期提示(Dashboard/Schedule 橫幅)+ 排程編輯(新增/編輯共用 modal,含選填貼文全文);發佈輔助(一鍵複製 + 平台深連結——Threads intent 可預填文字,FB/IG/LINE 先複製再開平台頁);手動標記已發佈寫入 `publishedHistory`(Social 頁隨之真實化)
+2. ~~**階段 2(零後端)**:YouTube 影片/Shorts 上傳(GIS + `youtube.upload`;Google API 稽核申請先行;排程用原生 publishAt)~~(2026-09-02 完成;**Google API 稽核申請待送出**——稽核前上傳一律鎖私人,見 SETUP.md §11)
+3. **階段 3(後端輔助)**:平台代發,順序 Threads(免費、審核較輕)→ IG(需商業帳號+綁粉專)→ X(量計費約 $0.015/則);cron 僅為無原生排程的平台存在;LINE 永遠手動
+4. **階段 4(可選)**:Web Push + Service Worker 提醒
+
+### 後端形態比較(2026-09-02 查證;待定案)
+
+實際需求盤點:Meta/X 的 OAuth code exchange(confidential client,需公開 HTTPS callback)、token 加密保管與刷新、代發文(解決 CORS)、排程 cron(IG/Threads 無原生排程)、極小資料儲存(排程佇列);單人或極小規模使用、自架友善、零或極低成本、維運越少越好。
+
+| 選項 | cron 精度(免費層) | OAuth callback | 內容/token 隱私 | 成本 | 維運 | 短評 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Cloudflare Workers + KV** | ✔ 每分鐘;免費 3 cron triggers/worker | ✔ 原生路由,公開 HTTPS | 私有;KV 自管加密 | 免費額度充裕(10 萬請求/日、KV 1000 寫/日,cron 呼叫不計入請求額度) | wrangler 部署,可併入現有 GitHub Actions pipeline | 最貼合需求 |
+| Vercel Functions | ✘ Hobby 免費版 cron 限**每日一次**;分/時級需 Pro $20/月 | ✔ | 私有 | 免費版排程能力被閹割 | 前端在 GH Pages,需另開專案並處理並存 | 核心需求(排程)免費版不滿足 |
+| GitHub Actions cron 混合 | △ best-effort:常見延遲 20–60 分鐘,極端可達小時級,可能整批跳過;60 天倉庫無活動自動停用 | ✘ callback 流程彆扭(需手動貼 code 走 workflow_dispatch) | **公開 repo 排程內容全可見**;私有 repo 佔 Actions 額度 | 免費 | 零基建,與現有 CI 同處 | 個人自用可行,產品級不足 |
+| Supabase 等 BaaS | △ 需自排(pg_cron/外部觸發) | ✔ | 私有 | 免費版閒置一週暫停 | 多一整套平台/schema 要顧 | 能力過剩,超出輔助定位 |
+| 自架 VPS | ✔ | ✔ | 私有 | 每月固定費用 | 需持續維運 | 違背輔助定位 |
+
+**定案(2026-09-02)**:Cloudflare Workers + KV 為**主形態**——需求全覆蓋、免費層足夠、TS 原生可與前端共用型別、自架故事乾淨(fork → wrangler deploy → 設 3 個 secret);GitHub Actions cron 混合為**輔助變體**,於文件提供「零基建個人自用」選項。Vercel(免費層無分鐘級 cron)、Supabase(能力過剩)、自架 VPS(維運負擔)不採用。
+
+## 文管庫(文案管理)功能評估(2026-09-02;**排程定案:整體安排於社群管理開發階段(階段 3/4)之後**,屆時再依下述節奏挑選範圍)
+
+**現況**:Template 為 `{category, title, text}` 平面結構;發文記錄已真實化(`publishedHistory`);AI 已有語氣改寫/郵件摘要/自訂指令(Gemini BYOK)。
+
+**缺口與機會(依純前端可行性排序)**:
+
+1. 發文記錄縱深:記錄與來源範本無連結(無法追溯)、無各平台變體軌跡、無範本使用統計 → 可加 `sourceTemplateId`、`appliedCount` 等欄位向後相容演進
+2. 範本形式:`{{變數}}` 佔位符是非正式慣例(無填值流程)、無平台變體欄位、單一分類維度、無媒體連結 → 正式化 placeholder 填值 + `platformVariants` + tags 為主要升級方向
+3. 發文趨勢:目前僅「本月已發佈」單一數字;`publishedHistory` 已含平台/日期/時間,可純前端做頻率/時段/平台組合分析——**僅在有真實記錄時顯示**(示範資料不可用於趨勢);平台成效(觸及/互動)屬後端階段
+4. Gemini 產出潛能(全 BYOK):平台適配變體生成(一份草稿→多平台版本)、以自身歷史貼文 few-shot 生成同風格新文案、hashtag/關鍵字建議、Gemini grounding(`google_search` 工具)查即時趨勢產靈感——均沿用 `services/gemini/rewrite.ts` 分流模式,不影響建置/CI
+
+**建議節奏**(2026-09-02 決議:於階段 3/4 之後啟動):placeholder 填值與「以發文記錄建立範本」先做(小而確定)→ 平台變體 + 使用統計 → 趨勢分析 → AI 變體生成與 hashtag;成效趨勢與雲端同步綁在後端階段。
 
 ## Design Tokens
 
