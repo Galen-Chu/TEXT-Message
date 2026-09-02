@@ -216,6 +216,29 @@ export const TRENDS_COPY = {
   dashboardTitle: '發文趨勢(近 30 天)',
 };
 
+/** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
+export const DRAFT_VARIANTS_COPY = {
+  variantsButton: '✨ 產生平台版本',
+  variantsTitle: '✨ 平台版本(可編輯後使用)',
+  variantsHint: '由 Gemini 依各平台特性改寫,可先編輯再附加到草稿或存為範本(含平台版本)',
+  variantsEmptyDraftToast: '請先撰寫草稿內容',
+  variantsNoPlatformToast: '請先勾選至少一個發布平台',
+  variantsNeedKeyToast: '產生平台版本需要 Gemini key:於「AI 設定」輸入後即可使用',
+  variantsDoneToast: 'Gemini 已產生平台版本 ✨(可編輯後附加或存為範本)',
+  variantsAppend: '附加到草稿',
+  variantsSave: '存為範本',
+  variantsClose: '關閉',
+  variantsAppendedToast: '已附加平台版本到草稿',
+  variantsSaveTitle: '存為範本(含平台版本)',
+  variantsSaveCategory: '分類(文案管理)',
+  variantsSavedToast: '已存入文管庫 · 文案管理(含平台版本)✅',
+  hashtagsButton: '#️⃣ 建議標籤',
+  hashtagsDoneToast: '已產生標籤建議,點擊標籤即可加入草稿',
+  hashtagsNeedKeyToast: '建議標籤需要 Gemini key:於「AI 設定」輸入後即可使用',
+  hashtagsAddAll: '全部加入',
+  hashtagAppendedToast: '已加入草稿',
+};
+
 /** YouTube 上傳(階段二:零後端,沿用瀏覽器端 Google OAuth)的使用者文案。 */
 export const YOUTUBE_COPY = {
   cardTitle: '🎬 YouTube 上傳',

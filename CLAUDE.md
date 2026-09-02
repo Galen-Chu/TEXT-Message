@@ -54,7 +54,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 ### 待開發功能(依現行優先序)
 
-1. **文管庫功能深化(現行工作流;2026-09-02 決議自「階段 3/4 之後」提前)** — **第一至三期已完成(2026-09-02)**。第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`,依勾選平台插入 `[平台名 版]`/`[通用版]` 段落,複製可選版本)。第三期:發文趨勢(`utils/trends.ts` 純函式 + `components/TrendsPanel.tsx`——Social 完整版 30/90 天切換+時段分佈+連續天數等、Dashboard 精簡版近 30 天計數;**僅計 `publishedHistory` 真實記錄,門檻 5 筆**,示範資料永不參與;長條單一色相、平台識別靠文字標籤——平台色填充經驗證器實測不符深淺色對比,不用)。D6 定案:Dashboard/Social 維持拆分,未來可加獨立趨勢觀察頁。決策點記錄見 `docs/LIBRARY-PLAN.md` §6。**待續:第四期 Gemini 平台適配變體生成/hashtag 建議(無 key 顯示但提示)**
+1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
 2. **階段 3 前端串接(暫停中)** — `VITE_API_BASE` + Threads 代發 UI + 排程同步 worker 佇列;恢復時機由維護者決定(Threads App 審核與 worker 部署見 `docs/BACKEND.md`)。待辦提醒:送出 Google API 稽核申請(表單制)——稽核前 YouTube 上傳一律鎖私人
 3. **階段 4(可選)— Web Push + Service Worker 提醒**
 

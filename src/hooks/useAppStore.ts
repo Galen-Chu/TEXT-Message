@@ -3,6 +3,7 @@ import { useGmail } from './useGmail';
 import { useYoutube } from './useYoutube';
 import {
   DRAFT_AI_COPY,
+  DRAFT_VARIANTS_COPY,
   GEMINI_ERROR_COPY,
   LIBRARY_COPY,
   PLATFORM_LIST,
@@ -20,6 +21,7 @@ import {
   saveGeminiKey,
   summarizeWithGemini,
 } from '../services/gemini/rewrite';
+import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import {
   initialCopyTemplates,
   initialEmails,
@@ -227,6 +229,12 @@ export function useAppStore() {
   const [geminiKey, setGeminiKeyState] = useState(() => loadGeminiKey());
   const [aiBusy, setAiBusy] = useState(false);
 
+  // 第四期:平台變體生成結果(可編輯)與 hashtag 建議(工作階段狀態,不落地)
+  const [draftVariants, setDraftVariants] = useState<Partial<Record<PlatformKey, string>> | null>(
+    null,
+  );
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([]);
+
   const setGeminiKey = (key: string) => {
     if (key) saveGeminiKey(key);
     else clearGeminiKey();
@@ -288,6 +296,98 @@ export function useAppStore() {
     } else {
       showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
     }
+  };
+
+  /** 產生平台版本(第四期 F6,BYOK;無 key 依 D5 決議顯示按鈕但點擊僅提示)。 */
+  const generateDraftVariants = async () => {
+    if (!draftText.trim()) {
+      showToast(DRAFT_VARIANTS_COPY.variantsEmptyDraftToast);
+      return;
+    }
+    const platforms = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]);
+    if (!platforms.length) {
+      showToast(DRAFT_VARIANTS_COPY.variantsNoPlatformToast);
+      return;
+    }
+    if (aiBusy) return;
+    if (!geminiKey) {
+      showToast(DRAFT_VARIANTS_COPY.variantsNeedKeyToast);
+      return;
+    }
+    setAiBusy(true);
+    const result = await generatePlatformVariants({
+      apiKey: geminiKey,
+      text: draftText,
+      platforms: platforms.map((p) => ({ key: p.key, label: p.label, limit: p.limit })),
+    });
+    setAiBusy(false);
+    if (result.ok) {
+      setDraftVariants(result.variants);
+      setHashtagSuggestions([]);
+      showToast(DRAFT_VARIANTS_COPY.variantsDoneToast);
+    } else {
+      showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+    }
+  };
+
+  const setDraftVariant = (key: PlatformKey, text: string) => {
+    setDraftVariants((v) => (v ? { ...v, [key]: text } : v));
+  };
+
+  /** 附加平台版本到草稿尾端(沿用 D3 的 [平台名 版] 段落格式)。 */
+  const appendDraftVariantsToDraft = () => {
+    if (!draftVariants) return;
+    const segments = PLATFORM_LIST.filter((p) => (draftVariants[p.key] ?? '').trim()).map(
+      (p) => `[${p.label} 版]\n${draftVariants[p.key]}`,
+    );
+    if (!segments.length) return;
+    setDraftText((t) => (t ? t + '\n\n' : '') + segments.join('\n\n'));
+    setDraftVariants(null);
+    showToast(DRAFT_VARIANTS_COPY.variantsAppendedToast);
+  };
+
+  /** 平台版本存為文案範本(通用內容 = 目前草稿全文,平台版本 = 生成結果)。 */
+  const saveDraftVariantsAsTemplate = (title: string, category: string) => {
+    if (!draftVariants) return;
+    const tpl: Template = {
+      id: newId('sv'),
+      category: category || '日常分享',
+      title,
+      text: draftText,
+      platformVariants: { ...draftVariants },
+    };
+    setCopyTemplates((list) => [tpl, ...list]);
+    setDraftVariants(null);
+    showToast(DRAFT_VARIANTS_COPY.variantsSavedToast);
+  };
+
+  /** hashtag 建議(第四期 F7,BYOK;無 key 依 D5 顯示按鈕但點擊僅提示)。 */
+  const requestHashtags = async () => {
+    if (!draftText.trim()) {
+      showToast(DRAFT_VARIANTS_COPY.variantsEmptyDraftToast);
+      return;
+    }
+    if (aiBusy) return;
+    if (!geminiKey) {
+      showToast(DRAFT_VARIANTS_COPY.hashtagsNeedKeyToast);
+      return;
+    }
+    setAiBusy(true);
+    const result = await suggestHashtagsFor({ apiKey: geminiKey, text: draftText });
+    setAiBusy(false);
+    if (result.ok) {
+      setHashtagSuggestions(result.hashtags);
+      showToast(DRAFT_VARIANTS_COPY.hashtagsDoneToast);
+    } else {
+      showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+    }
+  };
+
+  const addHashtagsToDraft = (tags: string[]) => {
+    const joined = tags.join(' ');
+    if (!joined) return;
+    setDraftText((t) => (t ? t + (t.endsWith('\n') ? '' : '\n\n') : '') + joined);
+    showToast(DRAFT_VARIANTS_COPY.hashtagAppendedToast);
   };
 
   const togglePlatform = (key: PlatformKey) => {
@@ -590,6 +690,16 @@ export function useAppStore() {
     startBlankDraft,
     applyTone,
     applyCustomInstruction,
+    generateDraftVariants,
+    draftVariants,
+    setDraftVariant,
+    appendDraftVariantsToDraft,
+    clearDraftVariants: () => setDraftVariants(null),
+    saveDraftVariantsAsTemplate,
+    requestHashtags,
+    hashtagSuggestions,
+    addHashtagsToDraft,
+    clearHashtagSuggestions: () => setHashtagSuggestions([]),
     geminiKey,
     setGeminiKey,
     aiBusy,

@@ -131,8 +131,8 @@ function saveResolvedModel(model: string): void {
   }
 }
 
-/** 共用呼叫:模型候選逐一降級、記住第一個可用的模型。三個對外函式皆走這裡。 */
-async function generateContent(
+/** 共用呼叫:模型候選逐一降級、記住第一個可用的模型。各對外函式皆走這裡(含 variants.ts)。 */
+export async function generateContent(
   apiKey: string,
   prompt: string,
   signal?: AbortSignal,

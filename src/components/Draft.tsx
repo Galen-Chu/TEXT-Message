@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
+  COPY_CATEGORIES,
   DRAFT_AI_COPY,
+  DRAFT_VARIANTS_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
   PLATFORM_LIST,
@@ -32,6 +34,15 @@ export default function Draft({ store }: { store: AppStore }) {
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
   const [fillInsert, setFillInsert] = useState<{ tpl: Template; text: string } | null>(null);
+  const [showVariantSave, setShowVariantSave] = useState(false);
+  const [variantSaveTitle, setVariantSaveTitle] = useState('');
+  const [variantSaveCategory, setVariantSaveCategory] = useState(
+    COPY_CATEGORIES.find((c) => c !== '全部') ?? '日常分享',
+  );
+
+  const variantPlatforms = PLATFORM_LIST.filter(
+    (p) => store.draftVariants && p.key in store.draftVariants,
+  );
 
   const yt = store.youtube;
 
@@ -173,7 +184,19 @@ export default function Draft({ store }: { store: AppStore }) {
                       ? GEMINI_MODE_LABEL.on
                       : GEMINI_MODE_LABEL.off}
                 </div>
-                <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => void store.generateDraftVariants()}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    {DRAFT_VARIANTS_COPY.variantsButton}
+                  </button>
+                  <button
+                    onClick={() => void store.requestHashtags()}
+                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    {DRAFT_VARIANTS_COPY.hashtagsButton}
+                  </button>
                   <button
                     onClick={() => setShowKeyModal(true)}
                     style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
@@ -247,6 +270,54 @@ export default function Draft({ store }: { store: AppStore }) {
               </div>
             </div>
 
+            {store.hashtagSuggestions.length > 0 && (
+              <div
+                className="card"
+                style={{
+                  padding: '12px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>標籤建議:</span>
+                {store.hashtagSuggestions.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => store.addHashtagsToDraft([tag])}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 9,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      background: 'var(--pill-purple-bg)',
+                      color: 'var(--brand)',
+                      border: '1px solid var(--pill-purple-bg-2)',
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    store.addHashtagsToDraft(store.hashtagSuggestions);
+                    store.clearHashtagSuggestions();
+                  }}
+                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                >
+                  {DRAFT_VARIANTS_COPY.hashtagsAddAll}
+                </button>
+                <button
+                  onClick={store.clearHashtagSuggestions}
+                  aria-label="關閉標籤建議"
+                  style={{ fontSize: 14, color: 'var(--text-faint)', marginLeft: 'auto' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="card" style={{ padding: 18 }}>
               <textarea
                 value={store.draftText}
@@ -269,6 +340,96 @@ export default function Draft({ store }: { store: AppStore }) {
                 {draftLength} 字
               </div>
             </div>
+
+            {store.draftVariants && (
+              <div className="card" style={{ padding: 18 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                    {DRAFT_VARIANTS_COPY.variantsTitle}
+                  </div>
+                  <button
+                    onClick={store.clearDraftVariants}
+                    aria-label={DRAFT_VARIANTS_COPY.variantsClose}
+                    style={{ fontSize: 14, color: 'var(--text-faint)' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 12 }}>
+                  {DRAFT_VARIANTS_COPY.variantsHint}
+                </div>
+                {variantPlatforms.map((p) => {
+                  const value = store.draftVariants?.[p.key] ?? '';
+                  const over = charCount(value) > p.limit;
+                  return (
+                    <div key={p.key} style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 5,
+                            background: p.color,
+                            color: '#fff',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {p.badge}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>
+                          {p.label} 版
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: over ? 'var(--error)' : 'var(--text-faint)',
+                            marginLeft: 'auto',
+                          }}
+                        >
+                          {charCount(value)} / {p.limit} 字
+                        </span>
+                      </div>
+                      <textarea
+                        className="text-input"
+                        value={value}
+                        onChange={(e) => store.setDraftVariant(p.key, e.target.value)}
+                        style={{ minHeight: 88, lineHeight: 1.6, resize: 'vertical' }}
+                      />
+                    </div>
+                  );
+                })}
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button
+                    className="btn btn-accent"
+                    style={{ borderRadius: 9 }}
+                    onClick={store.appendDraftVariantsToDraft}
+                  >
+                    {DRAFT_VARIANTS_COPY.variantsAppend}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ borderRadius: 9 }}
+                    onClick={() => {
+                      setVariantSaveTitle(store.draftText.split('\n')[0].slice(0, 24) || '未命名範本');
+                      setShowVariantSave(true);
+                    }}
+                  >
+                    {DRAFT_VARIANTS_COPY.variantsSave}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="card" style={{ padding: 18 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>
@@ -555,6 +716,64 @@ export default function Draft({ store }: { store: AppStore }) {
             setFillInsert(null);
           }}
         />
+      )}
+
+      {showVariantSave && (
+        <Modal
+          onClose={() => setShowVariantSave(false)}
+          width={420}
+          label={DRAFT_VARIANTS_COPY.variantsSaveTitle}
+        >
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+            {DRAFT_VARIANTS_COPY.variantsSaveTitle}
+          </div>
+          <div className="field-label">標題</div>
+          <input
+            className="text-input"
+            value={variantSaveTitle}
+            onChange={(e) => setVariantSaveTitle(e.target.value)}
+            style={{ marginBottom: 14 }}
+          />
+          <div className="field-label">{DRAFT_VARIANTS_COPY.variantsSaveCategory}</div>
+          <select
+            className="text-input"
+            value={variantSaveCategory}
+            onChange={(e) => setVariantSaveCategory(e.target.value)}
+            style={{ marginBottom: 16 }}
+          >
+            {COPY_CATEGORIES.filter((c) => c !== '全部').map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 16 }}>
+            通用內容 = 目前草稿全文;平台版本 = 面板中的各版(存入後可於文管庫編輯)
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-ghost"
+              style={{ borderRadius: 9 }}
+              onClick={() => setShowVariantSave(false)}
+            >
+              取消
+            </button>
+            <button
+              className="btn btn-primary"
+              style={{ borderRadius: 9 }}
+              onClick={() => {
+                if (!variantSaveTitle.trim()) {
+                  store.showToast('請輸入標題');
+                  return;
+                }
+                store.saveDraftVariantsAsTemplate(variantSaveTitle.trim(), variantSaveCategory);
+                setShowVariantSave(false);
+              }}
+            >
+              存入文管庫
+            </button>
+          </div>
+        </Modal>
       )}
 
       {showTemplatePicker && (

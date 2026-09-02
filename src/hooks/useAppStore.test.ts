@@ -2,6 +2,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from './useAppStore';
+import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
+
+// 第四期(Gemini 產出)僅 mock 服務層;BYOK 分流與 UI 狀態走真實 store 邏輯
+vi.mock('../services/gemini/variants', () => ({
+  generatePlatformVariants: vi.fn(),
+  suggestHashtagsFor: vi.fn(),
+}));
 
 // 測試環境未設 VITE_GMAIL_CLIENT_ID → Gmail 為 disabled(示範模式),不需 mock Google 服務
 
@@ -366,5 +373,109 @@ describe('useAppStore:文管庫深化第二期(平台變體)', () => {
     expect(
       (readStore().copyTemplates as Array<Record<string, unknown>>)[0].platformVariants,
     ).toBeUndefined();
+  });
+});
+
+describe('useAppStore:文管庫深化第四期(AI 平台版本與標籤,BYOK)', () => {
+  function prepareDraft(result: { current: ReturnType<typeof useAppStore> }, text: string) {
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText(text);
+    });
+  }
+
+  it('無 key:產生平台版本僅提示不動作(D5 決議),不呼叫服務', async () => {
+    const { result } = renderHook(() => useAppStore());
+    prepareDraft(result, '草稿內容');
+    await act(async () => {
+      await result.current.generateDraftVariants();
+    });
+    expect(generatePlatformVariants).not.toHaveBeenCalled();
+    expect(result.current.draftVariants).toBeNull();
+    expect(result.current.toastMessage).toContain('Gemini key');
+  });
+
+  it('有 key:生成結果進入可編輯面板;附加到草稿採 [平台名 版] 格式', async () => {
+    vi.mocked(generatePlatformVariants).mockResolvedValue({
+      ok: true,
+      variants: { fb: 'F 版', threads: 'T 版' },
+    });
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.setGeminiKey('test-key');
+    });
+    prepareDraft(result, '原始草稿');
+    act(() => {
+      result.current.togglePlatform('threads');
+    });
+    await act(async () => {
+      await result.current.generateDraftVariants();
+    });
+    expect(result.current.draftVariants).toEqual({ fb: 'F 版', threads: 'T 版' });
+
+    act(() => {
+      result.current.setDraftVariant('threads', '編輯後版本');
+    });
+    act(() => {
+      result.current.appendDraftVariantsToDraft();
+    });
+    expect(result.current.draftText).toBe(
+      '原始草稿\n\n[Facebook 版]\nF 版\n\n[Threads 版]\n編輯後版本',
+    );
+    expect(result.current.draftVariants).toBeNull();
+  });
+
+  it('平台版本可存為文案範本(通用內容=草稿全文)並持久化', async () => {
+    vi.mocked(generatePlatformVariants).mockResolvedValue({
+      ok: true,
+      variants: { threads: '短版' },
+    });
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.setGeminiKey('test-key');
+    });
+    prepareDraft(result, '通用內容全文');
+    await act(async () => {
+      await result.current.generateDraftVariants();
+    });
+    act(() => {
+      result.current.saveDraftVariantsAsTemplate('AI 範本', '日常分享');
+    });
+    const saved = result.current.copyTemplates[0];
+    expect(saved.title).toBe('AI 範本');
+    expect(saved.text).toBe('通用內容全文');
+    expect(saved.platformVariants).toEqual({ threads: '短版' });
+    expect(result.current.draftVariants).toBeNull();
+    expect(readStore().copyTemplates).toEqual(result.current.copyTemplates);
+  });
+
+  it('hashtag:無 key 僅提示;有 key 生成後可逐個/全部加入草稿', async () => {
+    const { result } = renderHook(() => useAppStore());
+    prepareDraft(result, '貼文內容');
+    await act(async () => {
+      await result.current.requestHashtags();
+    });
+    expect(suggestHashtagsFor).not.toHaveBeenCalled();
+    expect(result.current.toastMessage).toContain('Gemini key');
+
+    act(() => {
+      result.current.setGeminiKey('test-key');
+    });
+    vi.mocked(suggestHashtagsFor).mockResolvedValue({ ok: true, hashtags: ['#生活', '#旅遊'] });
+    await act(async () => {
+      await result.current.requestHashtags();
+    });
+    expect(result.current.hashtagSuggestions).toEqual(['#生活', '#旅遊']);
+
+    act(() => {
+      result.current.addHashtagsToDraft(['#生活']);
+    });
+    expect(result.current.draftText).toBe('貼文內容\n\n#生活');
+    act(() => {
+      result.current.clearHashtagSuggestions();
+    });
+    expect(result.current.hashtagSuggestions).toEqual([]);
   });
 });
