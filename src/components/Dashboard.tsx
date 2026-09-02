@@ -3,6 +3,7 @@ import type { AppStore } from '../hooks/useAppStore';
 import { dateLabel, fullDateLabel, greeting, toISODate } from '../utils/date';
 import { effectiveStatus, overdueItems } from '../utils/schedule';
 import PlatformBadge from './PlatformBadge';
+import TrendsPanel from './TrendsPanel';
 
 export default function Dashboard({ store }: { store: AppStore }) {
   const now = Date.now();
@@ -97,6 +98,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
           </div>
         ))}
       </div>
+
+      <TrendsPanel posts={store.publishedHistory} variant="compact" />
 
       <div className="dash-two-col" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div className="card" style={{ flex: 1, padding: 22 }}>

@@ -560,6 +560,7 @@ export function useAppStore() {
     copyTemplates,
     socialHistory,
     socialHistoryIsDemo,
+    publishedHistory,
     scheduleItems,
     selectedMailId,
     draftText,

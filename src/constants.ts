@@ -193,6 +193,29 @@ export const LIBRARY_COPY = {
   hasVariantBadge: '含平台版本',
 };
 
+/** 發文趨勢(文管庫深化第三期)的使用者文案;資料僅計真實記錄。 */
+export const TRENDS_COPY = {
+  title: '📈 發文趨勢',
+  note: '僅計真實記錄(標記已發佈/YouTube 上傳),不含示範資料',
+  accumulating: (n: number, threshold: number) =>
+    `累積發文記錄中(${n}/${threshold})——在排程頁「標記已發佈」後,這裡會出現你的發文趨勢`,
+  period30: '近 30 天',
+  period90: '近 90 天',
+  platformCountsTitle: '各平台發文數',
+  hourTitle: '發文時段分佈',
+  hourLabels: ['清晨 0–6', '上午 6–12', '下午 12–18', '晚間 18–24'],
+  streakLabel: '連續發文',
+  longestLabel: '最長紀錄',
+  daysUnit: (n: number) => `${n} 天`,
+  dayMixTitle: '發文日形態',
+  singleDay: '單平台日',
+  multiDay: '跨平台日',
+  daysUnitPlain: '天',
+  postsUnit: '則',
+  totalLabel: (n: number) => `共 ${n} 則`,
+  dashboardTitle: '發文趨勢(近 30 天)',
+};
+
 /** YouTube 上傳(階段二:零後端,沿用瀏覽器端 Google OAuth)的使用者文案。 */
 export const YOUTUBE_COPY = {
   cardTitle: '🎬 YouTube 上傳',

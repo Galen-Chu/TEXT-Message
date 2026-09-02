@@ -5,6 +5,7 @@ import type { SocialPost } from '../types';
 import { dateLabel } from '../utils/date';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
+import TrendsPanel from './TrendsPanel';
 
 const SOCIAL_FILTERS = ['全部', ...PLATFORM_LIST.map((p) => p.label)];
 const SAVE_CATEGORIES = COPY_CATEGORIES.filter((c) => c !== '全部');
@@ -47,6 +48,8 @@ export default function Social({ store }: { store: AppStore }) {
           </span>
         )}
       </div>
+
+      <TrendsPanel posts={store.publishedHistory} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {SOCIAL_FILTERS.map((f) => {
