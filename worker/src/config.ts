@@ -29,9 +29,11 @@ export interface Env {
 /** Threads 文字貼文上限(API 限制,以字元計)。 */
 export const THREADS_TEXT_LIMIT = 500;
 
-/** Threads OAuth 端點。 */
+/** Threads OAuth 端點(code→短效 token 為 POST;長效交換與刷新各有獨立端點,皆 GET)。 */
 export const THREADS_AUTHORIZE_URL = 'https://threads.net/oauth/authorize';
 export const THREADS_TOKEN_URL = 'https://graph.threads.net/oauth/access_token';
+export const THREADS_EXCHANGE_URL = 'https://graph.threads.net/access_token';
+export const THREADS_REFRESH_URL = 'https://graph.threads.net/refresh_access_token';
 
 /** Threads Graph API base。 */
 export const THREADS_API_BASE = 'https://graph.threads.net/v1.0';

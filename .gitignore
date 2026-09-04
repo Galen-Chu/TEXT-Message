@@ -9,3 +9,5 @@ npm-debug.log*
 *.tsbuildinfo
 test-results/
 playwright-report/
+worker/.wrangler/
+worker/.dev.vars

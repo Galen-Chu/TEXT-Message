@@ -33,9 +33,13 @@ export async function loadThreadsToken(
   const payload = await kv.get(tokenKey(installId));
   if (!payload) return null;
   try {
-    const parsed = JSON.parse(await aesDecrypt(payload, encryptionKey)) as Partial<ThreadsToken>;
-    if (typeof parsed.accessToken !== 'string' || typeof parsed.userId !== 'string') return null;
-    return { accessToken: parsed.accessToken, userId: parsed.userId, expiresAt: parsed.expiresAt ?? 0 };
+    const parsed = JSON.parse(await aesDecrypt(payload, encryptionKey)) as Partial<ThreadsToken> & {
+      userId?: unknown;
+    };
+    // 舊版寫入的 userId 為 JSON number(Meta 回應型別),容錯轉字串
+    const userId = typeof parsed.userId === 'number' ? String(parsed.userId) : parsed.userId;
+    if (typeof parsed.accessToken !== 'string' || typeof userId !== 'string') return null;
+    return { accessToken: parsed.accessToken, userId, expiresAt: parsed.expiresAt ?? 0 };
   } catch {
     return null;
   }

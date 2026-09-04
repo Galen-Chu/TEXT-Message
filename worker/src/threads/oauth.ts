@@ -5,7 +5,13 @@
  * - code → 短效 token → 長效 token(60 天)交換
  * - 長效 token 刷新
  */
-import { THREADS_AUTHORIZE_URL, THREADS_TOKEN_URL, TOKEN_REFRESH_LEAD_MS } from '../config';
+import {
+  THREADS_AUTHORIZE_URL,
+  THREADS_EXCHANGE_URL,
+  THREADS_REFRESH_URL,
+  THREADS_TOKEN_URL,
+  TOKEN_REFRESH_LEAD_MS,
+} from '../config';
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -76,7 +82,7 @@ export async function exchangeCode(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: formUrlencoded({
       client_id: opts.clientId,
-      clientSecret: opts.clientSecret,
+      client_secret: opts.clientSecret,
       grant_type: 'authorization_code',
       redirect_uri: opts.redirectUri,
       code: opts.code,
@@ -86,14 +92,15 @@ export async function exchangeCode(
   if (!resp.ok) {
     throw new Error(`threads code exchange failed: ${JSON.stringify(data).slice(0, 200)}`);
   }
-  const userId = data.user_id as string | undefined;
+  // Meta 的 user_id 可能以 JSON number 回傳,統一轉為字串
+  const userId = data.user_id == null ? '' : String(data.user_id);
   if (typeof data.access_token !== 'string' || !userId) {
     throw new Error('threads code exchange: missing access_token/user_id');
   }
   return { accessToken: data.access_token, userId };
 }
 
-/** 短效 → 長效 token(約 60 天)。 */
+/** 短效 → 長效 token(約 60 天;獨立端點 /access_token,非 code 交換的 /oauth/access_token)。 */
 export async function exchangeLongLived(
   opts: { accessToken: string; clientSecret: string },
   fetcher: Fetcher = fetch,
@@ -103,7 +110,7 @@ export async function exchangeLongLived(
     client_secret: opts.clientSecret,
     access_token: opts.accessToken,
   });
-  const resp = await fetcher(`${THREADS_TOKEN_URL}?${params.toString()}`);
+  const resp = await fetcher(`${THREADS_EXCHANGE_URL}?${params.toString()}`);
   const data = await readJson(resp);
   if (!resp.ok || typeof data.access_token !== 'string') {
     throw new Error(`threads long-lived exchange failed: ${JSON.stringify(data).slice(0, 200)}`);
@@ -111,20 +118,16 @@ export async function exchangeLongLived(
   return { accessToken: data.access_token, expiresIn: Number(data.expires_in ?? 0) };
 }
 
-/** 刷新長效 token(回新的 60 天 token)。 */
+/** 刷新長效 token(回新的 60 天 token;獨立端點,僅需 grant_type 與 access_token)。 */
 export async function refreshToken(
-  opts: { accessToken: string; clientSecret: string },
+  opts: { accessToken: string },
   fetcher: Fetcher = fetch,
 ): Promise<{ accessToken: string; expiresIn: number }> {
-  const resp = await fetcher(THREADS_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formUrlencoded({
-      grant_type: 'th_refresh_token',
-      clientSecret: opts.clientSecret,
-      access_token: opts.accessToken,
-    }),
+  const params = new URLSearchParams({
+    grant_type: 'th_refresh_token',
+    access_token: opts.accessToken,
   });
+  const resp = await fetcher(`${THREADS_REFRESH_URL}?${params.toString()}`);
   const data = await readJson(resp);
   if (!resp.ok || typeof data.access_token !== 'string') {
     throw new Error(`threads token refresh failed: ${JSON.stringify(data).slice(0, 200)}`);

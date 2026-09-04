@@ -56,8 +56,19 @@ describe('token 交換(fetcher 注入)', () => {
     );
     expect(out).toEqual({ accessToken: 'short', userId: 'u1' });
     expect(captured.url).toBe('https://graph.threads.net/oauth/access_token');
-    expect(captured.body).toContain('grant_type=authorization_code');
-    expect(captured.body).toContain('code=c1');
+    // Meta 端點要求 snake_case 欄位名(client_secret 等),逐一驗證避免大小寫寫法回歸
+    const form = new URLSearchParams(captured.body);
+    expect(form.get('client_id')).toBe('cid');
+    expect(form.get('client_secret')).toBe('cs');
+    expect(form.get('grant_type')).toBe('authorization_code');
+    expect(form.get('redirect_uri')).toBe('https://cb');
+    expect(form.get('code')).toBe('c1');
+  });
+
+  it('exchangeCode 數字型 user_id 轉為字串(Meta 回 JSON number)', async () => {
+    const fetcher: Fetcher = async () => jsonResponse({ access_token: 't', user_id: 123456789012 });
+    const out = await exchangeCode({ code: 'c', clientId: 'i', clientSecret: 's', redirectUri: 'r' }, fetcher);
+    expect(out.userId).toBe('123456789012');
   });
 
   it('exchangeCode 失敗(非 JSON / 非 2xx / 缺欄位)都轉為錯誤', async () => {
@@ -71,13 +82,35 @@ describe('token 交換(fetcher 注入)', () => {
     ).rejects.toThrow('missing access_token/user_id');
   });
 
-  it('exchangeLongLived / refreshToken 解析新 token 與效期', async () => {
-    const fetcher: Fetcher = async () =>
-      jsonResponse({ access_token: 'long', token_type: 'bearer', expires_in: 5184000 });
+  it('exchangeLongLived 打 /access_token 端點並解析新 token 與效期', async () => {
+    let captured = { url: '', query: '' };
+    const fetcher: Fetcher = async (url) => {
+      const u = new URL(String(url));
+      captured = { url: u.origin + u.pathname, query: u.search };
+      return jsonResponse({ access_token: 'long', token_type: 'bearer', expires_in: 5184000 });
+    };
     const long = await exchangeLongLived({ accessToken: 's', clientSecret: 'cs' }, fetcher);
     expect(long).toEqual({ accessToken: 'long', expiresIn: 5184000 });
-    const refreshed = await refreshToken({ accessToken: 'long', clientSecret: 'cs' }, fetcher);
-    expect(refreshed.accessToken).toBe('long');
+    expect(captured.url).toBe('https://graph.threads.net/access_token');
+    const params = new URLSearchParams(captured.query);
+    expect(params.get('grant_type')).toBe('th_exchange_token');
+    expect(params.get('client_secret')).toBe('cs');
+    expect(params.get('access_token')).toBe('s');
+  });
+
+  it('refreshToken 打 /refresh_access_token 端點並解析新 token', async () => {
+    let captured = { url: '', query: '' };
+    const fetcher: Fetcher = async (url) => {
+      const u = new URL(String(url));
+      captured = { url: u.origin + u.pathname, query: u.search };
+      return jsonResponse({ access_token: 'long2', token_type: 'bearer', expires_in: 5184000 });
+    };
+    const refreshed = await refreshToken({ accessToken: 'long' }, fetcher);
+    expect(refreshed).toEqual({ accessToken: 'long2', expiresIn: 5184000 });
+    expect(captured.url).toBe('https://graph.threads.net/refresh_access_token');
+    const params = new URLSearchParams(captured.query);
+    expect(params.get('grant_type')).toBe('th_refresh_token');
+    expect(params.get('access_token')).toBe('long');
   });
 });
 
