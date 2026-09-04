@@ -38,7 +38,7 @@ export default function Social({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-        社群媒體
+        自媒體 Social
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
         各社群平台發文歷史記錄
@@ -198,7 +198,7 @@ export default function Social({ store }: { store: AppStore }) {
               取消
             </button>
             <button className="btn btn-primary" style={{ borderRadius: 9 }} onClick={saveTemplate}>
-              存入文管庫
+              存入文庫
             </button>
           </div>
         </Modal>

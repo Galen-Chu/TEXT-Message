@@ -9,8 +9,8 @@ async function gotoTab(page: import('@playwright/test').Page, name: string) {
 
 test('載入:標題與側邊欄六個分頁', async ({ page }) => {
   await page.goto(PATH);
-  await expect(page).toHaveTitle('文管庫');
-  for (const nav of ['首頁總覽', 'Gmail 郵件匣', '社群媒體', '排程管理', '草稿撰寫', '文管庫']) {
+  await expect(page).toHaveTitle('TEXT-Message');
+  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '編輯器 Text', '定排程 Task', '文庫 Library']) {
     await expect(page.locator('nav').getByText(nav, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('近期排程')).toBeVisible();
@@ -18,18 +18,18 @@ test('載入:標題與側邊欄六個分頁', async ({ page }) => {
 
 test('分頁切換:各頁主標題正確', async ({ page }) => {
   await page.goto(PATH);
-  for (const nav of ['Gmail 郵件匣', '社群媒體', '排程管理', '草稿撰寫', '文管庫']) {
+  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '編輯器 Text', '定排程 Task', '文庫 Library']) {
     await gotoTab(page, nav);
     await expect(page.locator('main').getByText(nav, { exact: true }).first()).toBeVisible();
   }
   // 回首頁
-  await gotoTab(page, '首頁總覽');
+  await gotoTab(page, '文管 Dashboard');
   await expect(page.getByText('近期排程')).toBeVisible();
 });
 
 test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, 'Gmail 郵件匣');
+  await gotoTab(page, '郵件匣 Gmail');
   const connectButton = page.getByRole('button', { name: '連接 Gmail 帳號' });
   const unconfigured = await page.getByText('未設定 Gmail 連線').count();
   if (unconfigured > 0) {
@@ -42,9 +42,9 @@ test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) =>
   }
 });
 
-test('文管庫:雙分頁切換與新增內容 modal', async ({ page }) => {
+test('文庫:雙分頁切換與新增內容 modal', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, '文管庫');
+  await gotoTab(page, '文庫 Library');
   await expect(page.getByRole('button', { name: '訊息管理', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '文案管理', exact: true }).click();
   await expect(page.getByRole('button', { name: '品牌故事', exact: true })).toBeVisible();
@@ -56,9 +56,9 @@ test('文管庫:雙分頁切換與新增內容 modal', async ({ page }) => {
 
 test('核心流程:郵件轉為草稿', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, 'Gmail 郵件匣');
+  await gotoTab(page, '郵件匣 Gmail');
   await page.getByRole('button', { name: '轉為草稿' }).first().click();
-  await expect(page.locator('main').getByText('草稿撰寫', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('main').getByText('編輯器 Text', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('原始郵件參考')).toBeVisible();
   const textarea = page.locator('textarea');
   await expect(textarea).toHaveValue(/.+/);
@@ -66,7 +66,7 @@ test('核心流程:郵件轉為草稿', async ({ page }) => {
 
 test('排程:手動新增與刪除', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, '排程管理');
+  await gotoTab(page, '定排程 Task');
   await page.getByRole('button', { name: '+ 新增排程' }).click();
   await page.getByPlaceholder('例如:週末生活分享').fill('E2E測試排程');
   await page.getByRole('button', { name: '新增', exact: true }).click();
@@ -81,38 +81,38 @@ test('排程:手動新增與刪除', async ({ page }) => {
 
 test('持久化:新增範本重新整理後仍在', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, '文管庫');
+  await gotoTab(page, '文庫 Library');
   await page.getByRole('button', { name: '+ 新增內容' }).click();
   await page.getByPlaceholder('例如:感謝訂閱電子報').fill('E2E持久化範本');
   await page.getByRole('button', { name: '儲存範本' }).click();
   await expect(page.getByText('E2E持久化範本')).toBeVisible();
 
   await page.reload();
-  await gotoTab(page, '文管庫');
+  await gotoTab(page, '文庫 Library');
   await expect(page.getByText('E2E持久化範本')).toBeVisible();
 });
 
 test('持久化:草稿重新整理後仍在,捨棄後清除', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, 'Gmail 郵件匣');
+  await gotoTab(page, '郵件匣 Gmail');
   await page.getByRole('button', { name: '轉為草稿' }).first().click();
   await page.locator('textarea').fill('E2E持久化草稿');
 
   await page.reload();
-  await gotoTab(page, '草稿撰寫');
+  await gotoTab(page, '編輯器 Text');
   await expect(page.locator('textarea')).toHaveValue(/E2E持久化草稿/);
 
   await page.getByRole('button', { name: '捨棄草稿' }).click();
   await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
 
   await page.reload();
-  await gotoTab(page, '草稿撰寫');
+  await gotoTab(page, '編輯器 Text');
   await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
 });
 
-test('文管庫:編輯與刪除範本', async ({ page }) => {
+test('文庫:編輯與刪除範本', async ({ page }) => {
   await page.goto(PATH);
-  await gotoTab(page, '文管庫');
+  await gotoTab(page, '文庫 Library');
   await page.getByRole('button', { name: '+ 新增內容' }).click();
   await page.getByPlaceholder('例如:感謝訂閱電子報').fill('E2E編輯目標');
   await page.getByRole('button', { name: '儲存範本' }).click();

@@ -155,7 +155,7 @@ export default function Library({ store }: { store: AppStore }) {
       >
         <div>
           <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-            文管庫
+            文庫 Library
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
             可套用草稿的常用內容,依用途分為訊息管理與文案管理

@@ -53,11 +53,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-outline" onClick={() => store.setActiveTab('inbox')}>
-            從 Gmail 建立草稿
-          </button>
           <button className="btn btn-primary" onClick={() => store.setActiveTab('library')}>
-            瀏覽文管庫
+            瀏覽文庫
           </button>
         </div>
       </div>

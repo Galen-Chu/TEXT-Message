@@ -1,14 +1,14 @@
 import type { AppStore } from '../hooks/useAppStore';
 import type { Tab } from '../types';
 
-// 導覽順序為使用者調整過的最終順序(v2),請勿沿用 v1 排列。
+// 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1):編輯器在定排程之前。
 const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
-  { key: 'dashboard', icon: '🏠', label: '首頁總覽' },
-  { key: 'inbox', icon: '📥', label: 'Gmail 郵件匣' },
-  { key: 'social', icon: '📣', label: '社群媒體' },
-  { key: 'schedule', icon: '📅', label: '排程管理' },
-  { key: 'draft', icon: '✍️', label: '草稿撰寫' },
-  { key: 'library', icon: '🗂️', label: '文管庫' },
+  { key: 'dashboard', icon: '🏠', label: '文管 Dashboard' },
+  { key: 'inbox', icon: '📥', label: '郵件匣 Gmail' },
+  { key: 'social', icon: '📣', label: '自媒體 Social' },
+  { key: 'draft', icon: '✍️', label: '編輯器 Text' },
+  { key: 'schedule', icon: '📅', label: '定排程 Task' },
+  { key: 'library', icon: '🗂️', label: '文庫 Library' },
 ];
 
 export default function Sidebar({ store }: { store: AppStore }) {
@@ -32,7 +32,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
           文
         </div>
         <div className="sidebar-brand-text" style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
-          文管庫
+          TEXT-Message
         </div>
       </div>
 
