@@ -134,7 +134,8 @@ export default {
           expiresAt: long.expiresIn > 0 ? Date.now() + long.expiresIn * 1000 : 0,
         }, env.TOKEN_ENCRYPTION_KEY);
         return back('threads=connected');
-      } catch {
+      } catch (err) {
+        console.error('threads callback failed:', String(err));
         return back('threads=error');
       }
     }
@@ -142,6 +143,14 @@ export default {
     // ---- API(需通過 CORS 檢查)----
     if (!url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404, cors);
     if (!checkCors(request, env)) return json({ error: 'forbidden_origin' }, 403);
+
+    if (url.pathname === '/api/threads/status' && request.method === 'GET') {
+      const installId = url.searchParams.get('install') ?? '';
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      const token = await loadThreadsToken(env.QUEUE, installId, env.TOKEN_ENCRYPTION_KEY);
+      // 僅回報「是否已連線」,不揭露 token 內容
+      return json({ connected: !!token }, 200, cors);
+    }
 
     if (url.pathname === '/api/threads/publish' && request.method === 'POST') {
       const body = await readJsonBody(request);
@@ -220,7 +229,6 @@ export default {
         if (needsRefresh(token, now)) {
           const refreshed = await refreshToken({
             accessToken: token.accessToken,
-            clientSecret: env.THREADS_CLIENT_SECRET,
           });
           accessToken = refreshed.accessToken;
           await saveThreadsToken(

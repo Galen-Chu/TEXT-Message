@@ -28,7 +28,7 @@ export const INBOX_EMPTY_CONNECTED = {
   after: '寄出後等約 30 秒,回來點上方「重新整理」;這封信會被自動分類為「電子報」。',
   subject: '測試電子報:本週精選趨勢觀察',
   body:
-    '這是「文管庫」驗收流程產生的測試信。收到後回到網站點「重新整理」,'
+    '這是「TEXT-Message」驗收流程產生的測試信。收到後回到網站點「重新整理」,'
     + '這封信應出現在清單中,並帶有「電子報」分類標籤與「✨ AI 建議可發文」。',
 };
 
@@ -49,6 +49,15 @@ export const INBOX_FILTERS: Array<'全部' | EmailTag> = [
   '讀者來信',
   '活動通知',
 ];
+
+/** 收件匣唯讀輔助(2026-09-03 C+B 決議):Gmail 標籤篩選與「在 Gmail 建立篩選器」。 */
+export const INBOX_GMAIL_COPY = {
+  labelRowTitle: 'Gmail 標籤',
+  connectedSubtitle: '已串接帳號:{email} · 近 7 天郵件(分類為本機規則建議)',
+  autoFileButton: '自動分類',
+  autoFileTitle: '在 Gmail 為此寄件者建立篩選器(開新視窗;由 Gmail 套用標籤,本工具僅唯讀)',
+  autoFileToast: '已開啟 Gmail——在搜尋框建立篩選器後,此寄件者的信會自動套用你設的標籤',
+};
 
 // 文管庫「訊息管理」分類
 export const LIBRARY_CATEGORIES = [
@@ -176,7 +185,7 @@ export const LIBRARY_COPY = {
   saveAsTemplateTitle: '存為文案範本',
   saveAsTemplateCategory: '分類(文案管理)',
   saveAsTemplateContentLabel: '範本內容(來自發文記錄,可稍後編輯)',
-  savedToast: '已存入文管庫 · 文案管理 ✅',
+  savedToast: '已存入文庫 · 文案管理 ✅',
   titleRequiredToast: '請輸入標題',
   sortDefault: '預設',
   sortMostUsed: '最常用',
@@ -216,6 +225,47 @@ export const TRENDS_COPY = {
   dashboardTitle: '發文趨勢(近 30 天)',
 };
 
+/** Threads 平台代發(階段三前端串接:Cloudflare Workers 後端輔助)的使用者文案。 */
+export const BACKEND_COPY = {
+  cardTitle: '🧵 Threads 代發(後端輔助)',
+  cardDesc: '由你的後端 worker 代為發佈;只送貼文內容與安裝識別碼,不送其他資料',
+  checking: '檢查連線中…',
+  connect: '連接 Threads',
+  connectHint: '開啟新分頁完成 Meta 授權,回來後按「檢查連線」',
+  refreshStatus: '檢查連線',
+  connectedHint: '已連線(worker 保管加密 token,可隨時重新授權取代)',
+  publishNow: '立即代發',
+  scheduleLabel: '排程代發(由後端 cron 到點自動發佈)',
+  scheduleAtLabel: '排定時間',
+  schedulePublish: '排程代發',
+  needTextToast: '請先撰寫草稿內容',
+  pastTimeToast: '排定時間已過,請選擇未來時間',
+  publishedToast: '已代發至 Threads ✅(已記錄至社群媒體歷史)',
+  scheduledToast: '已加入雲端佇列,後端會在排定時間自動發佈(本地同步建立排程)',
+  queueTitle: '🧵 Threads 雲端佇列',
+  queueEmpty: '雲端佇列沒有項目',
+  queueRefresh: '重新載入',
+  queueCancel: '取消',
+  cancelledToast: '已取消雲端排程',
+  connectedQueryParam: 'threads',
+  connectedBackToast: 'Threads 授權完成 ✨ 檢查連線狀態中…',
+  connectErrorToast: 'Threads 授權未完成,可重新再試',
+};
+
+/** 後端輔助錯誤文案(依 services/backend/client.ts 的 code 對應)。 */
+export const BACKEND_ERROR_COPY: Record<string, string> = {
+  network: '無法連上後端 worker,請確認網址或稍後再試',
+  not_connected: '尚未連接 Threads,請先完成授權',
+  invalid_text: '貼文內容無效(空白或超過 Threads 500 字上限)',
+  invalid_publish_at: '排定時間無效,請選擇未來時間',
+  invalid_install_id: '安裝識別碼無效,請重新整理頁面',
+  not_found: '找不到該項目(可能已發佈或移除)',
+  not_pending: '該項目已處理,無法取消',
+  forbidden_origin: '後端未允許此網站來源(檢查 worker 的 FRONTEND_URL 設定)',
+  publish_failed: '後端代發失敗,請稍後再試或檢查 worker 日誌',
+  unknown: '後端服務異常,請稍後再試',
+};
+
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
 export const DRAFT_VARIANTS_COPY = {
   variantsButton: '✨ 產生平台版本',
@@ -231,7 +281,7 @@ export const DRAFT_VARIANTS_COPY = {
   variantsAppendedToast: '已附加平台版本到草稿',
   variantsSaveTitle: '存為範本(含平台版本)',
   variantsSaveCategory: '分類(文案管理)',
-  variantsSavedToast: '已存入文管庫 · 文案管理(含平台版本)✅',
+  variantsSavedToast: '已存入文庫 · 文案管理(含平台版本)✅',
   hashtagsButton: '#️⃣ 建議標籤',
   hashtagsDoneToast: '已產生標籤建議,點擊標籤即可加入草稿',
   hashtagsNeedKeyToast: '建議標籤需要 Gemini key:於「AI 設定」輸入後即可使用',

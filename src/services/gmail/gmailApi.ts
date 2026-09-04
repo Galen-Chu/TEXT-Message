@@ -4,7 +4,13 @@
  */
 import { GMAIL_FETCH_CONCURRENCY, GMAIL_LIST_QUERY, GMAIL_MAX_RESULTS } from './config';
 import { fromHttpStatus, GmailError, toGmailError } from './errors';
-import type { GmailMessage, GmailMessageListResponse, GmailProfile } from './types';
+import type {
+  GmailLabel,
+  GmailLabelsResponse,
+  GmailMessage,
+  GmailMessageListResponse,
+  GmailProfile,
+} from './types';
 
 const API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
@@ -41,6 +47,15 @@ async function fetchGmail<T>(url: string, token: string): Promise<T> {
 
 export async function fetchProfile(token: string): Promise<GmailProfile> {
   return fetchGmail<GmailProfile>(`${API}/profile`, token);
+}
+
+/**
+ * 使用者自訂的 Gmail 標籤(labels.list 為唯讀操作,gmail.readonly 即可)。
+ * 系統標籤(INBOX/UNREAD/…)不回——收件匣篩選只呈現使用者自己整理出的維度。
+ */
+export async function listUserLabels(token: string): Promise<GmailLabel[]> {
+  const data = await fetchGmail<GmailLabelsResponse>(`${API}/labels`, token);
+  return (data.labels ?? []).filter((l) => l.type === 'user' && !!l.id && !!l.name);
 }
 
 /** 近 7 天收件匣的郵件 id 清單頁(依 Gmail 預設 newest first;nextPageToken 供載入更多)。 */

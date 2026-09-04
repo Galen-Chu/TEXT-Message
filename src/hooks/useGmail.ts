@@ -9,10 +9,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GMAIL_ENABLED } from '../services/gmail/config';
 import { GmailError, toGmailError } from '../services/gmail/errors';
-import { fetchMessages, fetchProfile, listMessageIds } from '../services/gmail/gmailApi';
+import {
+  fetchMessages,
+  fetchProfile,
+  listMessageIds,
+  listUserLabels,
+} from '../services/gmail/gmailApi';
 import { acquireToken, loadGisScript, revokeToken } from '../services/gmail/gis';
 import { mapGmailMessage } from '../services/gmail/mapToEmail';
-import type { GmailMessage } from '../services/gmail/types';
+import type { GmailLabel, GmailMessage } from '../services/gmail/types';
 import type { Email } from '../types';
 
 export type GmailStatus = 'disabled' | 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -22,6 +27,8 @@ export interface UseGmailResult {
   accountEmail: string | null;
   error: GmailError | null;
   emails: Email[];
+  /** 使用者自訂的 Gmail 標籤(唯讀;作為收件匣的第二篩選維度)。 */
+  labels: GmailLabel[];
   loadingEmails: boolean;
   /** 依 Gmail nextPageToken 判斷還有下一頁可載入。 */
   canLoadMore: boolean;
@@ -62,6 +69,7 @@ export function useGmail(): UseGmailResult {
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [error, setError] = useState<GmailError | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [labels, setLabels] = useState<GmailLabel[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [canLoadMore, setCanLoadMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -122,6 +130,14 @@ export function useGmail(): UseGmailResult {
         }
         if (reqIdRef.current !== reqId) return; // 已有較新的操作,丟棄過期結果
         if (result.profile) setAccountEmail(result.profile.emailAddress);
+        if (!pageToken) {
+          // 第一頁順帶讀使用者標籤(唯讀輔助);失敗不影響郵件載入
+          try {
+            setLabels(await listUserLabels(token));
+          } catch {
+            /* 無標籤維度可用,不影響核心流程 */
+          }
+        }
         // Gmail 依 newest first 分頁:第二頁必全為較舊郵件,附加即維持排序;id 去重防邊界重疊
         const mapped = [...result.messages]
           .sort((a, b) => Number(b.internalDate ?? 0) - Number(a.internalDate ?? 0))
@@ -187,6 +203,7 @@ export function useGmail(): UseGmailResult {
     if (t) revokeToken(t.accessToken);
     tokenRef.current = null;
     setEmails([]);
+    setLabels([]);
     setAccountEmail(null);
     setError(null);
     setLoadingEmails(false);
@@ -237,6 +254,7 @@ export function useGmail(): UseGmailResult {
     accountEmail,
     error,
     emails,
+    labels,
     loadingEmails,
     canLoadMore,
     loadingMore,

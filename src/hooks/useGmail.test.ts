@@ -3,7 +3,12 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGmail } from './useGmail';
 import { acquireToken, revokeToken } from '../services/gmail/gis';
-import { fetchMessages, fetchProfile, listMessageIds } from '../services/gmail/gmailApi';
+import {
+  fetchMessages,
+  fetchProfile,
+  listMessageIds,
+  listUserLabels,
+} from '../services/gmail/gmailApi';
 import type { Email } from '../types';
 
 // 讓 GMAIL_ENABLED 為 true 以測試連線狀態機;GIS 與 REST 層全 mock,不觸網
@@ -22,6 +27,7 @@ vi.mock('../services/gmail/gmailApi', () => ({
   fetchProfile: vi.fn(),
   listMessageIds: vi.fn(),
   fetchMessages: vi.fn(),
+  listUserLabels: vi.fn(),
 }));
 
 vi.mock('../services/gmail/mapToEmail', () => ({
@@ -32,6 +38,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(acquireToken).mockResolvedValue({ access_token: 'tok', expires_in: 3600 });
   vi.mocked(fetchProfile).mockResolvedValue({ emailAddress: 'me@example.com' });
+  vi.mocked(listUserLabels).mockResolvedValue([
+    { id: 'Label_1', name: '電子報', type: 'user' },
+  ]);
 });
 
 describe('useGmail 連線狀態機', () => {
@@ -51,6 +60,8 @@ describe('useGmail 連線狀態機', () => {
     expect(result.current.accountEmail).toBe('me@example.com');
     expect(result.current.emails.map((e) => e.id)).toEqual(['m2', 'm1']); // newest first
     expect(result.current.canLoadMore).toBe(true);
+    // 第一頁順帶讀使用者標籤(唯讀輔助)
+    expect(result.current.labels).toEqual([{ id: 'Label_1', name: '電子報', type: 'user' }]);
   });
 
   it('loadMore:附加下一頁並去重,nextPageToken 用盡後關閉', async () => {

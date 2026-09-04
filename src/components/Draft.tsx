@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  BACKEND_COPY,
+  BACKEND_ERROR_COPY,
   COPY_CATEGORIES,
   DRAFT_AI_COPY,
   DRAFT_VARIANTS_COPY,
@@ -34,6 +36,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
   const [fillInsert, setFillInsert] = useState<{ tpl: Template; text: string } | null>(null);
+  const [threadsScheduleAt, setThreadsScheduleAt] = useState(`${store.tomorrowISO}T10:00`);
   const [showVariantSave, setShowVariantSave] = useState(false);
   const [variantSaveTitle, setVariantSaveTitle] = useState('');
   const [variantSaveCategory, setVariantSaveCategory] = useState(
@@ -97,7 +100,7 @@ export default function Draft({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-        草稿撰寫
+        編輯器 Text
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
         將郵件內容轉換成適合各平台的貼文草稿
@@ -207,7 +210,7 @@ export default function Draft({ store }: { store: AppStore }) {
                     onClick={() => setShowTemplatePicker(true)}
                     style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
                   >
-                    📋 從文管庫插入
+                    📋 從文庫插入
                   </button>
                   <button
                     onClick={() => setShowSocialPicker(true)}
@@ -669,6 +672,89 @@ export default function Draft({ store }: { store: AppStore }) {
               </div>
             )}
 
+            {store.draftPlatforms.threads && store.threadsProxy.enabled && (
+              <div className="card" style={{ padding: 18 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                    {BACKEND_COPY.cardTitle}
+                  </div>
+                  <button
+                    onClick={() => void store.threadsProxy.refresh()}
+                    style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+                  >
+                    {BACKEND_COPY.refreshStatus}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+                  {BACKEND_COPY.cardDesc}
+                </div>
+
+                {store.threadsProxy.status !== 'connected' ? (
+                  <div>
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                      <button className="btn btn-outline" onClick={store.threadsProxy.connect}>
+                        {BACKEND_COPY.connect}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+                      {store.threadsProxy.authReturn === 'connected' &&
+                        BACKEND_COPY.connectedBackToast}
+                      {store.threadsProxy.authReturn === 'error' && BACKEND_COPY.connectErrorToast}
+                      {store.threadsProxy.authReturn === null && BACKEND_COPY.connectHint}
+                    </div>
+                    {store.threadsProxy.status === 'unknown' && (
+                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+                        {BACKEND_COPY.checking}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
+                      {BACKEND_COPY.connectedHint}
+                    </div>
+                    <button
+                      className="btn btn-accent"
+                      onClick={() => void store.publishDraftToThreadsNow()}
+                      disabled={store.threadsProxy.busy}
+                      style={{ width: '100%', marginBottom: 12 }}
+                    >
+                      {BACKEND_COPY.publishNow}
+                    </button>
+                    <div className="field-label">{BACKEND_COPY.scheduleLabel}</div>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={threadsScheduleAt}
+                      onChange={(e) => setThreadsScheduleAt(e.target.value)}
+                      aria-label={BACKEND_COPY.scheduleAtLabel}
+                      style={{ marginBottom: 10 }}
+                    />
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => void store.scheduleDraftToThreads(threadsScheduleAt)}
+                      disabled={store.threadsProxy.busy}
+                      style={{ width: '100%' }}
+                    >
+                      {BACKEND_COPY.schedulePublish}
+                    </button>
+                  </div>
+                )}
+                {store.threadsProxy.status === 'error' && (
+                  <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+                    {BACKEND_ERROR_COPY.unknown}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 onClick={store.discardDraft}
@@ -748,7 +834,7 @@ export default function Draft({ store }: { store: AppStore }) {
             ))}
           </select>
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 16 }}>
-            通用內容 = 目前草稿全文;平台版本 = 面板中的各版(存入後可於文管庫編輯)
+            通用內容 = 目前草稿全文;平台版本 = 面板中的各版(存入後可於文庫編輯)
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button
@@ -770,7 +856,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 setShowVariantSave(false);
               }}
             >
-              存入文管庫
+              存入文庫
             </button>
           </div>
         </Modal>
@@ -780,7 +866,7 @@ export default function Draft({ store }: { store: AppStore }) {
         <Modal
           onClose={() => setShowTemplatePicker(false)}
           width={480}
-          label="插入文管庫內容"
+          label="插入文庫內容"
           style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
         >
           <div
@@ -791,7 +877,7 @@ export default function Draft({ store }: { store: AppStore }) {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入文管庫內容</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入文庫內容</div>
             <button
               onClick={() => setShowTemplatePicker(false)}
               aria-label="關閉"

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGmail } from './useGmail';
+import { useThreadsProxy } from './useThreadsProxy';
 import { useYoutube } from './useYoutube';
 import {
+  BACKEND_COPY,
+  BACKEND_ERROR_COPY,
   DRAFT_AI_COPY,
   DRAFT_VARIANTS_COPY,
   GEMINI_ERROR_COPY,
@@ -97,6 +100,7 @@ export function useAppStore() {
   const weekDates = getWeekDates();
   const gmail = useGmail();
   const youtube = useYoutube();
+  const threadsProxy = useThreadsProxy();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [demoEmails] = useState<Email[]>(initialEmails);
@@ -158,6 +162,8 @@ export function useAppStore() {
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
+  /** Gmail 使用者標籤篩選(label id;null = 不套用)——僅已連線時生效。 */
+  const [inboxLabelId, setInboxLabelId] = useState<string | null>(null);
   const [libraryMainTab, setLibraryMainTab] = useState<LibraryMainTab>('message');
   const [librarySearch, setLibrarySearch] = useState('');
   const [libraryCategory, setLibraryCategory] = useState('全部');
@@ -420,7 +426,7 @@ export function useAppStore() {
         buildTemplateInsertText(tpl, selectedDraftPlatformKeys(), values ?? {}),
     );
     markTemplateApplied(tpl.id);
-    showToast('已插入文管庫內容');
+    showToast('已插入文庫內容');
   };
 
   /** 套用社群媒體歷史貼文到草稿(附加到尾端),若尚無草稿目標則視為空白草稿開始。 */
@@ -608,6 +614,47 @@ export function useAppStore() {
     showToast(SCHEDULE_COPY.publishedToast);
   };
 
+  /** Threads 立即代發(階段三前端串接):成功即寫入發文歷史。 */
+  const publishDraftToThreadsNow = async () => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_COPY.needTextToast);
+      return;
+    }
+    const result = await threadsProxy.publish(draftText);
+    if (result.ok) {
+      appendPublishedHistory('threads', draftText.split('\n')[0], draftText);
+      showToast(BACKEND_COPY.publishedToast);
+    } else {
+      showToast(BACKEND_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY.unknown);
+    }
+  };
+
+  /** Threads 排程代發:同步後端雲端佇列(cron 到點自動發佈)並建立本地排程。 */
+  const scheduleDraftToThreads = async (publishAtLocal: string) => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_COPY.needTextToast);
+      return;
+    }
+    const dt = new Date(publishAtLocal);
+    if (!publishAtLocal || Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+      showToast(BACKEND_COPY.pastTimeToast);
+      return;
+    }
+    const result = await threadsProxy.schedule(draftText, dt.getTime());
+    if (result.ok) {
+      addManualSchedule(
+        draftText.split('\n')[0],
+        publishAtLocal.slice(0, 10),
+        publishAtLocal.slice(11, 16),
+        'threads',
+        draftText,
+      );
+      showToast(BACKEND_COPY.scheduledToast);
+    } else {
+      showToast(BACKEND_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY.unknown);
+    }
+  };
+
   /** 發佈輔助:複製排程貼文內容(無全文時退回標題)。 */
   const copyScheduleText = async (item: ScheduleItem) => {
     const text = item.content?.trim() || item.title;
@@ -655,6 +702,7 @@ export function useAppStore() {
     setActiveTab,
     gmail,
     youtube,
+    threadsProxy,
     emails,
     templates,
     copyTemplates,
@@ -670,6 +718,8 @@ export function useAppStore() {
     setInboxSearch,
     inboxFilter,
     setInboxFilter,
+    inboxLabelId,
+    setInboxLabelId,
     libraryMainTab,
     setLibraryMainTab,
     librarySearch,
@@ -719,6 +769,8 @@ export function useAppStore() {
     updateScheduleItem,
     markSchedulePublished,
     appendPublishedHistory,
+    publishDraftToThreadsNow,
+    scheduleDraftToThreads,
     copyScheduleText,
     openSchedulePublish,
     deleteScheduleItem,

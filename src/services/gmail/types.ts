@@ -5,6 +5,16 @@ export interface GmailProfile {
   messagesTotal?: number;
 }
 
+export interface GmailLabel {
+  id: string;
+  name: string;
+  type?: 'system' | 'user';
+}
+
+export interface GmailLabelsResponse {
+  labels?: GmailLabel[];
+}
+
 export interface GmailMessageListResponse {
   messages?: Array<{ id: string; threadId: string }>;
   nextPageToken?: string;

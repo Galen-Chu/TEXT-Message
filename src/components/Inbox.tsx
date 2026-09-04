@@ -3,23 +3,28 @@ import {
   GMAIL_ERROR_COPY,
   INBOX_EMPTY_CONNECTED,
   INBOX_FILTERS,
+  INBOX_GMAIL_COPY,
 } from '../constants';
 import { gmailComposeUrl } from '../services/gmail/compose';
+import { gmailFilterSearchUrl } from '../services/gmail/filterLink';
 import type { AppStore } from '../hooks/useAppStore';
 
 export default function Inbox({ store }: { store: AppStore }) {
   const g = store.gmail;
+  // Gmail 標籤篩選僅在已連線時生效(示範郵件無 labelIds,避免中斷連線後清單全空)
+  const activeLabelId = g.status === 'connected' ? store.inboxLabelId : null;
   const filtered = store.emails.filter((e) => {
     const matchFilter = store.inboxFilter === '全部' || e.tag === store.inboxFilter;
+    const matchLabel = !activeLabelId || (e.labelIds ?? []).includes(activeLabelId);
     const q = store.inboxSearch.trim();
     const matchSearch = !q || e.sender.includes(q) || e.subject.includes(q);
-    return matchFilter && matchSearch;
+    return matchFilter && matchLabel && matchSearch;
   });
 
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-        Gmail 郵件匣
+        郵件匣 Gmail
       </div>
       <div
         style={{
@@ -35,7 +40,7 @@ export default function Inbox({ store }: { store: AppStore }) {
           {g.status === 'disconnected' && '示範模式:顯示示範郵件,可連接真實 Gmail 帳號'}
           {g.status === 'connecting' && '連接中…'}
           {g.status === 'connected' &&
-            `已串接帳號:${g.accountEmail ?? ''} · 近 7 天郵件(分類標籤為本機規則示範)`}
+            INBOX_GMAIL_COPY.connectedSubtitle.replace('{email}', g.accountEmail ?? '')}
           {g.status === 'error' && 'Gmail 連線發生問題'}
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
@@ -117,6 +122,48 @@ export default function Inbox({ store }: { store: AppStore }) {
         })}
       </div>
 
+      {g.status === 'connected' && g.labels.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>
+            {INBOX_GMAIL_COPY.labelRowTitle}
+          </span>
+          <button
+            onClick={() => store.setInboxLabelId(null)}
+            style={{
+              padding: '5px 12px',
+              borderRadius: 8,
+              fontSize: 11.5,
+              fontWeight: 600,
+              background: !store.inboxLabelId ? 'var(--pill-purple-bg)' : 'var(--card)',
+              color: !store.inboxLabelId ? 'var(--brand)' : 'var(--text-faint)',
+              border: `1px solid ${!store.inboxLabelId ? 'var(--brand)' : 'var(--border-3)'}`,
+            }}
+          >
+            全部
+          </button>
+          {g.labels.map((label) => {
+            const active = store.inboxLabelId === label.id;
+            return (
+              <button
+                key={label.id}
+                onClick={() => store.setInboxLabelId(active ? null : label.id)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 8,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                  color: active ? 'var(--brand)' : 'var(--text-faint)',
+                  border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                }}
+              >
+                {label.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="card" style={{ overflow: 'hidden' }}>
         {g.loadingEmails && (
           <div
@@ -183,21 +230,52 @@ export default function Inbox({ store }: { store: AppStore }) {
                 {mail.suitable && <div className="pill pill-orange">✨ AI 建議可發文</div>}
               </div>
             </div>
-            <button
-              onClick={() => store.convertToDraft(mail)}
+            <div
               style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
                 flexShrink: 0,
-                padding: '8px 14px',
-                borderRadius: 9,
-                background: 'var(--brand)',
-                color: '#fff',
-                fontSize: 12.5,
-                fontWeight: 700,
                 alignSelf: 'center',
               }}
             >
-              轉為草稿
-            </button>
+              <button
+                onClick={() => store.convertToDraft(mail)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 9,
+                  background: 'var(--brand)',
+                  color: '#fff',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                }}
+              >
+                轉為草稿
+              </button>
+              {g.status === 'connected' && (
+                <button
+                  onClick={() => {
+                    window.open(
+                      gmailFilterSearchUrl(mail.senderEmail ?? mail.sender),
+                      '_blank',
+                      'noopener',
+                    );
+                    store.showToast(INBOX_GMAIL_COPY.autoFileToast);
+                  }}
+                  title={INBOX_GMAIL_COPY.autoFileTitle}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 9,
+                    background: 'var(--bg)',
+                    color: 'var(--text-sub)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                  }}
+                >
+                  {INBOX_GMAIL_COPY.autoFileButton}
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {!g.loadingEmails && g.status === 'connected' && g.canLoadMore && (

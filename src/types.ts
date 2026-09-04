@@ -14,6 +14,10 @@ export interface Email {
   date: string;
   tag: EmailTag;
   suitable: boolean;
+  /** 真實郵件的 Gmail 標籤 id(唯讀;示範資料無此欄位)——供 Gmail 標籤篩選。 */
+  labelIds?: string[];
+  /** 寄件者 email(唯讀;供「在 Gmail 建立篩選器」深連結)。 */
+  senderEmail?: string;
 }
 
 export interface Template {

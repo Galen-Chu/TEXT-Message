@@ -48,5 +48,7 @@ export function mapGmailMessage(msg: GmailMessage): Email {
     date: shortDateLabel(date),
     tag,
     suitable,
+    labelIds: msg.labelIds,
+    senderEmail: from.email,
   };
 }

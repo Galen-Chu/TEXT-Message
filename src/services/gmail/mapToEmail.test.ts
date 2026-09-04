@@ -14,12 +14,14 @@ function message(overrides: {
   internalDate?: string;
   snippet?: string;
   id?: string;
+  labelIds?: string[];
 }): GmailMessage {
   return {
     id: overrides.id ?? 'm1',
     threadId: 't1',
     internalDate: overrides.internalDate ?? String(Date.now()),
     snippet: overrides.snippet,
+    labelIds: overrides.labelIds,
     payload: overrides.payload,
   };
 }
@@ -29,6 +31,7 @@ describe('mapGmailMessage', () => {
     const encodedSubject = `=?UTF-8?B?${b64url('本週旅遊趨勢:小島慢活正夯')}?=`;
     const msg = message({
       snippet: '今年夏天,越來越多人選擇離島慢活 取代打卡行程',
+      labelIds: ['INBOX', 'Label_123'],
       payload: {
         mimeType: 'multipart/alternative',
         headers: [
@@ -45,6 +48,8 @@ describe('mapGmailMessage', () => {
     expect(email.subject).toBe('本週旅遊趨勢:小島慢活正夯');
     expect(email.snippet).toContain('離島慢活');
     expect(email.fullBody).toContain('取消訂閱');
+    expect(email.labelIds).toEqual(['INBOX', 'Label_123']);
+    expect(email.senderEmail).toBe('news@crossing.example');
     // encoded-word 解碼後才分類:趨勢關鍵字 → 電子報 + suitable
     expect(email.tag).toBe('電子報');
     expect(email.suitable).toBe(true);

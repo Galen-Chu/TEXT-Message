@@ -35,6 +35,14 @@ jobs:
           if [ -n "$GMAIL_CLIENT_ID" ]; then
             printf 'VITE_GMAIL_CLIENT_ID=%s\n' "$GMAIL_CLIENT_ID" > .env.production
           fi
+      # 後端輔助(選用):secret BACKEND_API_BASE 缺漏 = 半自動模式建置(不失敗)
+      - name: Write backend API base env
+        env:
+          BACKEND_API_BASE: ${{ secrets.BACKEND_API_BASE }}
+        run: |
+          if [ -n "$BACKEND_API_BASE" ]; then
+            printf 'VITE_API_BASE=%s\n' "$BACKEND_API_BASE" >> .env.production
+          fi
       - run: npm test
       # build 內含 tsc -b 型別檢查,等同基本 CI 關卡
       - run: npm run build
