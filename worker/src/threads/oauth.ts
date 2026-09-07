@@ -88,12 +88,19 @@ export async function exchangeCode(
       code: opts.code,
     }),
   });
-  const data = await readJson(resp);
+  const text = await resp.text();
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(`threads oauth non-json response: ${text.slice(0, 200)}`);
+  }
   if (!resp.ok) {
     throw new Error(`threads code exchange failed: ${JSON.stringify(data).slice(0, 200)}`);
   }
-  // Meta 的 user_id 可能以 JSON number 回傳,統一轉為字串
-  const userId = data.user_id == null ? '' : String(data.user_id);
+  // Meta 以 JSON number 回 user_id,且值超過 JS 安全整數(2^53-1)——JSON.parse 會失真,
+  // 必須從原始回應文字抽取位數完整的字串
+  const userId = /"user_id"\s*:\s*"?(\d+)"?/.exec(text)?.[1] ?? '';
   if (typeof data.access_token !== 'string' || !userId) {
     throw new Error('threads code exchange: missing access_token/user_id');
   }

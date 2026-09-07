@@ -48,13 +48,13 @@ describe('token 交換(fetcher 注入)', () => {
     let captured = { url: '', body: '' };
     const fetcher: Fetcher = async (url, init) => {
       captured = { url: String(url), body: String(init?.body ?? '') };
-      return jsonResponse({ access_token: 'short', user_id: 'u1', token_type: 'bearer' });
+      return jsonResponse({ access_token: 'short', user_id: 12345, token_type: 'bearer' });
     };
     const out = await exchangeCode(
       { code: 'c1', clientId: 'cid', clientSecret: 'cs', redirectUri: 'https://cb' },
       fetcher,
     );
-    expect(out).toEqual({ accessToken: 'short', userId: 'u1' });
+    expect(out).toEqual({ accessToken: 'short', userId: '12345' });
     expect(captured.url).toBe('https://graph.threads.net/oauth/access_token');
     // Meta 端點要求 snake_case 欄位名(client_secret 等),逐一驗證避免大小寫寫法回歸
     const form = new URLSearchParams(captured.body);
@@ -69,6 +69,13 @@ describe('token 交換(fetcher 注入)', () => {
     const fetcher: Fetcher = async () => jsonResponse({ access_token: 't', user_id: 123456789012 });
     const out = await exchangeCode({ code: 'c', clientId: 'i', clientSecret: 's', redirectUri: 'r' }, fetcher);
     expect(out.userId).toBe('123456789012');
+  });
+
+  it('exchangeCode user_id 超過 2^53 仍保完整位數(JSON.parse 會失真,須原文字抽取)', async () => {
+    const raw = '{"access_token":"t","token_type":"bearer","user_id":28429056910115722}';
+    const fetcher: Fetcher = async () => new Response(raw, { status: 200 });
+    const out = await exchangeCode({ code: 'c', clientId: 'i', clientSecret: 's', redirectUri: 'r' }, fetcher);
+    expect(out.userId).toBe('28429056910115722');
   });
 
   it('exchangeCode 失敗(非 JSON / 非 2xx / 缺欄位)都轉為錯誤', async () => {

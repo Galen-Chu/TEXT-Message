@@ -16,16 +16,17 @@ describe('validateThreadsText', () => {
 });
 
 describe('container 發佈流程(fetcher 注入)', () => {
-  it('createTextContainer → publishContainer 兩步,參數與端點正確', async () => {
-    const calls: Array<{ url: string; params: URLSearchParams; auth: string }> = [];
+  it('createTextContainer → publishContainer 兩步,參數走 URL 查詢字串(防表單 body 亂碼)且端點正確', async () => {
+    const calls: Array<{ base: string; params: URLSearchParams; auth: string }> = [];
     const fetcher: Fetcher = async (url, init) => {
+      const u = new URL(String(url));
       const headers = (init?.headers ?? {}) as Record<string, string>;
       calls.push({
-        url: String(url),
-        params: new URLSearchParams(String(init?.body ?? '')),
+        base: u.origin + u.pathname,
+        params: u.searchParams,
         auth: headers['Authorization'] ?? '',
       });
-      const isContainer = String(url).endsWith('/threads');
+      const isContainer = u.pathname.endsWith('/threads');
       return new Response(JSON.stringify(isContainer ? { id: 'cont-1' } : { id: 'post-9' }));
     };
 
@@ -37,11 +38,11 @@ describe('container 發佈流程(fetcher 注入)', () => {
     const postId = await publishContainer({ userId: 'u1', creationId, accessToken: 'tok' }, fetcher);
     expect(postId).toBe('post-9');
 
-    expect(calls[0].url).toBe('https://graph.threads.net/v1.0/u1/threads');
+    expect(calls[0].base).toBe('https://graph.threads.net/v1.0/u1/threads');
     expect(calls[0].params.get('media_type')).toBe('TEXT');
     expect(calls[0].params.get('text')).toBe('你好');
     expect(calls[0].auth).toBe('Bearer tok');
-    expect(calls[1].url).toBe('https://graph.threads.net/v1.0/u1/threads_publish');
+    expect(calls[1].base).toBe('https://graph.threads.net/v1.0/u1/threads_publish');
     expect(calls[1].params.get('creation_id')).toBe('cont-1');
   });
 

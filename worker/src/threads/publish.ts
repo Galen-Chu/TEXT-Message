@@ -20,19 +20,20 @@ export function validateThreadsText(text: string): { ok: true } | { ok: false; r
   return { ok: true };
 }
 
-async function postForm(
+/**
+ * 參數以 URL 查詢字串送出(Graph API 官方支援查詢字串或表單 body):
+ * Meta 對表單 body 的非 ASCII 有 Latin-1 解碼失真問題(中文變亂碼,docs/BACKEND.md §6.1 #6),
+ * URL 查詢字串依規範以 UTF-8 百分號編碼,非 ASCII 文字安全。
+ */
+async function postWithParams(
   url: string,
   params: Record<string, string>,
   accessToken: string,
   fetcher: Fetcher,
 ): Promise<Record<string, unknown>> {
-  const resp = await fetcher(url, {
+  const resp = await fetcher(`${url}?${new URLSearchParams(params).toString()}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: new URLSearchParams(params).toString(),
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
   const text = await resp.text();
   let data: Record<string, unknown>;
@@ -53,7 +54,7 @@ export async function createTextContainer(opts: {
   text: string;
   accessToken: string;
 }, fetcher: Fetcher = fetch): Promise<string> {
-  const data = await postForm(
+  const data = await postWithParams(
     `${THREADS_API_BASE}/${encodeURIComponent(opts.userId)}/threads`,
     { media_type: 'TEXT', text: opts.text },
     opts.accessToken,
@@ -69,7 +70,7 @@ export async function publishContainer(opts: {
   creationId: string;
   accessToken: string;
 }, fetcher: Fetcher = fetch): Promise<string> {
-  const data = await postForm(
+  const data = await postWithParams(
     `${THREADS_API_BASE}/${encodeURIComponent(opts.userId)}/threads_publish`,
     { creation_id: opts.creationId },
     opts.accessToken,

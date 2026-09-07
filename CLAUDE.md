@@ -57,7 +57,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 ### 待開發功能(2026-09-02 收尾歸檔;接續開發由此挑選)
 
 1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
-2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即代發/排程代發→雲端佇列+本地排程)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 4 個 worker OAuth bug(端點/參數名/數字 id 型別,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**剩餘:真實代發實測(會發真實貼文)+正式站注入 repo secret `BACKEND_API_BASE`**;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
+2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即代發/排程代發→雲端佇列+本地排程)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 5 個 worker OAuth/發佈 bug(端點/參數名/數字 id 型別/user_id 超 2^53 精度失真,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**立即代發已於 2026-09-07 端到端驗收成功(發文 id 18027614201902484);剩餘:正式站注入 repo secret `BACKEND_API_BASE`**;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
 3. **IA 重整(2026-09-04 啟動,現行工作流)** — 決策記錄與分期見 `docs/IA-PLAN.md`。**Phase 1 已完成**(六頁籤命名與順序 v3、品牌/`<title>` 改 TEXT-Message、Dashboard 移除「從 Gmail 建立草稿」);Phase 2(三大類文檔模型:草稿/文案/訊息管理,含 localStorage 相容遷移與文庫三分頁)→ Phase 3(Gemini 依類型生成)→ Phase 4(排程類別維度)→ Phase 5(Social 互動通知——先出評估文件,候選一期為 Gmail 通知信分類)
 4. **階段 4(可選)— Web Push + Service Worker 提醒**
 
@@ -82,6 +82,6 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 ## 慣例
 
 - 語言:zh-Hant;UI 字串集中放 `constants.ts`,不散落元件
-- **串接類開發紅律(2026-09-04 首次 Threads 實測教訓)**:動手寫任何平台 API 串接前,先查**當下**官方文件,端點、HTTP method、參數名、回應值型別逐一對照後再寫碼(不信記憶,文件 URL 註解在 config 常數旁);單元測試須斷言**完整請求形狀**(URL、method、每個欄位名);Meta 系 API 的 id/user_id 可能是 JSON number,一律 `String()` 轉型。方法與案例見 `docs/BACKEND.md` §6
+- **串接類開發紀律(2026-09-04/09-07 實測教訓)**:動手寫任何平台 API 串接前,先查**當下**官方文件,端點、HTTP method、參數名、回應值型別逐一對照後再寫碼(不信記憶,文件 URL 註解在 config 常數旁);單元測試須斷言**完整請求形狀**(URL、method、每個欄位名);Meta 系 API 的 id/user_id 可能是 JSON number 且**超過 JS 安全整數**——必須從原始回應文字抽取,`JSON.parse`+`String()` 會失真。方法與案例見 `docs/BACKEND.md` §6
 - 新增純邏輯一律配 vitest 單元測試;hooks 測試以 `// @vitest-environment jsdom` 單檔切環境(@testing-library/react),不動全域 node 環境;E2E 維持 smoke 等級,不做完整流程自動化
 - 版本與依賴異動需同步 `package-lock.json`(部署用 `npm ci`)

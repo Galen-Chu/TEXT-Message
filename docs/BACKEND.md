@@ -79,7 +79,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 - **KV 為最終一致性**:剛寫入的排程項目在其他邊緣節點可能要數秒才可見——對「分鐘級排程」無實害,但代表 cron 掃描與立即寫入之間有短暫窗口
 - **cron 每分鐘觸發**:發佈時間精確度約 ±1 分鐘
 - **單一平台(Threads)**:IG(需商業帳號)與 X(量計費)為後續增量;LINE 個人動態無 API,永不支援代發
-- **真實代發尚未實測**:OAuth 已於 2026-09-04 全線驗證(見 §6);`/api/threads/publish` 會發出真實貼文,待維護者擇時以短測試文驗收
+- **真實代發已驗收(2026-09-07)**:立即代發 `/api/threads/publish` 端到端成功(見 §6.1 #5 user_id 精度修正);排程 cron 路徑由單元測試覆蓋,如需實測可排一筆 2 分鐘後的短測試文觀察佇列狀態流轉
 
 ## 6. 首次端到端實測:偵錯紀錄與檢討(2026-09-04)
 
@@ -93,6 +93,8 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 | 2 | 長效交換打 `/oauth/access_token`;正確端點是 **`/access_token`**(無 `/oauth`) | `config.ts` 增 `THREADS_EXCHANGE_URL` |
 | 3 | 刷新打 code 交換端點;正確是獨立的 **`/refresh_access_token`**(GET,僅 `grant_type`+`access_token`) | `config.ts` 增 `THREADS_REFRESH_URL` |
 | 4 | Meta 回 `user_id` 為 **JSON number**,寫入未轉字串,讀取端型別檢查靜默回 null | 寫入 `String()`;讀取容錯數字舊值(`store/kv.ts`) |
+| 5(2026-09-07)| `user_id` 數值**超過 JS 安全整數(2^53-1)**,`JSON.parse` 靜默進位失真(尾數差 2),發佈時 Meta 回「Object does not exist」——`String()` 補在 parse 之後救不回 | 從**原始回應文字**正則抽取完整位數字串(`oauth.ts` exchangeCode),勿經 JSON.parse |
+| 6(2026-09-07)| 代發中文亂碼——**根因在驗收工具而非程式**:zh-TW Windows 上 Git Bash 把命令列中的中文參數傳給原生 curl.exe 時轉為 CP950 位元組,worker 忠實轉發壞位元組(先前「Meta 以 Latin-1 解碼表單」的推測**不成立**,已驗證乾淨輸入下管線正常) | 驗收含中文的請求一律 `curl -d @檔案`(UTF-8 檔案位元組原樣上線);發佈參數改走 URL 查詢字串保留為防禦性強化(Graph API 官方支援) |
 
 單元測試當時沒抓到的原因:注入 fetcher ���測試只斷言了部分欄位(`grant_type`/`code`),**「與真實 API 的契約」(端點 URL、完整欄位名、回應值型別)不在測試裡**。已補:完整欄位名斷言、端點 URL 斷言、數字 id 轉型測試(`oauth.test.ts`)與 KV 讀取容錯測試(`store/kv.test.ts`)。
 
@@ -116,6 +118,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 3. **暫時性 debugStage**:懷疑讀取路徑時,在端點暫時加階段回報(`no-payload`/`decrypt-failed`/`bad-shape`),同一請求內對照「手動讀」與「正式路徑」的差異;驗證後移除。
 4. **`wrangler kv key get <key> --namespace-id <id> --remote`**:直接看線上 KV 原始內容,繞過 worker 讀取邏輯,分辨「沒寫入」vs「讀取/解密壞了」。
 5. **catch 不留空白**:至少 `console.error`;開發期可把錯誤原因附在 redirect 查詢參數(如 `threads=error&reason=...`),上線前移除以免洩漏內部資訊。
+6. **含非 ASCII 的 curl 驗收一律用 `-d @檔案`**:zh-TW Windows 的 Git Bash 會把命令列中文參數轉為 CP950 再傳給 curl.exe(shell 內建指令如 printf 仍為 UTF-8,以其驗證會誤判)——亂碼先懷疑驗收工具,再懷疑程式。
 
 ### 6.4 下一次串接(IG/X)會遇到類似問題嗎?
 
@@ -128,6 +131,6 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 
 1. 寫碼前先抓**當下**官方文件,端點、method、參數名逐一對照,不信記憶(文件 URL 可註解在 `config.ts` 常數旁)。
 2. 單元測試斷言**完整請求形狀**:URL(含路徑)、method、每個欄位名與值。
-3. Meta 系 API 的 id/user_id 可能是 JSON number,一律 `String()` 轉型。
+3. Meta 系 API 的 id/user_id 可能是 JSON number,且**可能超過 JS 安全整數(2^53-1)**——`String()` 不夠,必須從原始回應文字抽取(見 §6.1 #5)。
 4. e2e 前掛 `wrangler tail`;先用 bogus probe 驗憑證層。
 5. 狀態端點優先做成可獨立驗證(本次 `/api/threads/status` 讓 KV 問題得以隔離)。
