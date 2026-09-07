@@ -48,17 +48,17 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - main push:`deploy.yml`(test → build → E2E → Pages 部署;**E2E 是部署閘門**)
 - E2E 跑在 `npm run preview`(含 base 路徑);CI 環境為示範模式建置,不觸碰 Google 網路
 
-## 開發待辦與優化清單(2026-09-02 社群管理開發收尾歸檔)
+## 開發待辦與優化清單(2026-09-07 IA 重整收尾歸檔;2026-09-02 社群管理清單見下)
 
-**階段現況(2026-09-02 收尾歸檔)**:階段 0(定位調整)／階段 1(排程管理與發佈輔助)／階段 2(YouTube 上傳)**完成**;階段 3(平台代發)**暫停於第一增量**——`worker/` 骨架(Threads OAuth 代管、加密 token、代發、排程 cron)已歸檔保留並完成測試與部署手冊(`docs/BACKEND.md`),前端串接與 IG/X 未開工;階段 4(Web Push)未開工。**文管庫功能深化四期已於同日全數完成**(`docs/LIBRARY-PLAN.md`;遠期 F8 未做)。**恢復社群串接開發時,從「階段 3 前端串接」開始**。
+**階段現況(2026-09-07 IA 重整收尾歸檔)**:**IA 重整 Phase 1–5 已於 2026-09-07 一日全數完成**(`docs/IA-PLAN.md`;Phase 5 二期方案待維護者拍板,見 `docs/NOTIFY-PLAN.md`);**階段 3(平台代發)已閉環**——worker 部署上線、OAuth 與立即代發端到端驗收通過、正式站 `BACKEND_API_BASE` 已注入(2026-09-07)。**2026-09-08 上午:總體驗收**(逐項檢查表見 `docs/NOTIFY-PLAN.md` §5)。歷史階段狀況(2026-09-02 收尾歸檔):階段 0/1/2 完成、文管庫深化四期完成;階段 4(Web Push)未開工;IG/X 代發為後續增量。
 
 已上線:Gmail 唯讀收件匣(2026-08-18)、Gemini BYOK 語氣改寫(2026-08-28,`services/gemini/rewrite.ts`)。以下各項動手時仍受「重要行為」紅線約束。
 
 ### 待開發功能(2026-09-02 收尾歸檔;接續開發由此挑選)
 
 1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
-2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即代發/排程代發→雲端佇列+本地排程)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 5 個 worker OAuth/發佈 bug(端點/參數名/數字 id 型別/user_id 超 2^53 精度失真,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**立即代發已於 2026-09-07 端到端驗收成功(發文 id 18027614201902484);剩餘:正式站注入 repo secret `BACKEND_API_BASE`**;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
-3. **IA 重整(2026-09-04 啟動,現行工作流)** — 決策記錄與分期見 `docs/IA-PLAN.md`。**Phase 1–4 已完成**(2026-09-07):Phase 1 六頁籤命名 v3 與品牌 TEXT-Message;Phase 2 三大類文檔模型(`DraftDoc` 集合+遷移、文庫草稿管理分頁、「儲存草稿」真實化);Phase 3 Gemini 依文檔類型分流;Phase 4 排程類別維度(`docKind`+篩選/徽章/modal 選擇)。**剩餘:Phase 5(Social 互動通知——先出評估文件,候選一期為 Gmail 通知信分類)**
+2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即代發/排程代發→雲端佇列+本地排程)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 5 個 worker OAuth/發佈 bug(端點/參數名/數字 id 型別/user_id 超 2^53 精度失真,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**立即代發已於 2026-09-07 端到端驗收成功(發文 id 18027614201902484);正式站 `BACKEND_API_BASE` 已於 2026-09-07 設定並上線;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
+3. **IA 重整(2026-09-04 啟動;2026-09-07 Phase 1–5 全數到位)** — 決策記錄與分期見 `docs/IA-PLAN.md`。Phase 1 六頁籤命名 v3 與品牌 TEXT-Message;Phase 2 三大類文檔模型(文庫草稿管理分頁);Phase 3 Gemini 依文檔類型分流;Phase 4 排程類別維度;Phase 5 一期=Gmail 互動通知分類(`classify` 平台通知網域/片語+自媒體「最新互動」卡,唯讀零紅線)。**二期以上(Threads 輪詢等)需維護者拍板,評估見 `docs/NOTIFY-PLAN.md`(含總驗收檢查表)**
 4. **階段 4(可選)— Web Push + Service Worker 提醒**
 
 ### 既有功能可優化(2026-08-31 完成第一輪)

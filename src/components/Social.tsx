@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import { COPY_CATEGORIES, LIBRARY_COPY, PLATFORM_LIST, PLATFORM_META } from '../constants';
+import {
+  COPY_CATEGORIES,
+  LIBRARY_COPY,
+  PLATFORM_LIST,
+  PLATFORM_META,
+  SOCIAL_NOTIFY_COPY,
+} from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import type { SocialPost } from '../types';
+import { gmailFilterSearchUrl } from '../services/gmail/filterLink';
 import { dateLabel } from '../utils/date';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
@@ -50,6 +57,91 @@ export default function Social({ store }: { store: AppStore }) {
       </div>
 
       <TrendsPanel posts={store.publishedHistory} />
+
+      {/* IA Phase 5 D6 一期:平台互動通知信(唯讀分類,emails 不落地;回覆一律回平台 App) */}
+      <div className="card" style={{ padding: 18, marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
+          {SOCIAL_NOTIFY_COPY.cardTitle}
+          {store.gmail.status !== 'connected' && (
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', marginLeft: 6 }}>
+              {SOCIAL_NOTIFY_COPY.demoNote}
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+          {SOCIAL_NOTIFY_COPY.desc}
+        </div>
+        {store.emails
+          .filter((m) => m.tag === '互動通知')
+          .slice(0, 5)
+          .map((m) => (
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 0',
+                borderBottom: '1px solid var(--border-2)',
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  background: 'var(--pill-purple-bg)',
+                  color: 'var(--brand)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {m.initial}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                  {m.sender}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--text-weak)',
+                    marginTop: 2,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {m.subject}
+                </div>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                {m.date}
+              </div>
+              {m.senderEmail && (
+                <a
+                  href={gmailFilterSearchUrl(m.senderEmail)}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)', whiteSpace: 'nowrap' }}
+                >
+                  {SOCIAL_NOTIFY_COPY.openMail}
+                </a>
+              )}
+            </div>
+          ))}
+        {store.emails.filter((m) => m.tag === '互動通知').length === 0 && (
+          <div
+            style={{ padding: '14px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
+          >
+            {SOCIAL_NOTIFY_COPY.empty}
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {SOCIAL_FILTERS.map((f) => {

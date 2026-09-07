@@ -25,11 +25,16 @@ test('分頁切換:各頁主標題正確', async ({ page }) => {
   // 回首頁
   await gotoTab(page, '文管 Dashboard');
   await expect(page.getByText('近期排程')).toBeVisible();
+  // IA Phase 5:自媒體頁有「最新互動」卡(平台互動通知信)
+  await gotoTab(page, '自媒體 Social');
+  await expect(page.getByText('最新互動').first()).toBeVisible();
 });
 
 test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '郵件匣 Gmail');
+  // IA Phase 5:互動通知篩選 chip 存在
+  await expect(page.getByText('互動通知').first()).toBeVisible();
   const connectButton = page.getByRole('button', { name: '連接 Gmail 帳號' });
   const unconfigured = await page.getByText('未設定 Gmail 連線').count();
   if (unconfigured > 0) {

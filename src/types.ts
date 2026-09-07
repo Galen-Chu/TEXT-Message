@@ -2,7 +2,7 @@ export type Tab = 'dashboard' | 'inbox' | 'social' | 'schedule' | 'draft' | 'lib
 
 export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt';
 
-export type EmailTag = '電子報' | '合作邀約' | '讀者來信' | '活動通知';
+export type EmailTag = '電子報' | '合作邀約' | '讀者來信' | '互動通知' | '活動通知';
 
 export interface Email {
   id: string;

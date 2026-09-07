@@ -14,6 +14,7 @@
 - **D8(Phase 2 細部設計,2026-09-07)**:三大類文檔以 `DocKind = 'draft' | 'copy' | 'message'` 落地。新增 `DraftDoc { id, kind, title, text, platforms, sourceId, updatedAt }` 集合(`drafts[]`)與 `activeDraftId`,持久化於既有 `text-message:v2`(**加值欄位、不動舊欄位**——單一編輯緩衝 `draftText/draftPlatforms/draftSourceId` 照舊驅動編輯器,UI 零改動風險)。遷移:首次載入無 `drafts` 但有 `draftText` 時自動轉入一筆 `kind='draft'` 文檔(不清舊欄位)。文庫三分頁:訊息管理=`templates`、文案管理=`copyTemplates`、**草稿管理=`drafts`**(無分類,依 `updatedAt` 排序;操作:開啟至編輯器/複製/刪除)。編輯器 D4 v1:工具列「存為草稿」把目前緩衝存入草稿管理(標題取內容前綴);`'copy'/'message'` 兩類的編輯器內編輯流程與 Gemini 分流留待 Phase 3。
 - **D9(Phase 3 細部設計,2026-09-07)**:Gemini 依文檔類型分流。編輯緩衝新增 `draftKind` 狀態(持久化,預設 `'copy'`——編輯器主產出仍是貼文),編輯器提供「文檔類型」chip 列(草稿/文案/訊息)。`rewrite.ts` 的 `buildRewritePrompt`/`buildInstructionPrompt` 增 `kind` 參數(預設 `'copy'` 維持現行行為):persona 與文體依類型——draft=電子報/資訊長文(分段條理)、copy=社群貼文(現行)、message=粉絲留言/私訊回覆(對話口吻 1–3 句)。`applyTone`/`applyCustomInstruction` 傳入 `draftKind`;`convertToDraft`/`startBlankDraft`/`discardDraft` 設回 `'copy'`(郵件→貼文仍為核心流程);`openDraftDoc` 載入文檔 kind;`saveDraft` 以 `draftKind` 寫入文檔。平台版本生成與標籤建議本質為貼文向,不隨 kind 變化(prompt 不動)。BYOK 紅線與無 key 降級路徑不變。
 - **D10(Phase 4 細部設計,2026-09-07)**:排程對應三大類。`ScheduleItem` 增 **可選** `docKind?: DocKind`(舊資料無此欄位;顯示與篩選統一以 `docKind ?? 'copy'` 處理——既有排程實務上皆為貼文,不強制遷移)。建立路徑:`confirmSchedule`(編輯器「加入排程」)帶入當前 `draftKind`;`addManualSchedule` 增第 6 參數 `docKind`(預設 `'copy'`),Threads 排程代發路徑傳入 `draftKind`;`updateScheduleItem` 的 patch 允許 `docKind`。定排程頁:類別篩選 chips(全部/草稿/文案/訊息,本機狀態)套用於「選定日排程」與「所有排程」兩卡;排程列顯示類別徽章;新增/編輯 modal 增類型選擇(預設文案)。Dashboard 近期排程暫不加徽章(v1 範圍)。
+- **D11(Phase 5 執行,2026-09-07)**:互動通知一期=**Gmail 通知信分類**(零平台審核、零紅線風險)——EmailTag 增「互動通知」(平台官方網域 `PLATFORM_NOTIFY_DOMAINS` 強訊號+具體互動片語,不用「留言」單詞),一律不建議可發文;郵件匣篩選 chip+自媒體頁「📬 最新互動」卡(最近 5 封,真實信件可深連結 Gmail 搜尋,回覆一律回平台 App)。二期以上(Threads 輪詢/IG webhook/X/YouTube)評估與紅線修訂案見 `docs/NOTIFY-PLAN.md`,**需維護者拍板才動工**。
 
 ## 2. 分期路線(每期獨立可驗收;CI 三關保持綠)
 
@@ -23,7 +24,7 @@
 | Phase 2 | 三大類文檔模型(D3):草稿集合新實體 + localStorage 相容遷移;文庫三分頁;編輯器類型感知(D4);四期深化功能(變數/變體/統計/趨勢)搬遷驗證 | `useAppStore.ts`、`types.ts`、`Library.tsx`、`Draft.tsx` | ✅ 2026-09-07 完成(D8 v1 範圍:DraftDoc 集合+遷移、「儲存草稿」真實化、文庫草稿管理分頁;'copy'/'message' 的編輯器內編輯與 Gemini 分流屬 Phase 3) |
 | Phase 3 | Gemini 依類型生成(D5) | `services/gemini/*`、`Draft.tsx`、`useAppStore.ts` | ✅ 2026-09-07 完成(D9:draftKind 狀態+文檔類型 chips、rewrite/instruction prompt 依類型分流;平台版本與標籤建議維持貼文向) |
 | Phase 4 | 排程類別維度:`scheduleItems` 加類別欄位(舊資料給預設值)、定排程頁分組/篩選 | `useAppStore.ts`、`Schedule.tsx` | ✅ 2026-09-07 完成(D10:`docKind?` 可選欄位、建立三路徑帶入、篩選 chips+徽章+modal 選擇器) |
-| Phase 5 | Social 互動通知:先出評估文件(含 D6 Gmail 通知分類一期方案與紅線修訂案),維護者拍板後動工 | 新評估文件 → `services/gmail/classify` 或 worker | 未開工 |
+| Phase 5 | Social 互動通知:先出評估文件(含 D6 Gmail 通知分類一期方案與紅線修訂案),維護者拍板後動工 | 新評估文件 → `services/gmail/classify` 或 worker | ✅ 一期完成 2026-09-07(D11:Gmail 互動通知分類+自媒體最新互動卡;評估與二期方案見 `docs/NOTIFY-PLAN.md`,二期待拍板) |
 
 ## 3. 命名備忘
 

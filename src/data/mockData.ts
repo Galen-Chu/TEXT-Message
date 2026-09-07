@@ -56,6 +56,18 @@ export function initialEmails(): Email[] {
       fullBody:
         '活動提醒:\n\n你已成功報名「創作者線上分享會」,時間為下週三晚間 20:00,講題為「如何用電子報累積忠實讀者」。活動連結將於活動當天上午寄出至你的信箱,請留意收信。',
     },
+    {
+      id: 'e5',
+      initial: 'T',
+      sender: 'Threads',
+      subject: '有人在你的貼文留下了新留言',
+      date: '07/09',
+      tag: '互動通知',
+      suitable: false,
+      snippet: '安安我看到你的離島慢活分享了,想問長住沖繩的話網路怎麼處理比較好……',
+      fullBody:
+        '你的貼文「離島慢活行程」有 1 則新留言:\n\n安安我看到你的離島慢活分享了,想問長住沖繩的話網路怎麼處理比較好?\n\n回覆留言請前往 Threads App。',
+    },
   ];
 }
 

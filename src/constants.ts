@@ -47,8 +47,18 @@ export const INBOX_FILTERS: Array<'全部' | EmailTag> = [
   '電子報',
   '合作邀約',
   '讀者來信',
+  '互動通知',
   '活動通知',
 ];
+
+/** 自媒體頁「最新互動」卡(IA Phase 5 D6 一期:平台互動通知信分類)。 */
+export const SOCIAL_NOTIFY_COPY = {
+  cardTitle: '📬 最新互動',
+  demoNote: '(示範資料)',
+  desc: '來自各平台的互動通知信(留言/提及/追蹤)——即時性取決於平台通知設定,回覆請到平台 App',
+  empty: '還沒有互動通知——連接 Gmail 後,平台的留言與追蹤通知信會出現在這裡',
+  openMail: '查看信件',
+};
 
 /** 收件匣唯讀輔助(2026-09-03 C+B 決議):Gmail 標籤篩選與「在 Gmail 建立篩選器」。 */
 export const INBOX_GMAIL_COPY = {

@@ -94,4 +94,37 @@ describe('classifyEmail', () => {
     // 免費網域不吃品牌加分,但仍有關鍵字分
     expect(free.tag).toBe('合作邀約');
   });
+
+  it('互動通知(IA Phase 5 D6 一期):平台網域+互動片語 → 互動通知,不 suitable', () => {
+    const r = classifyEmail(
+      input({
+        senderName: 'Threads',
+        senderLocal: 'noreply',
+        senderDomain: 'threads.net',
+        subject: '有人在你的貼文留下了新留言',
+        snippet: '回覆留言請前往 Threads App',
+      }),
+    );
+    expect(r.tag).toBe('互動通知');
+    expect(r.suitable).toBe(false);
+  });
+
+  it('平台通知網域(如 facebookmail.com)即使無關鍵字也判為互動通知', () => {
+    const r = classifyEmail(
+      input({ senderLocal: 'notification', senderDomain: 'facebookmail.com', subject: '你有一則新動態', snippet: '查看詳情' }),
+    );
+    expect(r.tag).toBe('互動通知');
+  });
+
+  it('「在你的貼文」等具體片語才觸發互動通知;單純「留言」的讀者信仍為讀者來信', () => {
+    const reader = classifyEmail(
+      input({ senderLocal: 'wenwen', senderDomain: 'gmail.com', subject: 'Re: 想請問', snippet: '在你的文章留言過,想再請教一次' }),
+    );
+    expect(reader.tag).toBe('讀者來信');
+
+    const notify = classifyEmail(
+      input({ senderName: 'Instagram', senderDomain: 'instagram.com', subject: '新追蹤者', snippet: '有人開始追蹤你' }),
+    );
+    expect(notify.tag).toBe('互動通知');
+  });
 });
