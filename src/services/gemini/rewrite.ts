@@ -10,6 +10,7 @@
  * localStorage 存取)集中於此,方便 vitest 測試與日後替換模型。
  */
 import type { Tone } from '../../constants';
+import type { DocKind } from '../../types';
 
 /**
  * 模型候選(依序嘗試):新發行的 key(尤其新格式 AQ 開頭)未必有
@@ -42,12 +43,39 @@ const TONE_PROMPT_HINTS: Record<Tone, string> = {
   簡短: '簡短——精煉,一至兩句內直切重點',
 };
 
-export function buildRewritePrompt(text: string, tone: Tone, limit?: number): string {
+/**
+ * 各文檔類型的生成文體(IA Phase 3 D5/D9):persona、產出物與類型專屬規則。
+ * kind 預設 'copy'(社群貼文)= 現行行為,既有呼叫端與測試不受影響。
+ */
+const KIND_PERSONA: Record<DocKind, string> = {
+  draft: '電子報與內容編輯',
+  copy: '社群媒體文案編輯',
+  message: '社群小編(負責粉絲互動)',
+};
+
+const KIND_OUTPUT: Record<DocKind, string> = {
+  draft: '電子報/資訊文章內容',
+  copy: '社群貼文',
+  message: '粉絲留言或私訊的回覆訊息',
+};
+
+const KIND_RULES: Record<DocKind, string> = {
+  draft: '- 結構清楚、分段有條理,重點放前面,適合電子報或資訊型長文',
+  copy: '- 適度使用 emoji 與換行,讓貼文易讀',
+  message: '- 以對話口吻直接稱呼對方,一至三句內完成,可直接送出',
+};
+
+export function buildRewritePrompt(
+  text: string,
+  tone: Tone,
+  limit?: number,
+  kind: DocKind = 'copy',
+): string {
   const lines = [
-    `你是社群媒體文案編輯。請把「原始草稿」改寫為${TONE_PROMPT_HINTS[tone]}的繁體中文貼文。`,
+    `你是${KIND_PERSONA[kind]}。請把「原始草稿」改寫為${TONE_PROMPT_HINTS[tone]}的繁體中文${KIND_OUTPUT[kind]}。`,
     '規則:',
     '- 保留原意與關鍵資訊,不改變任何事實',
-    '- 保留原有的 emoji 與換行結構,可適度增減',
+    KIND_RULES[kind],
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
@@ -81,12 +109,18 @@ export function buildSummarizePrompt(input: {
   ].join('\n');
 }
 
-/** 自訂指令改寫 prompt:使用者自由輸入指令(例:「改成 3 行重點」)。 */
-export function buildInstructionPrompt(text: string, instruction: string, limit?: number): string {
+/** 自訂指令改寫 prompt:使用者自由輸入指令(例:「改成 3 行重點」);文體依文檔類型。 */
+export function buildInstructionPrompt(
+  text: string,
+  instruction: string,
+  limit?: number,
+  kind: DocKind = 'copy',
+): string {
   const lines = [
-    '你是社群媒體文案編輯。請依「使用者指令」改寫「原始草稿」,輸出繁體中文貼文。',
+    `你是${KIND_PERSONA[kind]}。請依「使用者指令」改寫「原始草稿」,輸出繁體中文${KIND_OUTPUT[kind]}。`,
     '規則:',
     '- 嚴格遵守使用者指令,但不改變任何事實',
+    KIND_RULES[kind],
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
@@ -189,9 +223,14 @@ export async function rewriteWithGemini(input: {
   text: string;
   tone: Tone;
   limit?: number;
+  kind?: DocKind;
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
-  return generateContent(input.apiKey, buildRewritePrompt(input.text, input.tone, input.limit), input.signal);
+  return generateContent(
+    input.apiKey,
+    buildRewritePrompt(input.text, input.tone, input.limit, input.kind ?? 'copy'),
+    input.signal,
+  );
 }
 
 /** 郵件 → 貼文草稿:把整封郵件交給 Gemini 摘要(useAppStore.convertToDraft 使用)。 */
@@ -210,17 +249,18 @@ export async function summarizeWithGemini(input: {
   );
 }
 
-/** 自訂指令改寫:使用者自由下指令(無 key 時呼叫端不會走到這裡)。 */
+/** 自訂指令改寫:使用者自由下指令(無 key 時呼叫端不會走到這裡);文體依文檔類型。 */
 export async function rewriteWithInstruction(input: {
   apiKey: string;
   text: string;
   instruction: string;
   limit?: number;
+  kind?: DocKind;
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
   return generateContent(
     input.apiKey,
-    buildInstructionPrompt(input.text, input.instruction, input.limit),
+    buildInstructionPrompt(input.text, input.instruction, input.limit, input.kind ?? 'copy'),
     input.signal,
   );
 }

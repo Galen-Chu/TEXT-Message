@@ -51,11 +51,12 @@ push 到 `main` 即觸發 `.github/workflows/deploy.yml`:安裝依賴 → 單元
 - 側邊欄導覽順序調整為:首頁總覽 → Gmail 郵件匣 → 社群媒體 → 排程管理 → 草稿撰寫 → 文管庫
 - 「Gmail 收件匣」更名為「Gmail 郵件匣」
 
-### 2026-09-04 IA 重整(Phase 1)
+### IA 重整進度(2026-09-04 啟動)
 
-- 六頁籤雙語更名與順序 v3:**文管 Dashboard → 郵件匣 Gmail → 自媒體 Social → 編輯器 Text → 定排程 Task → 文庫 Library**(編輯器與定排程對調);品牌字串與 `<title>` 改為 **TEXT-Message**(決策記錄見 [`docs/IA-PLAN.md`](docs/IA-PLAN.md))
-- Dashboard 移除「從 Gmail 建立草稿」按鈕(郵件匣本身即有轉草稿流程)
-- 後續:三大類文檔模型(草稿/文案/訊息管理)、Gemini 依類型生成、排程類別維度、Social 互動通知評估
+- **Phase 1(2026-09-04)**:六頁籤雙語更名與順序 v3——**文管 Dashboard → 郵件匣 Gmail → 自媒體 Social → 編輯器 Text → 定排程 Task → 文庫 Library**(編輯器與定排程對調);品牌字串與 `<title>` 改為 **TEXT-Message**;Dashboard 移除「從 Gmail 建立草稿」按鈕(決策記錄見 [`docs/IA-PLAN.md`](docs/IA-PLAN.md))
+- **Phase 2(2026-09-07)**:三大類文檔模型——文庫新增「草稿管理」分頁(編輯器「儲存草稿」的成果,可開啟/複製/刪除),舊草稿自動遷移
+- **Phase 3(2026-09-07)**:編輯器「文檔類型」chips(草稿/文案/訊息)——AI 語氣改寫與自訂指令依類型分流生成文體,儲存草稿依類型歸類
+- 後續:排程類別維度(Phase 4)、Social 互動通知評估(Phase 5)
 
 ## 專案結構
 

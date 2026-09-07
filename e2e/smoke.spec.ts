@@ -75,6 +75,8 @@ test('草稿管理:儲存草稿入文庫,重新整理後仍在,可開啟至編�
   await page.getByRole('button', { name: '開啟至編輯器' }).first().click();
   await expect(page.locator('main').getByText('編輯器 Text', { exact: true }).first()).toBeVisible();
   await expect(page.locator('textarea').first()).toHaveValue(/.+/);
+  // IA Phase 3:文檔類型 chips 可見
+  await expect(page.getByText('文檔類型')).toBeVisible();
 });
 
 test('核心流程:郵件轉為草稿', async ({ page }) => {

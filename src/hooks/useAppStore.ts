@@ -34,6 +34,7 @@ import {
   initialTemplates,
 } from '../data/mockData';
 import type {
+  DocKind,
   DraftDoc,
   Email,
   EmailTag,
@@ -170,6 +171,14 @@ export function useAppStore() {
   const [selectedMailId, setSelectedMailId] = useState<string | null>(() =>
     loadPersistedValue('draftSourceId', null, (v): v is string => typeof v === 'string'),
   );
+  // 文檔類型(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類;預設 'copy'(編輯器主產出是貼文)。
+  const [draftKind, setDraftKind] = useState<DocKind>(() =>
+    loadPersistedValue<DocKind>(
+      'draftKind',
+      'copy',
+      (v): v is DocKind => v === 'draft' || v === 'copy' || v === 'message',
+    ),
+  );
   const [draftText, setDraftText] = useState(() =>
     loadPersistedValue('draftText', '', (v): v is string => typeof v === 'string'),
   );
@@ -202,6 +211,7 @@ export function useAppStore() {
           draftText,
           draftPlatforms,
           draftSourceId: selectedMailId,
+          draftKind,
           drafts,
           activeDraftId,
         }),
@@ -209,7 +219,7 @@ export function useAppStore() {
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, drafts, activeDraftId]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, drafts, activeDraftId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -247,6 +257,7 @@ export function useAppStore() {
   const convertToDraft = async (mail: Email) => {
     setSelectedMailId(mail.id);
     setActiveDraftId(null);
+    setDraftKind('copy');
     const fallback = mail.snippet + '\n\n' + DRAFT_AI_COPY.convertFallbackNote;
     setDraftText(fallback);
     setActiveTab('draft');
@@ -273,6 +284,7 @@ export function useAppStore() {
   const startBlankDraft = () => {
     setSelectedMailId('blank');
     setActiveDraftId(null);
+    setDraftKind('copy');
     setDraftText('');
   };
 
@@ -280,6 +292,7 @@ export function useAppStore() {
   const discardDraft = () => {
     setSelectedMailId(null);
     setActiveDraftId(null);
+    setDraftKind('copy');
     setDraftText('');
     setDraftPlatforms({ ...DEFAULT_DRAFT_PLATFORMS });
     showToast('已捨棄草稿');
@@ -316,7 +329,7 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
-    const result = await rewriteWithGemini({ apiKey: geminiKey, text: draftText, tone, limit });
+    const result = await rewriteWithGemini({ apiKey: geminiKey, text: draftText, tone, limit, kind: draftKind });
     setAiBusy(false);
     if (result.ok) {
       setDraftText(result.text);
@@ -348,6 +361,7 @@ export function useAppStore() {
       text: draftText,
       instruction: inst,
       limit: strictestSelectedLimit(),
+      kind: draftKind,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -604,14 +618,14 @@ export function useAppStore() {
       setDrafts((ds) =>
         ds.map((d) =>
           d === existing
-            ? { ...d, text: draftText, platforms: draftPlatforms, sourceId: selectedMailId, updatedAt: now }
+            ? { ...d, kind: draftKind, text: draftText, platforms: draftPlatforms, sourceId: selectedMailId, updatedAt: now }
             : d,
         ),
       );
     } else {
       const doc: DraftDoc = {
         id: newId('doc-'),
-        kind: 'draft',
+        kind: draftKind,
         title: draftText.trim().slice(0, 12),
         text: draftText,
         platforms: draftPlatforms,
@@ -630,6 +644,7 @@ export function useAppStore() {
     if (!doc) return;
     setActiveDraftId(doc.id);
     setSelectedMailId(doc.sourceId);
+    setDraftKind(doc.kind);
     setDraftText(doc.text);
     setDraftPlatforms({ ...DEFAULT_DRAFT_PLATFORMS, ...doc.platforms });
     setActiveTab('draft');
@@ -820,6 +835,8 @@ export function useAppStore() {
     draftText,
     setDraftText,
     draftPlatforms,
+    draftKind,
+    setDraftKind,
     drafts,
     activeDraftId,
     openDraftDoc,

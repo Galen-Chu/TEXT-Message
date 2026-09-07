@@ -571,6 +571,37 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(readStore().drafts).toEqual([]);
   });
 
+  it('draftKind(IA Phase 3 D9):預設 copy;切換影響 saveDraft 歸類並持久化;openDraftDoc 載入文檔 kind;捨棄重置', () => {
+    const { result } = renderHook(() => useAppStore());
+    expect(result.current.draftKind).toBe('copy');
+
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftKind('message');
+    });
+    act(() => {
+      result.current.setDraftText('留言回覆內容');
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts[0].kind).toBe('message');
+    expect(readStore().draftKind).toBe('message');
+
+    act(() => {
+      result.current.discardDraft();
+    });
+    expect(result.current.draftKind).toBe('copy');
+
+    const id = result.current.drafts[0].id;
+    act(() => {
+      result.current.openDraftDoc(id);
+    });
+    expect(result.current.draftKind).toBe('message');
+  });
+
   it('convertToDraft 重置文檔追蹤:轉新郵件後儲存會建立新文檔而非覆蓋舊筆', async () => {
     const { result } = renderHook(() => useAppStore());
     act(() => {

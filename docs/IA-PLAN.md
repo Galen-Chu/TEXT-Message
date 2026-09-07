@@ -12,6 +12,7 @@
 - **D6(Social 互動通知——先評估後動工)**:評估串接發文分享留言的通知功能,連動互動式發文與留言。平台現實(2026-09-04 查證):Threads 可輪詢回覆/互動數據但**無 webhook 推送**(即時性=分鐘級),且「worker 代讀互動資料」屬後端職責擴張,需另案修訂資料邊界紅線措辭;IG 留言 webhook 需商業帳號;X 為付費層;YouTube 通知有 push 但留言 API 配額重。**候選一期(零平台審核、零紅線風險):以既有 Gmail 唯讀連線 + `classify` 模組分類各平台的互動通知信**,作為互動功能的第一步。
 - **D7(Dashboard 移除「從 Gmail 建立草稿」按鈕)**:減少重複入口(郵件匣本身即有轉草稿流程);「來自 Gmail 的靈感」卡片與單信轉草稿保留;未來內部串接有需要再規劃。
 - **D8(Phase 2 細部設計,2026-09-07)**:三大類文檔以 `DocKind = 'draft' | 'copy' | 'message'` 落地。新增 `DraftDoc { id, kind, title, text, platforms, sourceId, updatedAt }` 集合(`drafts[]`)與 `activeDraftId`,持久化於既有 `text-message:v2`(**加值欄位、不動舊欄位**——單一編輯緩衝 `draftText/draftPlatforms/draftSourceId` 照舊驅動編輯器,UI 零改動風險)。遷移:首次載入無 `drafts` 但有 `draftText` 時自動轉入一筆 `kind='draft'` 文檔(不清舊欄位)。文庫三分頁:訊息管理=`templates`、文案管理=`copyTemplates`、**草稿管理=`drafts`**(無分類,依 `updatedAt` 排序;操作:開啟至編輯器/複製/刪除)。編輯器 D4 v1:工具列「存為草稿」把目前緩衝存入草稿管理(標題取內容前綴);`'copy'/'message'` 兩類的編輯器內編輯流程與 Gemini 分流留待 Phase 3。
+- **D9(Phase 3 細部設計,2026-09-07)**:Gemini 依文檔類型分流。編輯緩衝新增 `draftKind` 狀態(持久化,預設 `'copy'`——編輯器主產出仍是貼文),編輯器提供「文檔類型」chip 列(草稿/文案/訊息)。`rewrite.ts` 的 `buildRewritePrompt`/`buildInstructionPrompt` 增 `kind` 參數(預設 `'copy'` 維持現行行為):persona 與文體依類型——draft=電子報/資訊長文(分段條理)、copy=社群貼文(現行)、message=粉絲留言/私訊回覆(對話口吻 1–3 句)。`applyTone`/`applyCustomInstruction` 傳入 `draftKind`;`convertToDraft`/`startBlankDraft`/`discardDraft` 設回 `'copy'`(郵件→貼文仍為核心流程);`openDraftDoc` 載入文檔 kind;`saveDraft` 以 `draftKind` 寫入文檔。平台版本生成與標籤建議本質為貼文向,不隨 kind 變化(prompt 不動)。BYOK 紅線與無 key 降級路徑不變。
 
 ## 2. 分期路線(每期獨立可驗收;CI 三關保持綠)
 
@@ -19,7 +20,7 @@
 | --- | --- | --- | --- |
 | Phase 1 | 六頁籤更名與順序 v3、側邊欄品牌改 TEXT-Message、`<title>` 更新、Dashboard 移除按鈕(D1/D7);UI 字串與 E2E/文件同步 | `Sidebar.tsx`、各頁 H1、`constants.ts`、`index.html`、`e2e/smoke.spec.ts`、README/HANDOFF/CLAUDE.md | ✅ 2026-09-04 完成 |
 | Phase 2 | 三大類文檔模型(D3):草稿集合新實體 + localStorage 相容遷移;文庫三分頁;編輯器類型感知(D4);四期深化功能(變數/變體/統計/趨勢)搬遷驗證 | `useAppStore.ts`、`types.ts`、`Library.tsx`、`Draft.tsx` | ✅ 2026-09-07 完成(D8 v1 範圍:DraftDoc 集合+遷移、「儲存草稿」真實化、文庫草稿管理分頁;'copy'/'message' 的編輯器內編輯與 Gemini 分流屬 Phase 3) |
-| Phase 3 | Gemini 依類型生成(D5) | `services/gemini/*` | 未開工 |
+| Phase 3 | Gemini 依類型生成(D5) | `services/gemini/*`、`Draft.tsx`、`useAppStore.ts` | ✅ 2026-09-07 完成(D9:draftKind 狀態+文檔類型 chips、rewrite/instruction prompt 依類型分流;平台版本與標籤建議維持貼文向) |
 | Phase 4 | 排程類別維度:`scheduleItems` 加類別欄位(舊資料給預設值)、定排程頁分組/篩選 | `useAppStore.ts`、`Schedule.tsx` | 未開工 |
 | Phase 5 | Social 互動通知:先出評估文件(含 D6 Gmail 通知分類一期方案與紅線修訂案),維護者拍板後動工 | 新評估文件 → `services/gmail/classify` 或 worker | 未開工 |
 

@@ -1,4 +1,4 @@
-import type { EmailTag, PlatformKey, PlatformMeta } from './types';
+import type { DocKind, EmailTag, PlatformKey, PlatformMeta } from './types';
 import type { GmailErrorCode } from './services/gmail/errors';
 
 /** Gmail 連線錯誤的使用者文案(依 errors.ts 的 code 對應)。 */
@@ -89,6 +89,14 @@ export const DRAFT_LIBRARY_COPY = {
   openedToast: '已開啟草稿至編輯器',
   kindBadge: { draft: '草稿', copy: '文案', message: '訊息' } as const,
 };
+
+/** 編輯器「文檔類型」chip(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類。 */
+export const DRAFT_KIND_META: Array<{ key: DocKind; label: string }> = [
+  { key: 'draft', label: '草稿' },
+  { key: 'copy', label: '文案' },
+  { key: 'message', label: '訊息' },
+];
+export const DRAFT_KIND_HINT = '文檔類型——影響 AI 生成的文體與「儲存草稿」的歸類';
 
 export const TONE_OPTIONS = ['專業', '親切', '活潑', '簡短'] as const;
 export type Tone = (typeof TONE_OPTIONS)[number];

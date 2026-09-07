@@ -4,6 +4,8 @@ import {
   BACKEND_ERROR_COPY,
   COPY_CATEGORIES,
   DRAFT_AI_COPY,
+  DRAFT_KIND_HINT,
+  DRAFT_KIND_META,
   DRAFT_VARIANTS_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
@@ -433,6 +435,34 @@ export default function Draft({ store }: { store: AppStore }) {
                 </div>
               </div>
             )}
+
+            <div className="card" style={{ padding: 18 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>
+                {DRAFT_KIND_HINT}
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {DRAFT_KIND_META.map((k) => {
+                  const active = store.draftKind === k.key;
+                  return (
+                    <button
+                      key={k.key}
+                      onClick={() => store.setDraftKind(k.key)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 9,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                        color: active ? 'var(--brand)' : 'var(--text-faint)',
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                      }}
+                    >
+                      {k.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="card" style={{ padding: 18 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>

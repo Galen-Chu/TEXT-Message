@@ -35,6 +35,22 @@ describe('buildRewritePrompt', () => {
     const p = buildRewritePrompt('x', '簡短', 500);
     expect(p).toContain('不得超過 500 字');
   });
+
+  it('kind 分流(IA Phase 3 D9):預設 copy=貼文;draft=長文;message=回覆訊息', () => {
+    const copy = buildRewritePrompt('內容', '親切');
+    expect(copy).toContain('社群媒體文案編輯');
+    expect(copy).toContain('社群貼文');
+
+    const draft = buildRewritePrompt('內容', '親切', undefined, 'draft');
+    expect(draft).toContain('電子報與內容編輯');
+    expect(draft).toContain('電子報/資訊文章內容');
+    expect(draft).toContain('分段有條理');
+
+    const message = buildRewritePrompt('內容', '親切', undefined, 'message');
+    expect(message).toContain('社群小編');
+    expect(message).toContain('粉絲留言或私訊的回覆訊息');
+    expect(message).toContain('對話口吻');
+  });
 });
 
 describe('buildSummarizePrompt', () => {
@@ -60,6 +76,14 @@ describe('buildInstructionPrompt', () => {
     expect(p).toContain('早安文');
     expect(p).toContain('嚴格遵守使用者指令');
     expect(p).not.toContain('不得超過');
+  });
+
+  it('kind 分流:message 用回覆文體(預設仍為貼文)', () => {
+    const def = buildInstructionPrompt('x', 'y');
+    expect(def).toContain('社群貼文');
+    const message = buildInstructionPrompt('x', 'y', undefined, 'message');
+    expect(message).toContain('社群小編');
+    expect(message).toContain('粉絲留言或私訊的回覆訊息');
   });
 
   it('有限制字數時附加上限規則', () => {
