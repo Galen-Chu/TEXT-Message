@@ -66,6 +66,8 @@ export interface ScheduleItem {
   /** 貼文全文(供複製/深連結預填);手動新增或舊資料可為空 */
   content?: string;
   status: ScheduleStatus;
+  /** 對應三大類文檔(IA Phase 4 D10);舊資料無此欄位 = 顯示與篩選時視為 'copy' */
+  docKind?: DocKind;
 }
 
 export interface SocialPost {

@@ -1,8 +1,13 @@
-import type { ScheduleItem } from '../types';
+import type { DocKind, ScheduleItem } from '../types';
 
 /** 排程項目的排定時間(以瀏覽器本地時區解析)。 */
 export function scheduleDateTime(item: Pick<ScheduleItem, 'date' | 'time'>): Date {
   return new Date(`${item.date}T${item.time}:00`);
+}
+
+/** 排程的文檔類別(IA Phase 4 D10):舊資料無 docKind 一律視為 'copy'(既有排程實務上皆為貼文)。 */
+export function scheduleKindOf(item: Pick<ScheduleItem, 'docKind'>): DocKind {
+  return item.docKind ?? 'copy';
 }
 
 export type EffectiveStatus = 'draft' | 'scheduled' | 'overdue' | 'published';

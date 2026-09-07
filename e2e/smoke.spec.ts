@@ -93,10 +93,15 @@ test('排程:手動新增與刪除', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '定排程 Task');
   await page.getByRole('button', { name: '+ 新增排程' }).click();
+  // IA Phase 4:modal 有文檔類型選擇(預設文案)
+  await expect(page.getByText('文檔類型')).toBeVisible();
   await page.getByPlaceholder('例如:週末生活分享').fill('E2E測試排程');
   await page.getByRole('button', { name: '新增', exact: true }).click();
   // 項目會同時出現在「選定日排程」與「所有排程」兩張卡,取第一筆
   await expect(page.getByText('E2E測試排程').first()).toBeVisible();
+  // IA Phase 4:類別篩選列與預設文案徽章
+  await expect(page.getByText('類別', { exact: true })).toBeVisible();
+  await expect(page.locator('span.pill', { hasText: '文案' }).first()).toBeVisible();
 
   // 標題 → 內層 flex div → 整列 row(刪除按鈕在 row 層),上溯兩層
   const row = page.getByText('E2E測試排程').first().locator('../..');

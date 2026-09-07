@@ -9,7 +9,10 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
   fullyParallel: true,
-  retries: process.env.CI ? 1 : 0,
+  // 並行上限與重試(2026-09-07):本機高負載時 9 workers 搶佔 vite preview,
+  // 造成按鈕 actionability(穩定性檢查)隨機逾時——限 4 workers+一律重試 1 次吸收偶發
+  workers: 4,
+  retries: 1,
   reporter: process.env.CI ? 'list' : 'list',
   use: {
     baseURL: 'http://localhost:4173',

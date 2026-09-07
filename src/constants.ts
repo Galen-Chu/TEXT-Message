@@ -74,6 +74,9 @@ export const COPY_CATEGORIES = ['全部', '日常分享', '新品/業配', '活�
 
 export type LibraryMainTab = 'message' | 'copy' | 'draft';
 
+/** 三大類文檔的通用顯示名(文庫徽章、排程徽章、編輯器 chips 共用)。 */
+export const DOC_KIND_LABELS = { draft: '草稿', copy: '文案', message: '訊息' } as const;
+
 /** 草稿管理(IA 重整 Phase 2:三大類文檔,D8)的使用者文案。 */
 export const DRAFT_LIBRARY_COPY = {
   tabLabel: '草稿管理',
@@ -87,8 +90,11 @@ export const DRAFT_LIBRARY_COPY = {
   savedToast: '已存入文庫 · 草稿管理 ✅',
   emptyTextToast: '沒有可保存的內容',
   openedToast: '已開啟草稿至編輯器',
-  kindBadge: { draft: '草稿', copy: '文案', message: '訊息' } as const,
+  kindBadge: DOC_KIND_LABELS,
 };
+
+/** 定排程類別篩選(IA Phase 4 D10)。「全部」+ 三大類。 */
+export const SCHEDULE_KIND_FILTERS: Array<'全部' | DocKind> = ['全部', 'draft', 'copy', 'message'];
 
 /** 編輯器「文檔類型」chip(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類。 */
 export const DRAFT_KIND_META: Array<{ key: DocKind; label: string }> = [

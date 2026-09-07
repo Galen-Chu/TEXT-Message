@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ScheduleItem } from '../types';
-import { effectiveStatus, overdueItems, scheduleDateTime } from './schedule';
+import { effectiveStatus, overdueItems, scheduleDateTime, scheduleKindOf } from './schedule';
 
 const NOW = new Date('2026-09-02T12:00:00').getTime();
 
@@ -53,5 +53,14 @@ describe('overdueItems', () => {
 
   it('無逾期時回傳空陣列', () => {
     expect(overdueItems([item({ date: '2026-09-05' })], NOW)).toEqual([]);
+  });
+});
+
+describe('scheduleKindOf(IA Phase 4 D10)', () => {
+  it('docKind 照儲存值;舊資料無欄位一律視為 copy', () => {
+    expect(scheduleKindOf({ docKind: 'message' })).toBe('message');
+    expect(scheduleKindOf({ docKind: 'draft' })).toBe('draft');
+    expect(scheduleKindOf({ docKind: 'copy' })).toBe('copy');
+    expect(scheduleKindOf({})).toBe('copy');
   });
 });

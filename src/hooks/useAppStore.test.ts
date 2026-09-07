@@ -602,6 +602,36 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(result.current.draftKind).toBe('message');
   });
 
+  it('排程類別(IA Phase 4 D10):confirmSchedule 帶 draftKind;addManualSchedule 預設 copy、可指定', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftKind('message');
+    });
+    act(() => {
+      result.current.setDraftText('訊息型排程');
+    });
+    act(() => {
+      result.current.confirmSchedule('2030-01-01', '09:00');
+    });
+    const fromEditor = result.current.scheduleItems.find((i) => i.date === '2030-01-01');
+    expect(fromEditor?.docKind).toBe('message');
+
+    act(() => {
+      result.current.addManualSchedule('手動預設', '2030-01-02', '10:00', 'fb');
+    });
+    act(() => {
+      result.current.addManualSchedule('手動指定', '2030-01-02', '11:00', 'fb', '', 'draft');
+    });
+    const defaults = result.current.scheduleItems.find((i) => i.title === '手動預設');
+    const specified = result.current.scheduleItems.find((i) => i.title === '手動指定');
+    expect(defaults?.docKind).toBe('copy');
+    expect(specified?.docKind).toBe('draft');
+    expect(readStore().scheduleItems).toEqual(result.current.scheduleItems);
+  });
+
   it('convertToDraft 重置文檔追蹤:轉新郵件後儲存會建立新文檔而非覆蓋舊筆', async () => {
     const { result } = renderHook(() => useAppStore());
     act(() => {

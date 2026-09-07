@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import {
   BACKEND_COPY,
+  DOC_KIND_LABELS,
+  DRAFT_KIND_META,
   PLATFORM_LIST,
   SCHEDULE_COPY,
+  SCHEDULE_KIND_FILTERS,
   SCHEDULE_STATUS_META,
   WEEKDAY_LABELS,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import type { PlatformKey, ScheduleItem } from '../types';
+import type { DocKind, PlatformKey, ScheduleItem } from '../types';
 import { dateLabel } from '../utils/date';
-import { effectiveStatus, overdueItems } from '../utils/schedule';
+import { effectiveStatus, overdueItems, scheduleKindOf } from '../utils/schedule';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
 
@@ -48,14 +51,19 @@ export default function Schedule({ store }: { store: AppStore }) {
   const [manualDate, setManualDate] = useState(store.tomorrowISO);
   const [manualTime, setManualTime] = useState('09:00');
   const [manualPlatform, setManualPlatform] = useState<PlatformKey>('fb');
+  const [manualKind, setManualKind] = useState<DocKind>('copy');
+  // 文檔類別篩選(IA Phase 4 D10):套用於「選定日排程」與「所有排程」;週曆與逾期不受篩選影響
+  const [kindFilter, setKindFilter] = useState<'全部' | DocKind>('全部');
+
+  const kindMatch = (i: ScheduleItem) => kindFilter === '全部' || scheduleKindOf(i) === kindFilter;
 
   const selectedDayItems = store.scheduleItems
-    .filter((i) => i.date === store.selectedDay)
+    .filter((i) => i.date === store.selectedDay && kindMatch(i))
     .sort((a, b) => a.time.localeCompare(b.time));
 
-  const allSorted = [...store.scheduleItems].sort((a, b) =>
-    (a.date + a.time).localeCompare(b.date + b.time),
-  );
+  const allSorted = [...store.scheduleItems]
+    .filter(kindMatch)
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
   const overdue = overdueItems(store.scheduleItems, now);
 
@@ -66,6 +74,7 @@ export default function Schedule({ store }: { store: AppStore }) {
     setManualDate(store.tomorrowISO);
     setManualTime('09:00');
     setManualPlatform('fb');
+    setManualKind('copy');
     setShowModal(true);
   };
 
@@ -76,6 +85,7 @@ export default function Schedule({ store }: { store: AppStore }) {
     setManualDate(item.date);
     setManualTime(item.time);
     setManualPlatform(item.platform);
+    setManualKind(scheduleKindOf(item));
     setShowModal(true);
   };
 
@@ -91,9 +101,10 @@ export default function Schedule({ store }: { store: AppStore }) {
         date: manualDate,
         time: manualTime,
         platform: manualPlatform,
+        docKind: manualKind,
       });
     } else {
-      store.addManualSchedule(manualTitle, manualDate, manualTime, manualPlatform, manualContent);
+      store.addManualSchedule(manualTitle, manualDate, manualTime, manualPlatform, manualContent, manualKind);
     }
     setShowModal(false);
   };
@@ -117,6 +128,30 @@ export default function Schedule({ store }: { store: AppStore }) {
         <button className="btn btn-primary" onClick={openNewModal}>
           + 新增排程
         </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>類別</span>
+        {SCHEDULE_KIND_FILTERS.map((k) => {
+          const active = kindFilter === k;
+          return (
+            <button
+              key={k}
+              onClick={() => setKindFilter(k)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: 8,
+                fontSize: 11.5,
+                fontWeight: 600,
+                background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                color: active ? 'var(--brand)' : 'var(--text-faint)',
+                border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+              }}
+            >
+              {k === '全部' ? '全部' : DOC_KIND_LABELS[k]}
+            </button>
+          );
+        })}
       </div>
 
       {overdue.length > 0 && (
@@ -210,7 +245,10 @@ export default function Schedule({ store }: { store: AppStore }) {
               <PlatformBadge platform={item.platform} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
-                  {item.title}
+                  {item.title}{' '}
+                  <span className="pill pill-purple" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                    {DOC_KIND_LABELS[scheduleKindOf(item)]}
+                  </span>
                 </div>
                 <div style={{ fontSize: 12, color: meta.color, marginTop: 2, fontWeight: 600 }}>
                   {item.time} · {meta.label}
@@ -290,7 +328,10 @@ export default function Schedule({ store }: { store: AppStore }) {
                 {dateLabel(item.date)} {item.time}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600, flex: 1 }}>
-                {item.title}
+                {item.title}{' '}
+                <span className="pill pill-purple" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                  {DOC_KIND_LABELS[scheduleKindOf(item)]}
+                </span>
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</div>
             </div>
@@ -419,6 +460,29 @@ export default function Schedule({ store }: { store: AppStore }) {
                 onChange={(e) => setManualTime(e.target.value)}
               />
             </div>
+          </div>
+          <div className="field-label">文檔類型</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            {DRAFT_KIND_META.map((k) => {
+              const active = manualKind === k.key;
+              return (
+                <button
+                  key={k.key}
+                  onClick={() => setManualKind(k.key)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 9,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    color: active ? 'var(--brand)' : 'var(--text-faint)',
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                  }}
+                >
+                  {k.label}
+                </button>
+              );
+            })}
           </div>
           <div className="field-label">平台</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>

@@ -671,6 +671,7 @@ export function useAppStore() {
         title,
         content: draftText,
         status: 'scheduled',
+        docKind: draftKind,
       }),
     );
     setScheduleItems((list) => [...list, ...newItems]);
@@ -685,6 +686,7 @@ export function useAppStore() {
     time: string,
     platform: PlatformKey,
     content = '',
+    docKind: DocKind = 'copy',
   ) => {
     const item: ScheduleItem = {
       id: newId('ms'),
@@ -694,16 +696,17 @@ export function useAppStore() {
       title,
       content,
       status: 'scheduled',
+      docKind,
     };
     setScheduleItems((list) => [...list, item]);
     setSelectedDay(date);
     showToast(SCHEDULE_COPY.addedToast);
   };
 
-  /** 編輯排程:更新標題/內容/日期/時間/平台;狀態維持原值。 */
+  /** 編輯排程:更新標題/內容/日期/時間/平台/文檔類別;狀態維持原值。 */
   const updateScheduleItem = (
     id: string,
-    patch: Partial<Pick<ScheduleItem, 'title' | 'content' | 'date' | 'time' | 'platform'>>,
+    patch: Partial<Pick<ScheduleItem, 'title' | 'content' | 'date' | 'time' | 'platform' | 'docKind'>>,
   ) => {
     setScheduleItems((list) => list.map((i) => (i.id === id ? { ...i, ...patch } : i)));
     if (patch.date) setSelectedDay(patch.date);
@@ -769,6 +772,7 @@ export function useAppStore() {
         publishAtLocal.slice(11, 16),
         'threads',
         draftText,
+        draftKind,
       );
       showToast(BACKEND_COPY.scheduledToast);
     } else {
