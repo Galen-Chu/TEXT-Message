@@ -11,13 +11,14 @@
 - **D5(Gemini 生成依類型分流)**:prompt 依文檔類型調整以符合文章生成需求(草稿=信件語氣/精簡、文案=貼文/標籤/長文、訊息=回覆留言語氣);實作落點 `services/gemini`(rewrite.ts / variants.ts 的 prompt 組裝已是純函式)。BYOK 紅線與「無 key 顯示按鈕但點擊僅提示」的降級路徑不變。
 - **D6(Social 互動通知——先評估後動工)**:評估串接發文分享留言的通知功能,連動互動式發文與留言。平台現實(2026-09-04 查證):Threads 可輪詢回覆/互動數據但**無 webhook 推送**(即時性=分鐘級),且「worker 代讀互動資料」屬後端職責擴張,需另案修訂資料邊界紅線措辭;IG 留言 webhook 需商業帳號;X 為付費層;YouTube 通知有 push 但留言 API 配額重。**候選一期(零平台審核、零紅線風險):以既有 Gmail 唯讀連線 + `classify` 模組分類各平台的互動通知信**,作為互動功能的第一步。
 - **D7(Dashboard 移除「從 Gmail 建立草稿」按鈕)**:減少重複入口(郵件匣本身即有轉草稿流程);「來自 Gmail 的靈感」卡片與單信轉草稿保留;未來內部串接有需要再規劃。
+- **D8(Phase 2 細部設計,2026-09-07)**:三大類文檔以 `DocKind = 'draft' | 'copy' | 'message'` 落地。新增 `DraftDoc { id, kind, title, text, platforms, sourceId, updatedAt }` 集合(`drafts[]`)與 `activeDraftId`,持久化於既有 `text-message:v2`(**加值欄位、不動舊欄位**——單一編輯緩衝 `draftText/draftPlatforms/draftSourceId` 照舊驅動編輯器,UI 零改動風險)。遷移:首次載入無 `drafts` 但有 `draftText` 時自動轉入一筆 `kind='draft'` 文檔(不清舊欄位)。文庫三分頁:訊息管理=`templates`、文案管理=`copyTemplates`、**草稿管理=`drafts`**(無分類,依 `updatedAt` 排序;操作:開啟至編輯器/複製/刪除)。編輯器 D4 v1:工具列「存為草稿」把目前緩衝存入草稿管理(標題取內容前綴);`'copy'/'message'` 兩類的編輯器內編輯流程與 Gemini 分流留待 Phase 3。
 
 ## 2. 分期路線(每期獨立可驗收;CI 三關保持綠)
 
 | 期 | 內容 | 主要落點 | 狀態 |
 | --- | --- | --- | --- |
 | Phase 1 | 六頁籤更名與順序 v3、側邊欄品牌改 TEXT-Message、`<title>` 更新、Dashboard 移除按鈕(D1/D7);UI 字串與 E2E/文件同步 | `Sidebar.tsx`、各頁 H1、`constants.ts`、`index.html`、`e2e/smoke.spec.ts`、README/HANDOFF/CLAUDE.md | ✅ 2026-09-04 完成 |
-| Phase 2 | 三大類文檔模型(D3):草稿集合新實體 + localStorage 相容遷移;文庫三分頁;編輯器類型感知(D4);四期深化功能(變數/變體/統計/趨勢)搬遷驗證 | `useAppStore.ts`、`types.ts`、`Library.tsx`、`Draft.tsx` | 未開工 |
+| Phase 2 | 三大類文檔模型(D3):草稿集合新實體 + localStorage 相容遷移;文庫三分頁;編輯器類型感知(D4);四期深化功能(變數/變體/統計/趨勢)搬遷驗證 | `useAppStore.ts`、`types.ts`、`Library.tsx`、`Draft.tsx` | ✅ 2026-09-07 完成(D8 v1 範圍:DraftDoc 集合+遷移、「儲存草稿」真實化、文庫草稿管理分頁;'copy'/'message' 的編輯器內編輯與 Gemini 分流屬 Phase 3) |
 | Phase 3 | Gemini 依類型生成(D5) | `services/gemini/*` | 未開工 |
 | Phase 4 | 排程類別維度:`scheduleItems` 加類別欄位(舊資料給預設值)、定排程頁分組/篩選 | `useAppStore.ts`、`Schedule.tsx` | 未開工 |
 | Phase 5 | Social 互動通知:先出評估文件(含 D6 Gmail 通知分類一期方案與紅線修訂案),維護者拍板後動工 | 新評估文件 → `services/gmail/classify` 或 worker | 未開工 |

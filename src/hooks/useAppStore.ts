@@ -6,6 +6,7 @@ import {
   BACKEND_COPY,
   BACKEND_ERROR_COPY,
   DRAFT_AI_COPY,
+  DRAFT_LIBRARY_COPY,
   DRAFT_VARIANTS_COPY,
   GEMINI_ERROR_COPY,
   LIBRARY_COPY,
@@ -33,6 +34,7 @@ import {
   initialTemplates,
 } from '../data/mockData';
 import type {
+  DraftDoc,
   Email,
   EmailTag,
   PlatformKey,
@@ -83,6 +85,46 @@ function tomorrowISO(): string {
 function newId(prefix: string): string {
   const uuid = typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined;
   return prefix + (uuid ?? Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+}
+
+const DEFAULT_DRAFT_PLATFORMS: Record<PlatformKey, boolean> = {
+  fb: true,
+  ig: true,
+  threads: false,
+  line: false,
+  yt: false,
+};
+
+/**
+ * 草稿集合載入(IA Phase 2 D8):既有 drafts 優先;無則由舊版的單一草稿緩衝
+ * (draftText/draftPlatforms/draftSourceId)遷移一筆 kind='draft' 文檔——舊欄位照舊保留驅動編輯器。
+ */
+function loadDrafts(): DraftDoc[] {
+  const stored = loadPersisted('drafts', [] as DraftDoc[]);
+  if (stored.length) return stored;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? (JSON.parse(raw) as Record<string, unknown> | null) : null;
+    const legacyText = typeof data?.draftText === 'string' ? data.draftText : '';
+    if (!legacyText.trim()) return [];
+    const storedPlatforms =
+      data?.draftPlatforms && typeof data.draftPlatforms === 'object'
+        ? (data.draftPlatforms as Partial<Record<PlatformKey, boolean>>)
+        : {};
+    return [
+      {
+        id: newId('doc-'),
+        kind: 'draft',
+        title: legacyText.trim().slice(0, 12),
+        text: legacyText,
+        platforms: { ...DEFAULT_DRAFT_PLATFORMS, ...storedPlatforms },
+        sourceId: typeof data?.draftSourceId === 'string' ? data.draftSourceId : null,
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  } catch {
+    return [];
+  }
 }
 
 /** 平台變體清理:移除空白內容;全空回 undefined(不落地該欄位,維持舊資料形狀)。 */
@@ -141,6 +183,13 @@ export function useAppStore() {
     return { fb: true, ig: true, threads: false, line: false, yt: false, ...stored };
   });
 
+  // 草稿管理集合(IA Phase 2 D8):多筆可管理文檔;activeDraftId 標示編輯緩衝對應的
+  // 集合文檔(「儲存草稿」更新該筆;null = 下次儲存建立新文檔)。
+  const [drafts, setDrafts] = useState<DraftDoc[]>(() => loadDrafts());
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(() =>
+    loadPersistedValue('activeDraftId', null, (v): v is string => typeof v === 'string'),
+  );
+
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -153,12 +202,14 @@ export function useAppStore() {
           draftText,
           draftPlatforms,
           draftSourceId: selectedMailId,
+          drafts,
+          activeDraftId,
         }),
       );
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, drafts, activeDraftId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -195,6 +246,7 @@ export function useAppStore() {
    */
   const convertToDraft = async (mail: Email) => {
     setSelectedMailId(mail.id);
+    setActiveDraftId(null);
     const fallback = mail.snippet + '\n\n' + DRAFT_AI_COPY.convertFallbackNote;
     setDraftText(fallback);
     setActiveTab('draft');
@@ -220,14 +272,16 @@ export function useAppStore() {
 
   const startBlankDraft = () => {
     setSelectedMailId('blank');
+    setActiveDraftId(null);
     setDraftText('');
   };
 
   /** 捨棄草稿:清空內容與來源,回到「尚未選擇內容來源」空狀態(持久化隨之清除)。 */
   const discardDraft = () => {
     setSelectedMailId(null);
+    setActiveDraftId(null);
     setDraftText('');
-    setDraftPlatforms({ fb: true, ig: true, threads: false, line: false, yt: false });
+    setDraftPlatforms({ ...DEFAULT_DRAFT_PLATFORMS });
     showToast('已捨棄草稿');
   };
 
@@ -535,7 +589,59 @@ export function useAppStore() {
   };
 
   // 草稿已隨內容變動自動持久化(見上方 effect);按鈕僅回饋確認
-  const saveDraft = () => showToast('草稿已儲存');
+  /**
+   * 「儲存草稿」(IA Phase 2 D8):將目前編輯緩衝存入文庫 · 草稿管理——
+   * activeDraftId 有對應文檔則原地更新,否則建立新文檔(標題取內容前綴)。
+   */
+  const saveDraft = () => {
+    if (!draftText.trim()) {
+      showToast(DRAFT_LIBRARY_COPY.emptyTextToast);
+      return;
+    }
+    const now = new Date().toISOString();
+    const existing = activeDraftId ? drafts.find((d) => d.id === activeDraftId) : undefined;
+    if (existing) {
+      setDrafts((ds) =>
+        ds.map((d) =>
+          d === existing
+            ? { ...d, text: draftText, platforms: draftPlatforms, sourceId: selectedMailId, updatedAt: now }
+            : d,
+        ),
+      );
+    } else {
+      const doc: DraftDoc = {
+        id: newId('doc-'),
+        kind: 'draft',
+        title: draftText.trim().slice(0, 12),
+        text: draftText,
+        platforms: draftPlatforms,
+        sourceId: selectedMailId,
+        updatedAt: now,
+      };
+      setDrafts((ds) => [doc, ...ds]);
+      setActiveDraftId(doc.id);
+    }
+    showToast(DRAFT_LIBRARY_COPY.savedToast);
+  };
+
+  /** 開啟草稿文檔至編輯器:載入緩衝並追蹤 activeDraftId(後續儲存原地更新同一筆)。 */
+  const openDraftDoc = (id: string) => {
+    const doc = drafts.find((d) => d.id === id);
+    if (!doc) return;
+    setActiveDraftId(doc.id);
+    setSelectedMailId(doc.sourceId);
+    setDraftText(doc.text);
+    setDraftPlatforms({ ...DEFAULT_DRAFT_PLATFORMS, ...doc.platforms });
+    setActiveTab('draft');
+    showToast(DRAFT_LIBRARY_COPY.openedToast);
+  };
+
+  /** 刪除草稿文檔(編輯緩衝若正對應該文檔則解除追蹤,緩衝內容不動)。 */
+  const deleteDraftDoc = (id: string) => {
+    setDrafts((ds) => ds.filter((d) => d.id !== id));
+    if (activeDraftId === id) setActiveDraftId(null);
+    showToast(DRAFT_LIBRARY_COPY.deletedToast);
+  };
 
   /** 「加入排程」:依已選平台各建立一筆排程(附全文供發佈輔助),並跳轉排程頁。 */
   const confirmSchedule = (date: string, time: string) => {
@@ -714,6 +820,10 @@ export function useAppStore() {
     draftText,
     setDraftText,
     draftPlatforms,
+    drafts,
+    activeDraftId,
+    openDraftDoc,
+    deleteDraftDoc,
     inboxSearch,
     setInboxSearch,
     inboxFilter,

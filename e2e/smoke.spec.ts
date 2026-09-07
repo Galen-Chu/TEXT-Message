@@ -42,16 +42,39 @@ test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) =>
   }
 });
 
-test('文庫:雙分頁切換與新增內容 modal', async ({ page }) => {
+test('文庫:三分頁切換與新增內容 modal', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '文庫 Library');
   await expect(page.getByRole('button', { name: '訊息管理', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '文案管理', exact: true }).click();
   await expect(page.getByRole('button', { name: '品牌故事', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '草稿管理', exact: true }).click();
+  await expect(page.getByText('還沒有保存的草稿')).toBeVisible();
+  await page.getByRole('button', { name: '文案管理', exact: true }).click();
   await page.getByRole('button', { name: '+ 新增內容' }).click();
   await expect(page.getByText('新增內容', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '取消' }).click();
   await expect(page.getByText('新增內容', { exact: true })).toHaveCount(0);
+});
+
+test('草稿管理:儲存草稿入文庫,重新整理後仍在,可開啟至編輯器', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '郵件匣 Gmail');
+  await page.getByRole('button', { name: '轉為草稿' }).first().click();
+  await page.getByRole('button', { name: '儲存草稿' }).click();
+
+  await gotoTab(page, '文庫 Library');
+  await page.getByRole('button', { name: '草稿管理', exact: true }).click();
+  await expect(page.getByRole('button', { name: '開啟至編輯器' }).first()).toBeVisible();
+
+  await page.reload();
+  await gotoTab(page, '文庫 Library');
+  await page.getByRole('button', { name: '草稿管理', exact: true }).click();
+  await expect(page.getByRole('button', { name: '開啟至編輯器' }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: '開啟至編輯器' }).first().click();
+  await expect(page.locator('main').getByText('編輯器 Text', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('textarea').first()).toHaveValue(/.+/);
 });
 
 test('核心流程:郵件轉為草稿', async ({ page }) => {

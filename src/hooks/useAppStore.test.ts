@@ -479,3 +479,130 @@ describe('useAppStore:文管庫深化第四期(AI 平台版本與標籤,BYOK)', 
     expect(result.current.hashtagSuggestions).toEqual([]);
   });
 });
+
+describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
+  it('遷移:舊版單一草稿緩衝(draftText)自動轉入一筆 kind=draft 文檔,舊欄位照舊', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        draftText: '舊草稿的前十二個字元哦哦哦哦後續內容',
+        draftPlatforms: { fb: true, ig: false, threads: true, line: false, yt: false },
+        draftSourceId: 'mail-1',
+      }),
+    );
+    const { result } = renderHook(() => useAppStore());
+    expect(result.current.drafts).toHaveLength(1);
+    const doc = result.current.drafts[0];
+    expect(doc.kind).toBe('draft');
+    expect(doc.title).toBe('舊草稿的前十二個字元哦哦');
+    expect(doc.text).toContain('後續內容');
+    expect(doc.sourceId).toBe('mail-1');
+    expect(doc.platforms.threads).toBe(true);
+    // 舊欄位仍驅動編輯器緩衝,不受遷移影響
+    expect(result.current.draftText).toContain('舊草稿');
+  });
+
+  it('saveDraft:建立新文檔並持久化;再次儲存原地更新(不重複建立)', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('第一版內容');
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts).toHaveLength(1);
+    expect(result.current.drafts[0].text).toBe('第一版內容');
+    expect(result.current.activeDraftId).toBe(result.current.drafts[0].id);
+    expect(readStore().drafts).toEqual(result.current.drafts);
+
+    act(() => {
+      result.current.setDraftText('第二版內容');
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts).toHaveLength(1);
+    expect(result.current.drafts[0].text).toBe('第二版內容');
+  });
+
+  it('saveDraft:空白內容僅提示,不建立文檔', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts).toHaveLength(0);
+  });
+
+  it('openDraftDoc 載入緩衝並跳轉編輯器;deleteDraftDoc 移除並解除追蹤', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('要開啟的草稿');
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    const id = result.current.drafts[0].id;
+
+    // 先清空緩衝模擬離開後重回
+    act(() => {
+      result.current.discardDraft();
+    });
+    act(() => {
+      result.current.openDraftDoc(id);
+    });
+    expect(result.current.draftText).toBe('要開啟的草稿');
+    expect(result.current.activeTab).toBe('draft');
+    expect(result.current.activeDraftId).toBe(id);
+
+    act(() => {
+      result.current.deleteDraftDoc(id);
+    });
+    expect(result.current.drafts).toHaveLength(0);
+    expect(result.current.activeDraftId).toBeNull();
+    expect(readStore().drafts).toEqual([]);
+  });
+
+  it('convertToDraft 重置文檔追蹤:轉新郵件後儲存會建立新文檔而非覆蓋舊筆', async () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('手寫草稿');
+    });
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts).toHaveLength(1);
+
+    const mail = {
+      id: 'mail-9',
+      initial: '測',
+      sender: '測試寄件者',
+      subject: '測試信',
+      snippet: '信件節錄',
+      fullBody: '全文',
+      date: '2026-09-07',
+      tag: '電子報' as const,
+      suitable: true,
+    };
+    await act(async () => {
+      await result.current.convertToDraft(mail);
+    });
+    expect(result.current.activeDraftId).toBeNull();
+    act(() => {
+      result.current.saveDraft();
+    });
+    expect(result.current.drafts).toHaveLength(2);
+    expect(result.current.drafts[0].sourceId).toBe('mail-9');
+  });
+});

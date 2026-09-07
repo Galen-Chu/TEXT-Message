@@ -33,6 +33,25 @@ export interface Template {
 }
 
 /**
+ * 三大類文檔(IA 重整 D3/D8):kind 標示內容類型——草稿(郵件向)/文案(發文向)/訊息(留言向),
+ * 決定文庫歸位與後續 Gemini 分流(Phase 3)與排程類別(Phase 4)。
+ */
+export type DocKind = 'draft' | 'copy' | 'message';
+
+/** 草稿管理的文檔單元(多筆可管理集合;有別於編輯器的單一作用中緩衝)。 */
+export interface DraftDoc {
+  id: string;
+  kind: DocKind;
+  /** 顯示標題;空白時 UI 以內容前綴代替。 */
+  title: string;
+  text: string;
+  platforms: Record<PlatformKey, boolean>;
+  /** 來源:郵件 id、'blank'(空白開始)或 null(未知/舊資料)。 */
+  sourceId: string | null;
+  updatedAt: string; // ISO
+}
+
+/**
  * 排程狀態:'published' 由使用者「標記已發佈」寫入;「逾期」不是儲存狀態,
  * 而是依目前時間即時推導(scheduled 且已過排定時間)——見 utils/schedule.ts。
  */

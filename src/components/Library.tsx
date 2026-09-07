@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   COPY_CATEGORIES,
+  DRAFT_LIBRARY_COPY,
   LIBRARY_CATEGORIES,
   LIBRARY_COPY,
   PLATFORM_LIST,
@@ -8,7 +9,7 @@ import {
   type LibraryMainTab,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import type { PlatformKey, Template } from '../types';
+import type { DraftDoc, PlatformKey, Template } from '../types';
 import { shortDateLabel } from '../utils/date';
 import { buildTemplateInsertText, templateCopyText } from '../utils/variants';
 import { extractVariables } from '../utils/variables';
@@ -18,6 +19,7 @@ import VariableFillModal from './VariableFillModal';
 const MAIN_TABS: Array<{ key: LibraryMainTab; label: string }> = [
   { key: 'message', label: '訊息管理' },
   { key: 'copy', label: '文案管理' },
+  { key: 'draft', label: DRAFT_LIBRARY_COPY.tabLabel },
 ];
 
 type SortBy = 'default' | 'used' | 'recent';
@@ -69,6 +71,7 @@ export default function Library({ store }: { store: AppStore }) {
   } | null>(null);
 
   const isMessageTab = store.libraryMainTab === 'message';
+  const isDraftTab = store.libraryMainTab === 'draft';
   const categories = isMessageTab ? LIBRARY_CATEGORIES : COPY_CATEGORIES;
   const category = isMessageTab ? store.libraryCategory : store.copyCategory;
   const setCategory = isMessageTab ? store.setLibraryCategory : store.setCopyCategory;
@@ -143,6 +146,15 @@ export default function Library({ store }: { store: AppStore }) {
     setShowNewModal(false);
   };
 
+  /** 草稿管理(IA Phase 2):依更新時間排序展示;複製走剪貼簿(同範本複製的容錯)。 */
+  const sortedDrafts = [...store.drafts].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const copyDraftDoc = (doc: DraftDoc) => {
+    void navigator.clipboard.writeText(doc.text).then(
+      () => store.showToast('已複製到剪貼簿'),
+      () => store.showToast(LIBRARY_COPY.copyFailToast),
+    );
+  };
+
   return (
     <div>
       <div
@@ -158,12 +170,14 @@ export default function Library({ store }: { store: AppStore }) {
             文庫 Library
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
-            可套用草稿的常用內容,依用途分為訊息管理與文案管理
+            可套用草稿的常用內容與保存的編輯成果,分為訊息管理、文案管理與草稿管理
           </div>
         </div>
-        <button className="btn btn-primary" onClick={openNewModal}>
-          + 新增內容
-        </button>
+        {!isDraftTab && (
+          <button className="btn btn-primary" onClick={openNewModal}>
+            + 新增內容
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -189,6 +203,7 @@ export default function Library({ store }: { store: AppStore }) {
         })}
       </div>
 
+      {!isDraftTab && (
       <div className="library-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div className="library-cats">
           {categories.map((cat) => {
@@ -355,6 +370,92 @@ export default function Library({ store }: { store: AppStore }) {
           )}
         </div>
       </div>
+      )}
+
+      {isDraftTab && (
+        <div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-weak)', marginBottom: 14 }}>
+            {DRAFT_LIBRARY_COPY.subtitle}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {sortedDrafts.map((doc) => (
+              <div key={doc.id} className="card" style={{ borderRadius: 14, padding: 16 }}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+                  <span className="pill pill-purple">{DRAFT_LIBRARY_COPY.kindBadge[doc.kind]}</span>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+                  {doc.title || '未命名草稿'}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text-weak)',
+                    lineHeight: 1.6,
+                    marginBottom: 8,
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  {doc.text}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginBottom: 10 }}>
+                  更新 {shortDateLabel(new Date(doc.updatedAt))}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => store.openDraftDoc(doc.id)}
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: 8,
+                      borderRadius: 8,
+                      background: 'var(--brand)',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {DRAFT_LIBRARY_COPY.openToEditor}
+                  </button>
+                  <button
+                    onClick={() => copyDraftDoc(doc)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--brand)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {DRAFT_LIBRARY_COPY.copyButton}
+                  </button>
+                  <button
+                    onClick={() => store.deleteDraftDoc(doc.id)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--error)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {DRAFT_LIBRARY_COPY.deleteButton}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {sortedDrafts.length === 0 && (
+            <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+                {DRAFT_LIBRARY_COPY.emptyTitle}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>{DRAFT_LIBRARY_COPY.emptyDesc}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {showNewModal && (
         <Modal

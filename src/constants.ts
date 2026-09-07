@@ -72,7 +72,23 @@ export const LIBRARY_CATEGORIES = [
 // 文管庫「文案管理」分類
 export const COPY_CATEGORIES = ['全部', '日常分享', '新品/業配', '活動宣傳', '品牌故事'];
 
-export type LibraryMainTab = 'message' | 'copy';
+export type LibraryMainTab = 'message' | 'copy' | 'draft';
+
+/** 草稿管理(IA 重整 Phase 2:三大類文檔,D8)的使用者文案。 */
+export const DRAFT_LIBRARY_COPY = {
+  tabLabel: '草稿管理',
+  subtitle: '保存的編輯內容,依更新時間排序(在編輯器按「儲存草稿」即存入)',
+  emptyTitle: '還沒有保存的草稿',
+  emptyDesc: '在編輯器完成內容後按「儲存草稿」,內容會保存在這裡',
+  openToEditor: '開啟至編輯器',
+  copyButton: '複製',
+  deleteButton: '刪除',
+  deletedToast: '已刪除草稿',
+  savedToast: '已存入文庫 · 草稿管理 ✅',
+  emptyTextToast: '沒有可保存的內容',
+  openedToast: '已開啟草稿至編輯器',
+  kindBadge: { draft: '草稿', copy: '文案', message: '訊息' } as const,
+};
 
 export const TONE_OPTIONS = ['專業', '親切', '活潑', '簡短'] as const;
 export type Tone = (typeof TONE_OPTIONS)[number];
