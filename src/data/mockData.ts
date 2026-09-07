@@ -1,5 +1,40 @@
-import type { Email, ScheduleItem, SocialPost, Template } from '../types';
+import type { DraftDoc, Email, ScheduleItem, SocialPost, Template } from '../types';
 import { getWeekDates, toISODate } from '../utils/date';
+
+/**
+ * 草稿管理預設範本(2026-09-07 UX 優化):常見電子郵件回覆骨架,首次使用即有起點;
+ * 使用者儲存任一草稿後即為自己的內容(預設僅在從無 drafts 記錄時載入)。
+ */
+export function initialDrafts(): DraftDoc[] {
+  const now = new Date().toISOString();
+  const noPlatforms = { fb: false, ig: false, threads: false, line: false, yt: false };
+  const mk = (id: string, title: string, text: string): DraftDoc => ({
+    id,
+    kind: 'draft',
+    title,
+    text,
+    platforms: { ...noPlatforms },
+    sourceId: null,
+    updatedAt: now,
+  });
+  return [
+    mk(
+      'd1',
+      '感謝來信回覆',
+      '您好:\n\n感謝你的來信與支持!\n\n關於你提到的 {{問題}},我的想法是——\n\n若還有其他問題,歡迎隨時再與我聯繫。\n\n祝 順心\n小日',
+    ),
+    mk(
+      'd2',
+      '合作邀約回覆(婉拒)',
+      '您好:\n\n感謝你想到我!這次的合作內容我評估後,目前暫不規劃這類主題,恐怕無法參與。\n\n未來若有更適合的機會,歡迎再與我聯繫。\n\n祝 一切順利\n小日',
+    ),
+    mk(
+      'd3',
+      '電子報開場與結尾骨架',
+      '[開場]\n嗨,大家好:\n這週想跟你分享 {{本週主題}}——\n\n[正文重點]\n\n[結尾]\n以上就是這週的內容,若覺得不錯歡迎回信聊聊你的想法!\n\n小日',
+    ),
+  ];
+}
 
 // 示範模式資料(未連接 Gmail 時顯示);連接後由 useGmail 提供真實郵件。
 export function initialEmails(): Email[] {

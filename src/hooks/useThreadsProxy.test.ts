@@ -61,6 +61,33 @@ describe('useThreadsProxy', () => {
     expect(window.location.search).toBe('');
   });
 
+  it('授權分頁回報(2026-09-07 popup 返回):同源 message 事件重查連線;非同源忽略', async () => {
+    vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: false } });
+    const { result } = renderHook(() => useThreadsProxy());
+    await act(async () => {});
+    expect(result.current.status).toBe('disconnected');
+
+    vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: true } });
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: window.location.origin,
+          data: { type: 'threads-auth', result: 'connected' },
+        }),
+      );
+    });
+    expect(result.current.status).toBe('connected');
+
+    // 非同源訊息一律忽略:mock 翻轉為未連線,若被處理會重查成 disconnected;狀態維持即為忽略
+    vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: false } });
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent('message', { origin: 'https://evil.example', data: { type: 'threads-auth', result: 'error' } }),
+      );
+    });
+    expect(result.current.status).toBe('connected');
+  });
+
   it('publish / schedule / loadQueue / cancel 流經 client', async () => {
     vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: true } });
     vi.mocked(publishThreadsNow).mockResolvedValue({ ok: true, data: { id: 'p1' } });

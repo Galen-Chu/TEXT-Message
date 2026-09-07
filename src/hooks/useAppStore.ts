@@ -28,6 +28,7 @@ import {
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import {
   initialCopyTemplates,
+  initialDrafts,
   initialEmails,
   initialSchedule,
   initialSocialHistory,
@@ -97,35 +98,38 @@ const DEFAULT_DRAFT_PLATFORMS: Record<PlatformKey, boolean> = {
 };
 
 /**
- * 草稿集合載入(IA Phase 2 D8):既有 drafts 優先;無則由舊版的單一草稿緩衝
- * (draftText/draftPlatforms/draftSourceId)遷移一筆 kind='draft' 文檔——舊欄位照舊保留驅動編輯器。
+ * 草稿集合載入(IA Phase 2 D8;2026-09-07 增預設範本):
+ * 1. 已有 drafts 欄位 → 照儲存值(尊重「清空過」的狀態,不重新種入預設)
+ * 2. 無欄位但有舊版單一草稿緩衝(draftText)→ 遷移一筆 kind='draft'
+ * 3. 全新使用者 → 預設電子郵件範本(mockData.initialDrafts)
  */
 function loadDrafts(): DraftDoc[] {
-  const stored = loadPersisted('drafts', [] as DraftDoc[]);
-  if (stored.length) return stored;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const data = raw ? (JSON.parse(raw) as Record<string, unknown> | null) : null;
-    const legacyText = typeof data?.draftText === 'string' ? data.draftText : '';
-    if (!legacyText.trim()) return [];
-    const storedPlatforms =
-      data?.draftPlatforms && typeof data.draftPlatforms === 'object'
-        ? (data.draftPlatforms as Partial<Record<PlatformKey, boolean>>)
-        : {};
-    return [
-      {
-        id: newId('doc-'),
-        kind: 'draft',
-        title: legacyText.trim().slice(0, 12),
-        text: legacyText,
-        platforms: { ...DEFAULT_DRAFT_PLATFORMS, ...storedPlatforms },
-        sourceId: typeof data?.draftSourceId === 'string' ? data.draftSourceId : null,
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    if (Array.isArray(data?.drafts)) return data.drafts as DraftDoc[];
+    const legacyText = typeof data?.draftText === 'string' ? (data.draftText as string) : '';
+    if (legacyText.trim()) {
+      const storedPlatforms =
+        data?.draftPlatforms && typeof data.draftPlatforms === 'object'
+          ? (data.draftPlatforms as Partial<Record<PlatformKey, boolean>>)
+          : {};
+      return [
+        {
+          id: newId('doc-'),
+          kind: 'draft',
+          title: legacyText.trim().slice(0, 12),
+          text: legacyText,
+          platforms: { ...DEFAULT_DRAFT_PLATFORMS, ...storedPlatforms },
+          sourceId: typeof data?.draftSourceId === 'string' ? (data.draftSourceId as string) : null,
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+    }
   } catch {
-    return [];
+    // 解析失敗退回預設範本
   }
+  return initialDrafts();
 }
 
 /** 平台變體清理:移除空白內容;全空回 undefined(不落地該欄位,維持舊資料形狀)。 */

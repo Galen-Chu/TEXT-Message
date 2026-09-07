@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** 草稿管理測試前種入空 drafts:隔離「全新使用者預設範本」行為,聚焦被測邏輯。 */
+function seedEmptyDrafts(): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ drafts: [] }));
+}
+
 import { useAppStore } from './useAppStore';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 
@@ -503,6 +509,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
   });
 
   it('saveDraft:建立新文檔並持久化;再次儲存原地更新(不重複建立)', () => {
+    seedEmptyDrafts();
     const { result } = renderHook(() => useAppStore());
     act(() => {
       result.current.startBlankDraft();
@@ -529,6 +536,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
   });
 
   it('saveDraft:空白內容僅提示,不建立文檔', () => {
+    seedEmptyDrafts();
     const { result } = renderHook(() => useAppStore());
     act(() => {
       result.current.startBlankDraft();
@@ -540,6 +548,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
   });
 
   it('openDraftDoc 載入緩衝並跳轉編輯器;deleteDraftDoc 移除並解除追蹤', () => {
+    seedEmptyDrafts();
     const { result } = renderHook(() => useAppStore());
     act(() => {
       result.current.startBlankDraft();
@@ -572,6 +581,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
   });
 
   it('draftKind(IA Phase 3 D9):預設 copy;切換影響 saveDraft 歸類並持久化;openDraftDoc 載入文檔 kind;捨棄重置', () => {
+    seedEmptyDrafts();
     const { result } = renderHook(() => useAppStore());
     expect(result.current.draftKind).toBe('copy');
 
@@ -600,6 +610,20 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       result.current.openDraftDoc(id);
     });
     expect(result.current.draftKind).toBe('message');
+  });
+
+  it('全新使用者:草稿管理載入預設電子郵件範本(2026-09-07 UX 優化)', () => {
+    const { result } = renderHook(() => useAppStore());
+    expect(result.current.drafts.length).toBeGreaterThanOrEqual(3);
+    expect(result.current.drafts.every((d) => d.kind === 'draft')).toBe(true);
+    expect(result.current.drafts.some((d) => d.title.includes('感謝來信'))).toBe(true);
+    // 一旦使用者有自己的紀錄(drafts 欄位落地)即尊重之,不再重新種入
+    act(() => {
+      result.current.deleteDraftDoc(result.current.drafts[0].id);
+    });
+    const after = result.current.drafts.length;
+    const second = renderHook(() => useAppStore());
+    expect(second.result.current.drafts).toHaveLength(after);
   });
 
   it('排程類別(IA Phase 4 D10):confirmSchedule 帶 draftKind;addManualSchedule 預設 copy、可指定', () => {
@@ -633,6 +657,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
   });
 
   it('convertToDraft 重置文檔追蹤:轉新郵件後儲存會建立新文檔而非覆蓋舊筆', async () => {
+    seedEmptyDrafts();
     const { result } = renderHook(() => useAppStore());
     act(() => {
       result.current.startBlankDraft();

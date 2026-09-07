@@ -102,7 +102,7 @@ export default function Draft({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
-        編輯器 Text
+        編發器 Text
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
         將郵件內容轉換成適合各平台的貼文草稿

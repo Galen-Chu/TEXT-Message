@@ -231,7 +231,7 @@ export default function Library({ store }: { store: AppStore }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11.5, color: 'var(--text-weak)', marginBottom: 10 }}>
             {isMessageTab
-              ? '訊息管理:可直接套用到草稿的通用文字片段(問候、感謝、常見問答等)'
+              ? '訊息管理:可直接套用到編發器的通用文字片段(問候、感謝、常見問答等)'
               : '文案管理:針對社群發文設計的完整貼文草稿範本'}
           </div>
           <input
@@ -316,7 +316,7 @@ export default function Library({ store }: { store: AppStore }) {
                       fontWeight: 700,
                     }}
                   >
-                    套用到草稿
+                    套用編發器
                   </button>
                   <button
                     onClick={() => openEditModal(tpl)}

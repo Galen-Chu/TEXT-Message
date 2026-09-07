@@ -1,12 +1,13 @@
 import type { AppStore } from '../hooks/useAppStore';
 import type { Tab } from '../types';
 
-// 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1):編輯器在定排程之前。
+// 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
+// 編發器在定排程之前。
 const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
   { key: 'dashboard', icon: '🏠', label: '文管 Dashboard' },
   { key: 'inbox', icon: '📥', label: '郵件匣 Gmail' },
   { key: 'social', icon: '📣', label: '自媒體 Social' },
-  { key: 'draft', icon: '✍️', label: '編輯器 Text' },
+  { key: 'draft', icon: '✍️', label: '編發器 Text' },
   { key: 'schedule', icon: '📅', label: '定排程 Task' },
   { key: 'library', icon: '🗂️', label: '文庫 Library' },
 ];

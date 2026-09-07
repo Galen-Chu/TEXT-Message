@@ -213,11 +213,11 @@ export const SCHEDULE_COPY = {
 /** 文管庫深化(第一期:範本填值、存為範本、使用統計)的使用者文案。 */
 export const LIBRARY_COPY = {
   fillTitle: '填寫範本變數',
-  fillDesc: (n: number) => `此範本包含 ${n} 個 {{變數}},填寫後套用;留空的變數會保留原樣,之後可在草稿補上`,
+  fillDesc: (n: number) => `此範本包含 ${n} 個 {{變數}},填寫後套用;留空的變數會保留原樣,之後可在編發器補上`,
   fillPlaceholder: (name: string) => `輸入 ${name} 的內容`,
   fillPreview: '預覽',
   fillSkip: '略過,直接用原文',
-  fillApply: '填完套用到草稿',
+  fillApply: '填完套用到編發器',
   fillCopy: '填完複製',
   copiedFilledToast: '已複製到剪貼簿(變數已填入)',
   copyFailToast: '複製失敗,請手動選取複製',
@@ -265,22 +265,22 @@ export const TRENDS_COPY = {
   dashboardTitle: '發文趨勢(近 30 天)',
 };
 
-/** Threads 平台代發(階段三前端串接:Cloudflare Workers 後端輔助)的使用者文案。 */
+/** Threads 平台發佈(階段三前端串接:Cloudflare Workers 後端輔助)的使用者文案。 */
 export const BACKEND_COPY = {
-  cardTitle: '🧵 Threads 代發(後端輔助)',
+  cardTitle: '🧵 Threads 發佈(後端輔助)',
   cardDesc: '由你的後端 worker 代為發佈;只送貼文內容與安裝識別碼,不送其他資料',
   checking: '檢查連線中…',
   connect: '連接 Threads',
-  connectHint: '開啟新分頁完成 Meta 授權,回來後按「檢查連線」',
+  connectHint: '開啟新分頁完成 Meta 授權,完成後會自動返回此頁',
   refreshStatus: '檢查連線',
   connectedHint: '已連線(worker 保管加密 token,可隨時重新授權取代)',
-  publishNow: '立即代發',
-  scheduleLabel: '排程代發(由後端 cron 到點自動發佈)',
+  publishNow: '立即發佈',
+  scheduleLabel: '排程發佈(由後端 cron 到點自動發佈)',
   scheduleAtLabel: '排定時間',
-  schedulePublish: '排程代發',
+  schedulePublish: '排程發佈',
   needTextToast: '請先撰寫草稿內容',
   pastTimeToast: '排定時間已過,請選擇未來時間',
-  publishedToast: '已代發至 Threads ✅(已記錄至社群媒體歷史)',
+  publishedToast: '已發佈至 Threads ✅(已記錄至社群媒體歷史)',
   scheduledToast: '已加入雲端佇列,後端會在排定時間自動發佈(本地同步建立排程)',
   queueTitle: '🧵 Threads 雲端佇列',
   queueEmpty: '雲端佇列沒有項目',
@@ -288,7 +288,7 @@ export const BACKEND_COPY = {
   queueCancel: '取消',
   cancelledToast: '已取消雲端排程',
   connectedQueryParam: 'threads',
-  connectedBackToast: 'Threads 授權完成 ✨ 檢查連線狀態中…',
+  connectedBackToast: 'Threads 連接成功 ✨',
   connectErrorToast: 'Threads 授權未完成,可重新再試',
 };
 
@@ -302,7 +302,7 @@ export const BACKEND_ERROR_COPY: Record<string, string> = {
   not_found: '找不到該項目(可能已發佈或移除)',
   not_pending: '該項目已處理,無法取消',
   forbidden_origin: '後端未允許此網站來源(檢查 worker 的 FRONTEND_URL 設定)',
-  publish_failed: '後端代發失敗,請稍後再試或檢查 worker 日誌',
+  publish_failed: '後端發佈失敗,請稍後再試或檢查 worker 日誌',
   unknown: '後端服務異常,請稍後再試',
 };
 
