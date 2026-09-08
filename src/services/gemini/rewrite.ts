@@ -68,11 +68,28 @@ const KIND_RULES: Record<DocKind, string> = {
   message: '- 以對話口吻直接稱呼對方,一至三句內完成,可直接送出',
 };
 
+/** 風格樣本每篇擷取上限(DRIVE-PLAN D6:控制 prompt 長度與 token 成本)。 */
+export const STYLE_SAMPLE_CHAR_LIMIT = 800;
+
+/**
+ * 行文風格樣本區塊(DRIVE-PLAN D6):模仿使用者既有文章的語氣與節奏,
+ * 內容仍以原始草稿為準——樣本僅在生成請求中暫用,不落地。
+ */
+export function styleSampleBlock(samples: string[]): string[] {
+  if (!samples.length) return [];
+  return [
+    '',
+    '行文風格樣本(模仿其語氣、節奏與用詞習慣;內容與事實仍以原始草稿為準,不得引用樣本中的情節):',
+    ...samples.map((s, i) => `【樣本 ${i + 1}】\n${s.slice(0, STYLE_SAMPLE_CHAR_LIMIT)}`),
+  ];
+}
+
 export function buildRewritePrompt(
   text: string,
   tone: Tone,
   limit?: number,
   kind: DocKind = 'copy',
+  styleSamples?: string[],
 ): string {
   const lines = [
     `你是${KIND_PERSONA[kind]}。請把「原始草稿」改寫為${TONE_PROMPT_HINTS[tone]}的繁體中文${KIND_OUTPUT[kind]}。`,
@@ -82,7 +99,7 @@ export function buildRewritePrompt(
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
-  return [...lines, '', '原始草稿:', text].join('\n');
+  return [...lines, ...styleSampleBlock(styleSamples ?? []), '', '原始草稿:', text].join('\n');
 }
 
 /** 郵件 → 貼文草稿的摘要 prompt(輸入為已解析的 Email 欄位)。 */
@@ -118,6 +135,7 @@ export function buildInstructionPrompt(
   instruction: string,
   limit?: number,
   kind: DocKind = 'copy',
+  styleSamples?: string[],
 ): string {
   const lines = [
     `你是${KIND_PERSONA[kind]}。請依「使用者指令」改寫「原始草稿」,輸出繁體中文${KIND_OUTPUT[kind]}。`,
@@ -127,7 +145,7 @@ export function buildInstructionPrompt(
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
-  return [...lines, '', `使用者指令:${instruction}`, '', '原始草稿:', text].join('\n');
+  return [...lines, ...styleSampleBlock(styleSamples ?? []), '', `使用者指令:${instruction}`, '', '原始草稿:', text].join('\n');
 }
 
 /** 從 generateContent 回應 JSON 取出文字;結構不符回 null。 */
@@ -231,11 +249,18 @@ export async function rewriteWithGemini(input: {
   tone: Tone;
   limit?: number;
   kind?: DocKind;
+  styleSamples?: string[];
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
   return generateContent(
     input.apiKey,
-    buildRewritePrompt(input.text, input.tone, input.limit, input.kind ?? 'copy'),
+    buildRewritePrompt(
+      input.text,
+      input.tone,
+      input.limit,
+      input.kind ?? 'copy',
+      input.styleSamples,
+    ),
     input.signal,
   );
 }
@@ -263,11 +288,18 @@ export async function rewriteWithInstruction(input: {
   instruction: string;
   limit?: number;
   kind?: DocKind;
+  styleSamples?: string[];
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
   return generateContent(
     input.apiKey,
-    buildInstructionPrompt(input.text, input.instruction, input.limit, input.kind ?? 'copy'),
+    buildInstructionPrompt(
+      input.text,
+      input.instruction,
+      input.limit,
+      input.kind ?? 'copy',
+      input.styleSamples,
+    ),
     input.signal,
   );
 }

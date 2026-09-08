@@ -125,6 +125,18 @@ export const DRIVE_COPY = {
   copyButton: '複製全文',
   copiedToast: '已複製全文到剪貼簿',
   loading: '載入中…',
+  styleMark: '設為風格樣本',
+  styleUnmark: '取消風格樣本',
+  styleFullToast: (n: number) => `風格樣本上限 ${n} 篇,請先取消其他樣本`,
+  styleMarkedToast: '已加入風格樣本 ✨(編發器 AI 生成將參照)',
+  styleUnmarkedToast: '已移除風格樣本',
+  styleNotConnected: 'Drive 未連線,本次生成不參照風格樣本',
+  stylePartialFail: (n: number) => `${n} 篇樣本抓取失敗,本次以其餘樣本生成`,
+  styleToggleLabel: (n: number) => `參照我的 Drive 風格(${n} 篇)`,
+  styleHint: '開啟後,語氣改寫/自訂指令/平台版本生成會模仿入選文章的行文風格(需連接 Drive)',
+  saveAsTemplate: '存為範本',
+  saveAsTemplateTitle: '存為範本(選擇類別)',
+  savedAsTemplateToast: (label: string) => `已存入文庫 · ${label} ✅`,
 };
 
 /** Drive 模組錯誤文案(依 services/drive/errors.ts 的 code 對應)。 */
@@ -167,7 +179,7 @@ export const WEEKDAY_LABELS = ['週一', '週二', '週三', '週四', '週五',
 export const GEMINI_ERROR_COPY: Record<string, string> = {
   invalid_key: 'Gemini API key 無效或已停用,請至「AI 設定」檢查',
   quota: 'Gemini 用量達到上限(免費方案有每分鐘/每日請求數限制)——約等 1 分鐘再試;經常發生的話可考慮付費方案',
-  server: 'Gemini 模型暫時過���,請稍後再試(已自動換模型重試)',
+  server: 'Gemini 模型暫時過載,請稍後再試(已自動換模型重試)',
   network: '網路連線異常,請稍後再試',
   no_content: 'Gemini 沒有回傳改寫內容,請再試一次',
   model_unavailable: '此 key 無法使用任何內建模型候選,請確認 key 已啟用 Generative Language API',

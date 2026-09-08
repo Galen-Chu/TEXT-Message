@@ -7,6 +7,7 @@ import {
   DRAFT_KIND_HINT,
   DRAFT_KIND_META,
   DRAFT_VARIANTS_COPY,
+  DRIVE_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
   PLATFORM_LIST,
@@ -184,6 +185,26 @@ export default function Draft({ store }: { store: AppStore }) {
                       ? GEMINI_MODE_LABEL.on
                       : GEMINI_MODE_LABEL.off}
                 </div>
+                {store.driveStyleSamples.length > 0 && (
+                  <button
+                    onClick={() => store.setDriveStyleEnabled(!store.driveStyleEnabled)}
+                    title={DRIVE_COPY.styleHint}
+                    style={{
+                      marginTop: 6,
+                      alignSelf: 'flex-start',
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      background: store.driveStyleEnabled ? 'var(--pill-purple-bg)' : 'var(--card)',
+                      color: store.driveStyleEnabled ? 'var(--brand)' : 'var(--text-faint)',
+                      border: `1px solid ${store.driveStyleEnabled ? 'var(--brand)' : 'var(--border-3)'}`,
+                    }}
+                  >
+                    {store.driveStyleEnabled ? '✓ ' : ''}
+                    {DRIVE_COPY.styleToggleLabel(store.driveStyleSamples.length)}
+                  </button>
+                )}
                 <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => void store.generateDraftVariants()}

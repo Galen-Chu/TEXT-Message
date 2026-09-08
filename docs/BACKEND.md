@@ -96,7 +96,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 | 5(2026-09-07)| `user_id` 數值**超過 JS 安全整數(2^53-1)**,`JSON.parse` 靜默進位失真(尾數差 2),發佈時 Meta 回「Object does not exist」——`String()` 補在 parse 之後救不回 | 從**原始回應文字**正則抽取完整位數字串(`oauth.ts` exchangeCode),勿經 JSON.parse |
 | 6(2026-09-07)| 代發中文亂碼——**根因在驗收工具而非程式**:zh-TW Windows 上 Git Bash 把命令列中的中文參數傳給原生 curl.exe 時轉為 CP950 位元組,worker 忠實轉發壞位元組(先前「Meta 以 Latin-1 解碼表單」的推測**不成立**,已驗證乾淨輸入下管線正常) | 驗收含中文的請求一律 `curl -d @檔案`(UTF-8 檔案位元組原樣上線);發佈參數改走 URL 查詢字串保留為防禦性強化(Graph API 官方支援) |
 
-單元測試當時沒抓到的原因:注入 fetcher ���測試只斷言了部分欄位(`grant_type`/`code`),**「與真實 API 的契約」(端點 URL、完整欄位名、回應值型別)不在測試裡**。已補:完整欄位名斷言、端點 URL 斷言、數字 id 轉型測試(`oauth.test.ts`)與 KV 讀取容錯測試(`store/kv.test.ts`)。
+單元測試當時沒抓到的原因:注入 fetcher 可測試只斷言了部分欄位(`grant_type`/`code`),**「與真實 API 的契約」(端點 URL、完整欄位名、回應值型別)不在測試裡**。已補:完整欄位名斷言、端點 URL 斷言、數字 id 轉型測試(`oauth.test.ts`)與 KV 讀取容錯測試(`store/kv.test.ts`)。
 
 ### 6.2 為什麼這段流程難解(結構性原因)
 

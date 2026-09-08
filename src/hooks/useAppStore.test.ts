@@ -626,6 +626,47 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(second.result.current.drafts).toHaveLength(after);
   });
 
+  it('Drive 風格樣本(D6):標記/上限 3/取消;持久化僅中繼資料(內容不落地)', () => {
+    const { result } = renderHook(() => useAppStore());
+    const doc = (i: number) => ({ id: `dd-${i}`, name: `文檔${i}`, mimeType: 'application/vnd.google-apps.document' });
+    act(() => result.current.toggleDriveStyleSample(doc(1)));
+    act(() => result.current.toggleDriveStyleSample(doc(2)));
+    act(() => result.current.toggleDriveStyleSample(doc(3)));
+    expect(result.current.driveStyleSamples).toHaveLength(3);
+
+    act(() => result.current.toggleDriveStyleSample(doc(4)));
+    expect(result.current.driveStyleSamples).toHaveLength(3); // 上限不超
+
+    act(() => result.current.toggleDriveStyleSample(doc(2)));
+    expect(result.current.driveStyleSamples).toHaveLength(2);
+    expect(result.current.driveStyleSamples.some((s) => s.id === 'dd-2')).toBe(false);
+
+    // 持久化內容僅 id/name/mimeType——不含任何文檔文字(紅線)
+    const stored = readStore().driveStyleSamples as Array<Record<string, unknown>>;
+    expect(stored).toHaveLength(2);
+    expect(Object.keys(stored[0]).sort()).toEqual(['id', 'mimeType', 'name']);
+  });
+
+  it('saveDriveDocAsTemplate(D7):草稿→drafts;文案→copyTemplates;訊息→templates', () => {
+    seedEmptyDrafts();
+    const { result } = renderHook(() => useAppStore());
+    const beforeCopy = result.current.copyTemplates.length;
+    const beforeMsg = result.current.templates.length;
+
+    act(() => result.current.saveDriveDocAsTemplate('draft', '', '草稿類內容'));
+    act(() => result.current.saveDriveDocAsTemplate('copy', '文案標題', '文案內容'));
+    act(() => result.current.saveDriveDocAsTemplate('message', '訊息標題', '訊息內容'));
+
+    expect(result.current.drafts[0].kind).toBe('draft');
+    expect(result.current.drafts[0].title).toBe('草稿類內容'.slice(0, 12));
+    expect(result.current.copyTemplates).toHaveLength(beforeCopy + 1);
+    expect(result.current.copyTemplates[0].title).toBe('文案標題');
+    expect(result.current.copyTemplates[0].category).toBe('日常分享');
+    expect(result.current.templates).toHaveLength(beforeMsg + 1);
+    expect(result.current.templates[0].title).toBe('訊息標題');
+    expect(result.current.templates[0].category).toBe('粉絲互動');
+  });
+
   it('insertDriveText:附加到既有草稿尾端;無草稿則空白開始並跳轉編發器(雲端列一期)', () => {
     const { result } = renderHook(() => useAppStore());
     act(() => {

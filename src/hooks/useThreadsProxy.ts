@@ -114,7 +114,7 @@ export function useThreadsProxy(): UseThreadsProxyResult {
 
   const publish = useCallback(
     async (text: string) => {
-      // 同步鎖(busyRef):防同一影格內���快速連點在 React 重渲染前穿過 disabled 屬性
+      // 同步鎖(busyRef):防同一影格內的快速連點在 React 重渲染前穿過 disabled 屬性
       if (busyRef.current) return null;
       busyRef.current = true;
       setBusy(true);

@@ -51,7 +51,8 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 
 ## 開發待辦與優化清單(2026-09-07 IA 重整收尾歸檔;2026-09-02 社群管理清單見下)
 
-**階段現況(2026-09-07 IA 重整收尾歸檔)**:**IA 重整 Phase 1–5 已於 2026-09-07 一日全數完成**(`docs/IA-PLAN.md`;Phase 5 二期方案待維護者拍板,見 `docs/NOTIFY-PLAN.md`);**階段 3(平台代發)已閉環**——worker 部署上線、OAuth 與立即代發端到端驗收通過、正式站 `BACKEND_API_BASE` 已注入(2026-09-07)。**2026-09-07 晚追加 UX 優化批(D12)**:套用編發器/發佈用語/頁籤更名編發器/草稿管理預設範本/OAuth 授權分頁 popup 自動返回。**2026-09-08 上午:回歸測試驗收**(逐項檢查表見 `docs/NOTIFY-PLAN.md` §5,已對齊新命名)。歷史階段狀況(2026-09-02 收尾歸檔):階段 0/1/2 完成、文管庫深化四期完成;階段 4(Web Push)未開工;IG/X 代發為後續增量。
+**階段現況(2026-09-07 IA 重整收尾歸檔)**:**IA 重整 Phase 1–5 已於 2026-09-07 一日全數完成**(`docs/IA-PLAN.md`;Phase 5 二期方案待維護者拍板,見 `docs/NOTIFY-PLAN.md`);**階段 3(平台代發)已閉環**——worker 部署上線、OAuth 與立即代發端到端驗收通過、正式站 `BACKEND_API_BASE` 已注入(2026-09-07)。**2026-09-07 晚追加 UX 優化批(D12)**:套用編發器/發佈用語/頁籤更名編發器/草稿管理預設範本/OAuth 授權分頁 popup 自動返回。**2026-09-08 上午:回歸測試驗收**(逐項檢查表見 `docs/NOTIFY-PLAN.md` §5,已對齊新命名)。
+**2026-09-08 晚:雲端列 Drive 一、二期同日完成**(AI 風格參照+存為範本,`docs/DRIVE-PLAN.md` D1–D7)、UX 優化二批 D13、worker cron 改每小時整點(KV list 額度約束)、全 repo U+FFFD 壞字元清查完畢。**明日(09-09)接續:FB 粉專發佈串接**(維護者建立粉專中,工程評估已完成——單步 Pages API);技術債 sprint(React 19 等)另排獨立時段。歷史階段狀況(2026-09-02 收尾歸檔):階段 0/1/2 完成、文管庫深化四期完成;階段 4(Web Push)未開工;IG/X 代發為後續增量。
 
 已上線:Gmail 唯讀收件匣(2026-08-18)、Gemini BYOK 語氣改寫(2026-08-28,`services/gemini/rewrite.ts`)。以下各項動手時仍受「重要行為」紅線約束。
 
@@ -60,7 +61,7 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
 2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即發佈/排程發佈→雲端佇列+本地排程;2026-09-07 晚「代發」用語全面改「發佈」、頁籤更名編發器,D12)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 5 個 worker OAuth/發佈 bug(端點/參數名/數字 id 型別/user_id 超 2^53 精度失真,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**立即代發已於 2026-09-07 端到端驗收成功(發文 id 18027614201902484);正式站 `BACKEND_API_BASE` 已於 2026-09-07 設定並上線;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
 3. **IA 重整(2026-09-04 啟動;2026-09-07 Phase 1–5 全數到位)** — 決策記錄與分期見 `docs/IA-PLAN.md`。Phase 1 六頁籤命名 v3 與品牌 TEXT-Message;Phase 2 三大類文檔模型(文庫草稿管理分頁);Phase 3 Gemini 依文檔類型分流;Phase 4 排程類別維度;Phase 5 一期=Gmail 互動通知分類(`classify` 平台通知網域/片語+自媒體「最新互動」卡,唯讀零紅線)。**二期以上(Threads 輪詢等)需維護者拍板,評估見 `docs/NOTIFY-PLAN.md`(含總驗收檢查表)**
-4. **雲端列 Drive（2026-09-08 提案並同日完成一期）** — 新頁籤（第七）：串接 Google Drive（**唯讀** `drive.readonly`，GIS 模式，token 僅記憶體）；一期=搜尋/瀏覽 Docs 與純文字檔、純文字預覽、引用到編發器（附加尾端/空白開始），未設定或未連線顯示示範文檔；規劃與決策 D1–D5 見 `docs/DRIVE-PLAN.md`。**二期（未開工）：Gemini（BYOK）參照行文風格生成與「存為範本」寫入文庫**
+4. **雲端列 Drive（2026-09-08 提案並同日完成一、二期）** — 新頁籤（第七）：串接 Google Drive（**唯讀** `drive.readonly`，GIS 模式，token 僅記憶體）；一期=搜尋/瀏覽 Docs 與純文字檔、純文字預覽、引用到編發器；二期=**Gemini 風格參照**（標記至多 3 篇樣本，語氣改寫/自訂指令/平台版本生成模仿行文；僅中繼資料落地，生成時即時匯出每篇截 800 字）+**存為範本**寫入文庫三大類；未設定或未連線顯示示範文檔。決策 D1–D7 見 `docs/DRIVE-PLAN.md`
 5. **階段 4(可選)— Web Push + Service Worker 提醒**
 
 ### 既有功能可優化(2026-08-31 完成第一輪)

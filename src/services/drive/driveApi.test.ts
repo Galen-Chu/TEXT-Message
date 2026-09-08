@@ -54,7 +54,7 @@ describe('listDriveDocs', () => {
     expect(r2.nextPageToken).toBeUndefined();
   });
 
-  it('非 2xx 轉為 DriveError(帶���應 code)', async () => {
+  it('非 2xx 轉為 DriveError(帶對應 code)', async () => {
     const fetcher: Fetcher = async () => new Response('nope', { status: 401 });
     await expect(listDriveDocs({ token: 'bad' }, fetcher)).rejects.toMatchObject({
       name: 'DriveError',

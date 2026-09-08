@@ -36,6 +36,22 @@ describe('buildRewritePrompt', () => {
     expect(p).toContain('不得超過 500 字');
   });
 
+  it('風格樣本(DRIVE-PLAN D6):帶入樣本區塊與截斷;無樣本不出區塊', () => {
+    const withSamples = buildRewritePrompt('內容', '親切', undefined, 'copy', ['第一篇樣本', '第二篇樣本']);
+    expect(withSamples).toContain('行文風格樣本');
+    expect(withSamples).toContain('【樣本 1】');
+    expect(withSamples).toContain('【樣本 2】');
+    expect(withSamples).toContain('內容與事實仍以原始草稿為準');
+
+    const long = 'x'.repeat(1200);
+    const trimmed = buildRewritePrompt('內容', '親切', undefined, 'copy', [long]);
+    expect(trimmed).toContain('x'.repeat(800));
+    expect(trimmed).not.toContain('x'.repeat(801));
+
+    const none = buildRewritePrompt('內容', '親切');
+    expect(none).not.toContain('行文風格樣本');
+  });
+
   it('kind 分流(IA Phase 3 D9):預設 copy=貼文;draft=長文;message=回覆訊息', () => {
     const copy = buildRewritePrompt('內容', '親切');
     expect(copy).toContain('社群媒體文案編輯');

@@ -1,6 +1,16 @@
 import type { DraftDoc, Email, ScheduleItem, SocialPost, Template } from '../types';
 import { getWeekDates, toISODate } from '../utils/date';
 
+/** 示範文檔的內文(僅示範模式使用:預覽與風格樣本;真實模式一律由 Drive API 匯出)。 */
+export const DEMO_DRIVE_DOC_TEXT: Record<string, string> = {
+  'demo-d1':
+    '蘭嶼慢旅記\n\n第一天抵達時風很大,機車沿著環島公路往東,海的顏色從灰藍一路轉成透明的青。\n\n我沒有排太多行程,只在朗島的涼亭坐了一個下午,看潮水慢慢漲上來。慢下來之後,感官都變靈敏了——這大概就是我想寫給讀者的東西。',
+  'demo-d2':
+    '寫作風格筆記\n\n我的開場通常從一個具體的畫面或感官細節開始,不先講結論。\n\n例:與其寫「這趟旅行很放鬆」,我會寫「把鞋脫在民宿門口,赤腳踩上磨石子地板的那一瞬間,肩膀先鬆了」。',
+  'demo-d3':
+    '讀者問答整理(2026 Q3)\n\nQ:長住沖繩的網路怎麼處理?\nA:我用 eSIM 短約+民宿 Wi-Fi 雙保險,山區訊號差時提前離線地圖。',
+};
+
 /**
  * 雲端列 Drive 示範文檔(未連線/未設定時顯示;DRIVE-PLAN D5)。
  */

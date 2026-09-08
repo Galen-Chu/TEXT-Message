@@ -30,17 +30,26 @@ test('分頁切換:各頁主標題正確', async ({ page }) => {
   await expect(page.getByText('最新互動').first()).toBeVisible();
 });
 
-test('雲端列:示範文檔可預覽並引用到編發器', async ({ page }) => {
+test('雲端列:示範文檔可預覽、引用到編發器、設為風格樣本', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '雲端列 Drive');
   await expect(page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first()).toBeVisible();
 
   await page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first().click();
   await expect(page.getByRole('button', { name: '引用到編發器' })).toBeVisible();
+
+  // 二期:設為風格樣本 → Esc 關閉 modal → 清單出現 ★ 標記
+  await page.getByRole('button', { name: '設為風格樣本' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('★').first()).toBeVisible();
+
+  await page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first().click();
   await page.getByRole('button', { name: '引用到編發器' }).click();
 
   await expect(page.locator('main').getByText('編發器 Text', { exact: true }).first()).toBeVisible();
   await expect(page.locator('textarea').first()).toHaveValue(/蘭嶼慢旅記/);
+  // 二期:有風格樣本時,編發器 AI 卡出現參照開關
+  await expect(page.getByText('參照我的 Drive 風格(1 篇)')).toBeVisible();
 });
 
 test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) => {

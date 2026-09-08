@@ -4,22 +4,13 @@
  * 互動流程與真實模式一致(同 Gmail 的示範模式哲學)。
  */
 import { useState } from 'react';
-import { DRIVE_COPY, DRIVE_ERROR_COPY } from '../constants';
-import { initialDriveDocs } from '../data/mockData';
+import { DOC_KIND_LABELS, DRAFT_KIND_META, DRIVE_COPY, DRIVE_ERROR_COPY } from '../constants';
+import { DEMO_DRIVE_DOC_TEXT, initialDriveDocs } from '../data/mockData';
 import type { AppStore } from '../hooks/useAppStore';
 import type { DriveDocSummary } from '../services/drive/driveApi';
 import { shortDateLabel } from '../utils/date';
 import Modal from './Modal';
 
-/** 示範文檔的預覽文字(僅示範模式使用;真實模式一律由 Drive API 匯出)。 */
-const DEMO_DOC_TEXT: Record<string, string> = {
-  'demo-d1':
-    '蘭嶼慢旅記\n\n第一天抵達時風很大,機車沿著環島公路往東,海的颜色從灰藍一路轉成透明的青。\n\n我沒有排太多行程,只在朗島的涼亭坐了一個下午,看潮水慢慢漲上來。慢下來之後,感官都變靈敏了——這大概就是我想寫給讀者的東西。',
-  'demo-d2':
-    '寫作風格筆記\n\n我的開場通常從一個具體的畫面或感官細節開始,不先講結論。\n\n例:與其寫「這趟旅行很放鬆」,我會寫「把鞋脫在民宿門口,赤腳踩上磨石子地板的那一瞬間,肩膀先鬆了」。',
-  'demo-d3':
-    '讀者問答整理(2026 Q3)\n\nQ:長住沖繩的網路怎麼處理?\nA:我用 eSIM 短約+民宿 Wi-Fi 雙保險,山區訊號���時提前離線地圖。',
-};
 
 export default function Drive({ store }: { store: AppStore }) {
   const drive = store.drive;
@@ -27,16 +18,19 @@ export default function Drive({ store }: { store: AppStore }) {
   const [preview, setPreview] = useState<{ doc: DriveDocSummary; text: string } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [saveOpen, setSaveOpen] = useState(false);
 
   const connected = drive.status === 'connected';
   const useDemo = !connected;
   const docs = connected ? drive.docs : initialDriveDocs();
+  const isSample = (id: string) => store.driveStyleSamples.some((s) => s.id === id);
 
   const openPreview = async (doc: DriveDocSummary) => {
     setPreviewError('');
+    setSaveOpen(false);
     setPreview({ doc, text: '' });
     if (useDemo) {
-      setPreview({ doc, text: DEMO_DOC_TEXT[doc.id] ?? '(示範文檔無預覽內容)' });
+      setPreview({ doc, text: DEMO_DRIVE_DOC_TEXT[doc.id] ?? '(示範文檔無預覽內容)' });
       return;
     }
     setPreviewLoading(true);
@@ -155,6 +149,7 @@ export default function Drive({ store }: { store: AppStore }) {
           >
             <span style={{ fontSize: 18 }}>{doc.mimeType === 'text/plain' ? '📄' : '📝'}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+              {isSample(doc.id) && <span style={{ color: 'var(--accent)' }}>★ </span>}
               {doc.name}
             </span>
             <span style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
@@ -206,9 +201,54 @@ export default function Drive({ store }: { store: AppStore }) {
               {preview.text}
             </div>
           )}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          {saveOpen && !previewLoading && !previewError && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                marginBottom: 12,
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+                {DRIVE_COPY.saveAsTemplateTitle}:
+              </span>
+              {DRAFT_KIND_META.map((k) => (
+                <button
+                  key={k.key}
+                  className="btn btn-outline"
+                  style={{ padding: '7px 14px', borderRadius: 9, fontSize: 12.5 }}
+                  onClick={() => {
+                    store.saveDriveDocAsTemplate(k.key, preview.doc.name, preview.text);
+                    setSaveOpen(false);
+                    setPreview(null);
+                  }}
+                >
+                  {DOC_KIND_LABELS[k.key]}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" style={{ borderRadius: 9 }} onClick={copyPreviewText}>
               {DRIVE_COPY.copyButton}
+            </button>
+            <button
+              className="btn btn-outline"
+              style={{ borderRadius: 9 }}
+              disabled={previewLoading || !!previewError}
+              onClick={() => store.toggleDriveStyleSample(preview.doc)}
+            >
+              {isSample(preview.doc.id) ? DRIVE_COPY.styleUnmark : DRIVE_COPY.styleMark}
+            </button>
+            <button
+              className="btn btn-outline"
+              style={{ borderRadius: 9 }}
+              disabled={previewLoading || !!previewError}
+              onClick={() => setSaveOpen((v) => !v)}
+            >
+              {DRIVE_COPY.saveAsTemplate}
             </button>
             <button
               className="btn btn-primary"

@@ -6,6 +6,7 @@ import { useYoutube } from './useYoutube';
 import {
   BACKEND_COPY,
   BACKEND_ERROR_COPY,
+  DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
   DRAFT_VARIANTS_COPY,
@@ -29,6 +30,7 @@ import {
 } from '../services/gemini/rewrite';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import {
+  DEMO_DRIVE_DOC_TEXT,
   initialCopyTemplates,
   initialDrafts,
   initialEmails,
@@ -186,6 +188,16 @@ export function useAppStore() {
       (v): v is DocKind => v === 'draft' || v === 'copy' || v === 'message',
     ),
   );
+  // Drive 風格樣本(DRIVE-PLAN D6):**僅存中繼資料(id/name/mimeType)**——文檔內容不落地,
+  // 生成時即時自 Drive API 匯出(未連線時示範文檔用內建文案)。
+  const [driveStyleSamples, setDriveStyleSamples] = useState<
+    Array<{ id: string; name: string; mimeType: string }>
+  >(() =>
+    loadPersisted('driveStyleSamples', [] as Array<{ id: string; name: string; mimeType: string }>),
+  );
+  const [driveStyleEnabled, setDriveStyleEnabled] = useState(() =>
+    loadPersistedValue('driveStyleEnabled', true, (v): v is boolean => typeof v === 'boolean'),
+  );
   const [draftText, setDraftText] = useState(() =>
     loadPersistedValue('draftText', '', (v): v is string => typeof v === 'string'),
   );
@@ -219,6 +231,8 @@ export function useAppStore() {
           draftPlatforms,
           draftSourceId: selectedMailId,
           draftKind,
+          driveStyleSamples,
+          driveStyleEnabled,
           drafts,
           activeDraftId,
         }),
@@ -226,7 +240,7 @@ export function useAppStore() {
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, drafts, activeDraftId]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -336,7 +350,15 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
-    const result = await rewriteWithGemini({ apiKey: geminiKey, text: draftText, tone, limit, kind: draftKind });
+    const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
+    const result = await rewriteWithGemini({
+      apiKey: geminiKey,
+      text: draftText,
+      tone,
+      limit,
+      kind: draftKind,
+      styleSamples,
+    });
     setAiBusy(false);
     if (result.ok) {
       setDraftText(result.text);
@@ -363,12 +385,14 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
+    const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
     const result = await rewriteWithInstruction({
       apiKey: geminiKey,
       text: draftText,
       instruction: inst,
       limit: strictestSelectedLimit(),
       kind: draftKind,
+      styleSamples,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -396,10 +420,12 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
+    const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
     const result = await generatePlatformVariants({
       apiKey: geminiKey,
       text: draftText,
       platforms: platforms.map((p) => ({ key: p.key, label: p.label, limit: p.limit })),
+      styleSamples,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -673,6 +699,76 @@ export function useAppStore() {
     showToast(DRAFT_LIBRARY_COPY.deletedToast);
   };
 
+  /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
+  const toggleDriveStyleSample = (doc: { id: string; name: string; mimeType: string }) => {
+    setDriveStyleSamples((list) => {
+      if (list.some((s) => s.id === doc.id)) {
+        showToast(DRIVE_COPY.styleUnmarkedToast);
+        return list.filter((s) => s.id !== doc.id);
+      }
+      if (list.length >= 3) {
+        showToast(DRIVE_COPY.styleFullToast(3));
+        return list;
+      }
+      showToast(DRIVE_COPY.styleMarkedToast);
+      return [...list, doc];
+    });
+  };
+
+  /**
+   * 取得樣本文字:已連線走 Drive API 即時匯出(內容不落地);
+   * 未連線時示範文檔用內建文案(D6:示範模式流程可完整體驗)。
+   */
+  const getDriveStyleSampleTexts = async (): Promise<string[]> => {
+    if (!driveStyleSamples.length) return [];
+    if (drive.status !== 'connected') {
+      const demo = driveStyleSamples
+        .map((s) => DEMO_DRIVE_DOC_TEXT[s.id])
+        .filter((t): t is string => !!t);
+      if (demo.length) return demo;
+      showToast(DRIVE_COPY.styleNotConnected);
+      return [];
+    }
+    const texts: string[] = [];
+    let failed = 0;
+    for (const s of driveStyleSamples) {
+      try {
+        texts.push(await drive.previewText(s));
+      } catch {
+        failed += 1;
+      }
+    }
+    if (failed) showToast(DRIVE_COPY.stylePartialFail(failed));
+    return texts;
+  };
+
+  /** Drive 文檔存為範本(D7):草稿→drafts;文案/訊息→對應範本集(分類預設,入庫後可改)。 */
+  const saveDriveDocAsTemplate = (kind: DocKind, title: string, text: string) => {
+    const t = title.trim() || text.slice(0, 12);
+    if (kind === 'draft') {
+      const doc: DraftDoc = {
+        id: newId('doc-'),
+        kind: 'draft',
+        title: t,
+        text,
+        platforms: { fb: false, ig: false, threads: false, line: false, yt: false },
+        sourceId: null,
+        updatedAt: new Date().toISOString(),
+      };
+      setDrafts((ds) => [doc, ...ds]);
+    } else {
+      const tpl: Template = {
+        id: newId('dt-'),
+        category: kind === 'copy' ? '日常分享' : '粉絲互動',
+        title: t,
+        text,
+      };
+      if (kind === 'copy') setCopyTemplates((l) => [tpl, ...l]);
+      else setTemplates((l) => [tpl, ...l]);
+    }
+    showToast(DRIVE_COPY.savedAsTemplateToast(DOC_KIND_LABELS[kind]));
+  };
+
   /** 「加入排程」:依已選平台各建立一筆排程(附全文供發佈輔助),並跳轉排程頁。 */
   const confirmSchedule = (date: string, time: string) => {
     const platforms = PLATFORM_LIST.filter((p) => draftPlatforms[p.key]).map((p) => p.key);
@@ -863,6 +959,11 @@ export function useAppStore() {
     activeDraftId,
     openDraftDoc,
     deleteDraftDoc,
+    driveStyleSamples,
+    driveStyleEnabled,
+    setDriveStyleEnabled,
+    toggleDriveStyleSample,
+    saveDriveDocAsTemplate,
     inboxSearch,
     setInboxSearch,
     inboxFilter,
