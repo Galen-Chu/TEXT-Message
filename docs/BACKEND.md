@@ -12,7 +12,7 @@
 
 ## 1. 前置需求
 
-1. **Cloudflare 帳號**(免費方案即足夠:每分鐘 cron + 10 萬請求/日 + KV 1000 寫/日)
+1. **Cloudflare 帳號**(免費方案即足夠:每兩分鐘 cron + 10 萬請求/日 + KV 1000 寫/日、**list 1000 次/日**——後者限制了 cron 頻率,見 §5)
 2. **Meta 開發者帳號與 App**:建立 App → 加入 Threads 產品 → 取得 Threads API 的 client id/secret
    - App 在開發模式時**只有 App 的測試者/管理者帳號**能完成授權(自用足夠)
    - 要開放給其他使用者需通過 Meta App Review(`threads_basic` + `threads_content_publish`)
@@ -64,7 +64,7 @@ cd worker && npx wrangler dev      # http://localhost:8787
 | POST | `/api/schedule` | 加入排程 `{installId, text, publishAt(ms)}`(限未來 90 天內) |
 | GET | `/api/queue?install=<id>` | 檢視該安裝的佇列 |
 | POST | `/api/queue/cancel` | 取消未發佈項目 `{installId, itemId}` |
-| cron | 每分鐘 | 發佈到期項目;失敗指數退避(60s→2m→4m,上限 3 次後標記 failed) |
+| cron | 每小時整點(`0 */1 * * *`,2026-09-08 維護者調整) | 發佈到期項目(整點批次);失敗指數退避(60s→2m→4m,上限 3 次後標記 failed)。**勿改回每分鐘**:KV 免費方案 list 上限 1,000 次/日,每分鐘掃描(1,440/日)會超額,隔夜排程將失敗;若需分鐘級精度改「佇列旗標鍵」設計 |
 
 ## 與前端對接(2026-09-03 前端串接已完成)
 
@@ -77,7 +77,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 
 - **Meta App 審核**:開發模式僅限測試者帳號;正式開放需 App Review(每個 `threads_*` scope 約 2–7 個工作天,首輪退件率不低)
 - **KV 為最終一致性**:剛寫入的排程項目在其他邊緣節點可能要數秒才可見——對「分鐘級排程」無實害,但代表 cron 掃描與立即寫入之間有短暫窗口
-- **cron 每分鐘觸發**:發佈時間精確度約 ±1 分鐘
+- **cron 每小時整點觸發(2026-09-08 維護者調整)**:排程發佈為整點批次,精確度約 ±60 分;頻率受 KV 免費方案 list 額度(1,000 次/日)約束,若未來需要分鐘級精度可改「佇列有項目時才 list」的旗標鍵設計
 - **單一平台(Threads)**:IG(需商業帳號)與 X(量計費)為後續增量;LINE 個人動態無 API,永不支援代發
 - **真實代發已驗收(2026-09-07)**:立即代發 `/api/threads/publish` 端到端成功(見 §6.1 #5 user_id 精度修正);排程 cron 路徑由單元測試覆蓋,如需實測可排一筆 2 分鐘後的短測試文觀察佇列狀態流轉
 

@@ -7,9 +7,11 @@ name = "text-message-worker"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
-# 排程 cron:每分鐘掃描到期項目(IG/Threads 無原生排程,由後端代發)
+# 排程 cron:每小時整點掃描到期項目(2026-09-08 維護者調整;排程發佈=整點批次,精度 ±60 分)。
+# 勿改回每分鐘:KV 免費方案 list 上限 1,000 次/日,每分鐘掃描=1,440 次會超額導致隔夜排程失效;
+# 若未來需要分鐘級精度,改「佇列旗標鍵」設計(有項目才 list)——見 docs/BACKEND.md §5。
 [triggers]
-crons = ["* * * * *"]
+crons = ["0 */1 * * *"]
 
 [[kv_namespaces]]
 binding = "QUEUE"
