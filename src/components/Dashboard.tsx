@@ -1,6 +1,6 @@
 import { SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import { dateLabel, fullDateLabel, greeting, toISODate } from '../utils/date';
+import { dateLabel, fullDateLabel, toISODate } from '../utils/date';
 import { effectiveStatus, overdueItems } from '../utils/schedule';
 import PlatformBadge from './PlatformBadge';
 import TrendsPanel from './TrendsPanel';
@@ -46,7 +46,7 @@ export default function Dashboard({ store }: { store: AppStore }) {
       >
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-main)' }}>
-            {greeting()},小日 👋
+            文管 Dashboard
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)', marginTop: 4 }}>
             {fullDateLabel()} · 這是你本週的發文進度

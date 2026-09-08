@@ -29,8 +29,9 @@ export interface UseThreadsProxyResult {
   refresh: () => Promise<void>;
   /** 開新分頁進行 Meta 授權。 */
   connect: () => void;
-  publish: (text: string) => Promise<BackendResult<{ id: string }>>;
-  schedule: (text: string, publishAt: number) => Promise<BackendResult<{ itemId: string }>>;
+  /** 回傳 null = 連點被同步鎖忽略(呼叫端靜默返回,不視為錯誤)。 */
+  publish: (text: string) => Promise<BackendResult<{ id: string }> | null>;
+  schedule: (text: string, publishAt: number) => Promise<BackendResult<{ itemId: string }> | null>;
   busy: boolean;
   queue: ThreadsQueueItemView[];
   queueLoading: boolean;
@@ -45,6 +46,7 @@ export function useThreadsProxy(): UseThreadsProxyResult {
   );
   const [authReturn, setAuthReturn] = useState<AuthReturn>(null);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [queue, setQueue] = useState<ThreadsQueueItemView[]>([]);
   const [queueLoading, setQueueLoading] = useState(false);
   const reqId = useRef(0);
@@ -112,20 +114,31 @@ export function useThreadsProxy(): UseThreadsProxyResult {
 
   const publish = useCallback(
     async (text: string) => {
+      // 同步鎖(busyRef):防同一影格內���快速連點在 React 重渲染前穿過 disabled 屬性
+      if (busyRef.current) return null;
+      busyRef.current = true;
       setBusy(true);
-      const r = await publishThreadsNow({ base: BACKEND_API_BASE, installId, text });
-      setBusy(false);
-      return r;
+      try {
+        return await publishThreadsNow({ base: BACKEND_API_BASE, installId, text });
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
     },
     [installId],
   );
 
   const schedule = useCallback(
     async (text: string, publishAt: number) => {
+      if (busyRef.current) return null;
+      busyRef.current = true;
       setBusy(true);
-      const r = await scheduleThreadsPost({ base: BACKEND_API_BASE, installId, text, publishAt });
-      setBusy(false);
-      return r;
+      try {
+        return await scheduleThreadsPost({ base: BACKEND_API_BASE, installId, text, publishAt });
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
     },
     [installId],
   );

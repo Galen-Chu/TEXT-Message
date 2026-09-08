@@ -106,6 +106,42 @@ export const DRAFT_LIBRARY_COPY = {
 /** 定排程類別篩選(IA Phase 4 D10)。「全部」+ 三大類。 */
 export const SCHEDULE_KIND_FILTERS: Array<'全部' | DocKind> = ['全部', 'draft', 'copy', 'message'];
 
+/** 雲端列 Drive(docs/DRIVE-PLAN)的使用者文案。 */
+export const DRIVE_COPY = {
+  title: '雲端列 Drive',
+  subtitle: '搜尋 Google Drive 裡自己寫的文章與筆記,引用到編發器作為素材',
+  demoNote: '(示範資料)',
+  connect: '連接 Google Drive',
+  connecting: '連線中…',
+  disconnect: '中斷連線',
+  connectedHint: '已連線 · 唯讀(token 僅存記憶體,中斷即撤銷;內容不落地)',
+  searchPlaceholder: '搜尋文檔名稱…',
+  searchButton: '搜尋',
+  listAll: '全部列出',
+  empty: '沒有找到符合的文檔',
+  previewTitle: '文檔預覽',
+  referenceButton: '引用到編發器',
+  referenceToast: '已引用 Drive 文檔到編發器 ✨',
+  copyButton: '複製全文',
+  copiedToast: '已複製全文到剪貼簿',
+  loading: '載入中…',
+};
+
+/** Drive 模組錯誤文案(依 services/drive/errors.ts 的 code 對應)。 */
+export const DRIVE_ERROR_COPY: Record<string, string> = {
+  disabled: '此版本未設定 Drive 連線',
+  gis_load_failed: 'Google 登入服務載入失敗,請確認網路後重試',
+  popup_blocked: '無法開啟 Google 登入視窗,請允許彈出視窗後重試',
+  access_denied: '已取消授權,未連接 Drive',
+  cancelled: '已取消連接',
+  network: '網路連線異常,請稍後再試',
+  unauthorized: 'Drive 授權已過期,請重新連接',
+  quota: '暫時達到 Google 用量上限,請稍後再試',
+  server: 'Google 服務暫時無法使用,請稍後再試',
+  parse: '文檔資料解析失敗',
+  unknown: '發生未預期的錯誤,請重試',
+};
+
 /** 編輯器「文檔類型」chip(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類。 */
 export const DRAFT_KIND_META: Array<{ key: DocKind; label: string }> = [
   { key: 'draft', label: '草稿' },
@@ -130,8 +166,8 @@ export const WEEKDAY_LABELS = ['週一', '週二', '週三', '週四', '週五',
 /** Gemini 語氣改寫(BYOK)的使用者文案。 */
 export const GEMINI_ERROR_COPY: Record<string, string> = {
   invalid_key: 'Gemini API key 無效或已停用,請至「AI 設定」檢查',
-  quota: 'Gemini 用量暫時達到上限,請稍後再試',
-  server: 'Gemini 服務暫時無法使用,請稍後再試',
+  quota: 'Gemini 用量達到上限(免費方案有每分鐘/每日請求數限制)——約等 1 分鐘再試;經常發生的話可考慮付費方案',
+  server: 'Gemini 模型暫時過���,請稍後再試(已自動換模型重試)',
   network: '網路連線異常,請稍後再試',
   no_content: 'Gemini 沒有回傳改寫內容,請再試一次',
   model_unavailable: '此 key 無法使用任何內建模型候選,請確認 key 已啟用 Generative Language API',
@@ -275,9 +311,11 @@ export const BACKEND_COPY = {
   refreshStatus: '檢查連線',
   connectedHint: '已連線(worker 保管加密 token,可隨時重新授權取代)',
   publishNow: '立即發佈',
+  publishingLabel: '發佈中…',
   scheduleLabel: '排程發佈(由後端 cron 到點自動發佈)',
   scheduleAtLabel: '排定時間',
   schedulePublish: '排程發佈',
+  schedulingLabel: '加入排程中…',
   needTextToast: '請先撰寫草稿內容',
   pastTimeToast: '排定時間已過,請選擇未來時間',
   publishedToast: '已發佈至 Threads ✅(已記錄至社群媒體歷史)',

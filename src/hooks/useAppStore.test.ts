@@ -626,6 +626,21 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(second.result.current.drafts).toHaveLength(after);
   });
 
+  it('insertDriveText:附加到既有草稿尾端;無草稿則空白開始並跳轉編發器(雲端列一期)', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.insertDriveText('第一段引用');
+    });
+    expect(result.current.draftText).toBe('第一段引用');
+    expect(result.current.activeTab).toBe('draft');
+    expect(result.current.selectedMailId).toBe('blank');
+
+    act(() => {
+      result.current.insertDriveText('第二段引用');
+    });
+    expect(result.current.draftText).toBe('第一段引用\n\n第二段引用');
+  });
+
   it('排程類別(IA Phase 4 D10):confirmSchedule 帶 draftKind;addManualSchedule 預設 copy、可指定', () => {
     const { result } = renderHook(() => useAppStore());
     act(() => {

@@ -33,6 +33,9 @@ export type RewriteErrorCode =
   | 'model_unavailable'
   | 'unknown';
 
+/** 模型候選間的換檔等待(讓限流窗口呼吸;免費方案常見 429/503 過載)。 */
+export const GEMINI_FALLBACK_DELAY_MS = 800;
+
 export type RewriteResult = { ok: true; text: string } | { ok: false; code: RewriteErrorCode };
 
 /** 各語氣給模型的具體指引(按鈕文字之外的完整定義)。 */
@@ -197,8 +200,12 @@ export async function generateContent(
     }
     if (!resp.ok) {
       lastCode = statusToCode(resp.status);
-      // 404 = 此 key 無此模型 → 試下一個候選;其餘錯誤(key/額度/服務)立即結束
-      if (lastCode !== 'model_unavailable') return { ok: false, code: lastCode };
+      console.error(`[gemini] ${model} → HTTP ${resp.status}`);
+      // 404(此 key 無此模型)、429(限流)、5xx(過載)→ 換下一個候選再試:
+      // 免費方案各模型有獨立的每分鐘/每日限額,換模型常可即時恢復;
+      // key 問題(400/401/403)換模型也沒救,立即結束
+      if (lastCode === 'invalid_key') return { ok: false, code: lastCode };
+      await new Promise((r) => setTimeout(r, GEMINI_FALLBACK_DELAY_MS));
       continue;
     }
     let json: unknown;

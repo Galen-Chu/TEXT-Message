@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   buildInstructionPrompt,
   buildRewritePrompt,
@@ -155,6 +155,29 @@ describe('rewriteWithGemini 模型降級', () => {
     expect(res2.ok && res2.text).toBe('再一次');
     expect(calls[0]).toContain('gemini-flash-latest');
     localStorage.clear();
+  });
+
+  it('429 限流(2026-09-08 排查)換下一個候選模型再試,成功即回傳', async () => {
+    localStorage.removeItem('text-message:gemini-model');
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        calls.push(u);
+        if (u.includes('gemini-2.5-flash')) {
+          return new Response('{}', { status: 429 });
+        }
+        return new Response(
+          JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }),
+          { status: 200 },
+        );
+      }),
+    );
+    const r = await rewriteWithGemini({ apiKey: 'k', text: 'x', tone: '親切' });
+    expect(r).toEqual({ ok: true, text: 'ok' });
+    expect(calls.some((u) => u.includes('gemini-flash-latest'))).toBe(true);
+    vi.unstubAllGlobals();
   });
 
   it('key 錯誤(403)不嘗試其他模型,直接回 invalid_key', async () => {

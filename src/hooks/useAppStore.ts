@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDrive } from './useDrive';
 import { useGmail } from './useGmail';
 import { useThreadsProxy } from './useThreadsProxy';
 import { useYoutube } from './useYoutube';
@@ -8,6 +9,7 @@ import {
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
   DRAFT_VARIANTS_COPY,
+  DRIVE_COPY,
   GEMINI_ERROR_COPY,
   LIBRARY_COPY,
   PLATFORM_LIST,
@@ -148,6 +150,7 @@ export function useAppStore() {
   const gmail = useGmail();
   const youtube = useYoutube();
   const threadsProxy = useThreadsProxy();
+  const drive = useDrive();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [demoEmails] = useState<Email[]>(initialEmails);
@@ -509,6 +512,14 @@ export function useAppStore() {
     showToast('已套用社群媒體歷史貼文');
   };
 
+  /** 引用 Drive 文檔到編輯緩衝(附加到尾端;DRIVE-PLAN D3),若尚無草稿目標則視為空白草稿開始。 */
+  const insertDriveText = (text: string) => {
+    setSelectedMailId((id) => id ?? 'blank');
+    setDraftText((t) => (t ? t + '\n\n' : '') + text);
+    setActiveTab('draft');
+    showToast(DRIVE_COPY.referenceToast);
+  };
+
   const applyTemplateToDraft = (tpl: Template, values?: Record<string, string>) => {
     setSelectedMailId((id) => id ?? 'blank');
     setDraftText(
@@ -749,6 +760,7 @@ export function useAppStore() {
       return;
     }
     const result = await threadsProxy.publish(draftText);
+    if (!result) return; // 連點被鎖定忽略
     if (result.ok) {
       appendPublishedHistory('threads', draftText.split('\n')[0], draftText);
       showToast(BACKEND_COPY.publishedToast);
@@ -769,6 +781,7 @@ export function useAppStore() {
       return;
     }
     const result = await threadsProxy.schedule(draftText, dt.getTime());
+    if (!result) return; // 連點被鎖定忽略
     if (result.ok) {
       addManualSchedule(
         draftText.split('\n')[0],
@@ -832,6 +845,7 @@ export function useAppStore() {
     gmail,
     youtube,
     threadsProxy,
+    drive,
     emails,
     templates,
     copyTemplates,
@@ -891,6 +905,7 @@ export function useAppStore() {
     togglePlatform,
     insertTemplateIntoDraft,
     pickSocialPost,
+    insertDriveText,
     applyTemplateToDraft,
     copyTemplate,
     addTemplate,

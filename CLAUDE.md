@@ -19,8 +19,9 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 - `src/services/youtube/` — YouTube 上傳模組(階段二):`gis`(沿用 gmail 的 GIS script 載入、獨立 token client,僅 `youtube.upload` scope)/`uploadApi`(resumable 兩步上傳,XHR 進度)/`video`(metadata 組裝與發佈計畫,UTF-8 bytes 上限,純邏輯)/`config`/`errors`;`src/hooks/useYoutube.ts` 為連線狀態機(鏡像 useGmail)
 - `worker/` — 平台代發後端(階段三,Cloudflare Workers + KV,零額外依賴):`src/index.ts`(路由 + 每分鐘 cron)/`threads/`(OAuth 交換/刷新 + container 發佈,可注入 fetcher 測試)/`store/`(AES-GCM 加密 + KV 存取)/`queue/`(到期/退避純邏輯);部署手冊 `docs/BACKEND.md`;worker 有獨立 tsconfig,`npm run build` 會一併型別檢查
 - `src/services/backend/` + `src/hooks/useThreadsProxy.ts` — 階段三前端串接:`config`(`VITE_API_BASE`,未設=disabled)/`client`(URL 組裝純函式+fetch 可注入,錯誤統一 BackendErrorCode)/`installId`(瀏覽器安裝識別碼,worker 以它對應保管 token);hook 管狀態機、OAuth 回跳偵測(`?threads=`)與雲端佇列
+- `src/services/drive/` + `src/hooks/useDrive.ts` — 雲端列 Drive(`docs/DRIVE-PLAN.md`):`config`(`VITE_DRIVE_CLIENT_ID`,缺時 fallback `VITE_GMAIL_CLIENT_ID`;未設=disabled)/`gis`(沿用 gmail GIS 載入,獨立 token client,僅 `drive.readonly`)/`driveApi`(files 搜尋+Docs 純文字匯出,fetch 可注入,純邏輯可測)/`errors`;hook 鏡像 useYoutube 連線狀態機(token 僅 useRef、401 靜默續約)
 - `src/services/gemini/rewrite.ts` — AI 文案(BYOK):語氣改寫/郵件摘要/自訂指令三個入口共用模型降級迴圈;prompt 組裝/回應解析/狀態碼對應為純函式;key 存 localStorage `text-message:gemini-key`(獨立於內容資料的 `text-message:v2`)
-- `src/components/` — 六頁面 + Sidebar / Modal / PlatformBadge;頁籤命名 v3(2026-09-04 IA 重整,`docs/IA-PLAN.md` D1;2026-09-07 晚「編輯器 Text」更名「編發器 Text」,D12):**文管 Dashboard / 郵件匣 Gmail / 自媒體 Social / 編發器 Text(原「草稿撰寫」)/ 定排程 Task / 文庫 Library(舊稱「文管庫」)**;內部識別字(Tab key、資料集名)未隨之改名
+- `src/components/` — 七頁面 + Sidebar / Modal / PlatformBadge;頁籤命名 v3(2026-09-04 IA 重整 `docs/IA-PLAN.md` D1;2026-09-07 晚「編輯器 Text」更名「編發器 Text」D12;2026-09-08 新增第七頁籤「雲端列 Drive」`docs/DRIVE-PLAN.md`):**文管 Dashboard / 郵件匣 Gmail / 自媒體 Social / 雲端列 Drive / 編發器 Text(原「草稿撰寫」)/ 定排程 Task / 文庫 Library(舊稱「文管庫」)**;內部識別字(Tab key、資料集名)未隨之改名
 - `src/data/mockData.ts` — 示範模式假資料(日期相對今天回推,不會過期)
 - `src/constants.ts` — 平台定義、分類、語氣規則、`GMAIL_ERROR_COPY`(UI 字串集中於此)
 - `vite.config.ts` 的 `base: '/TEXT-Message/'` 為 Pages 子路徑所需,勿移除
@@ -28,8 +29,8 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 ## 重要行為(修改時勿破壞)
 
 - `emails` 由 useAppStore 推導:**以 `gmail.status` 判斷、不是長度**——連線後空收件匣不得退回示範資料
-- localStorage 持久化僅限 templates / copyTemplates / scheduleItems / publishedHistory(標記已發佈的真實記錄)/ 草稿(draftText、draftPlatforms、draftSourceId;key `text-message:v2`);**emails 與 access token 絕不落地**(token 僅存記憶體,中斷連線即向 Google revoke)
-- 未設定 `VITE_GMAIL_CLIENT_ID` 的建置=純示範模式(不出現連接按鈕),且**建置不得失敗**——PR CI 常態驗證此路徑
+- localStorage 持久化僅限 templates / copyTemplates / scheduleItems / publishedHistory(標記已發佈的真實記錄)/ 草稿(draftText、draftPlatforms、draftSourceId;key `text-message:v2`);**emails、Drive 文檔內容與 access token 絕不落地**(token 僅存記憶體,中斷連線即向 Google revoke)
+- 未設定 `VITE_GMAIL_CLIENT_ID` 的建置=純示範模式(不出現連接按鈕;雲端列 Drive 同規,`VITE_DRIVE_CLIENT_ID` 缺時 fallback 之),且**建置不得失敗**——PR CI 常態驗證此路徑
 - YouTube 上傳(階段二)同規:Client ID 沿用 `VITE_YOUTUBE_CLIENT_ID`(缺時 fallback `VITE_GMAIL_CLIENT_ID`),未設定的建置不出現上傳區、建置不得失敗;token 僅存記憶體、中斷即 revoke。未過 Google API 稽核的專案上傳一律鎖私人(UI 已誠實標示);排程用 YouTube 原生 `publishAt`(private+publishAt),**零後端、不經任何第三方**
 - 後端資料邊界(階段 3 後端上線後適用):後端僅接收**排程貼文內容**與平台 token(加密保存、可隨時 revoke);**emails 與 AI key 永遠只留在使用者瀏覽器**,不落地也不上傳。未設定後端端點(`VITE_API_BASE`,正式站由 secret `BACKEND_API_BASE` 注入)的建置=完整半自動模式(一鍵複製+平台深連結),建置不得失敗——前端串接 UI(`useThreadsProxy`、編發器 Threads 發佈卡、排程頁雲端佇列)僅在 `BACKEND_ENABLED` 時出現
 - 語氣改寫分流:`useAppStore.applyTone` 有 Gemini key → 真實 API(失敗時草稿不動、僅 toast);無 key → 規則示範(`TONE_REWRITES`)。郵件摘要(`convertToDraft`)與自訂指令(`applyCustomInstruction`)同為 BYOK 分流:前者無 key 退回節錄文案,後者無 key 僅提示不動作。**任何路徑都不得影響建置/CI**
@@ -59,7 +60,8 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 1. ~~**文管庫功能深化**~~(**四期全部完成,2026-09-02**) — 第一期:範本變數填值(`utils/variables.ts`)、Social 頁「存為範本」、使用統計與排序。第二期:平台變體(`platformVariants` + `utils/variants.ts`)。第三期:發文趨勢(`utils/trends.ts` + `TrendsPanel`;僅計 `publishedHistory` 真實記錄、門檻 5 筆)。第四期:Gemini 產出輔助(`services/gemini/variants.ts`——`generateContent` 沿用 rewrite.ts 降級迴圈):「✨ 產生平台版本」(可編輯面板→附加到草稿 `[平台名 版]` 格式/存為範本)與「#️⃣ 建議標籤」(chips 點擊加入);無 key 依 D5 顯示按鈕但點擊僅提示。D1–D6 決議記錄見 `docs/LIBRARY-PLAN.md` §6。**遠期未做(F8):few-shot 範本生成、Gemini grounding 趨勢靈感(需先驗證 key 方案計費/可用性)**
 2. ~~**階段 3 前端串接**~~(2026-09-03 完成;**2026-09-04 worker 已部署、OAuth 端到端驗證通過**) — `services/backend`(config/client/installId)+ `useThreadsProxy`(狀態機、OAuth 回跳偵測、雲端佇列);草稿頁 Threads 代發卡(連線/立即發佈/排程發佈→雲端佇列+本地排程;2026-09-07 晚「代發」用語全面改「發佈」、頁籤更名編發器,D12)、排程頁雲端佇列卡(狀態/取消);worker `/api/threads/status`;`deploy.yml` 選用注入 `BACKEND_API_BASE`。首次實測挖出 5 個 worker OAuth/發佈 bug(端點/參數名/數字 id 型別/user_id 超 2^53 精度失真,已修+補測試),偵錯紀錄與可複用方法見 `docs/BACKEND.md` §6。**立即代發已於 2026-09-07 端到端驗收成功(發文 id 18027614201902484);正式站 `BACKEND_API_BASE` 已於 2026-09-07 設定並上線;之後 IG(需商業帳號)→ X(量計費)。待辦提醒:送出 Google API 稽核申請——稽核前 YouTube 上傳一律鎖私人
 3. **IA 重整(2026-09-04 啟動;2026-09-07 Phase 1–5 全數到位)** — 決策記錄與分期見 `docs/IA-PLAN.md`。Phase 1 六頁籤命名 v3 與品牌 TEXT-Message;Phase 2 三大類文檔模型(文庫草稿管理分頁);Phase 3 Gemini 依文檔類型分流;Phase 4 排程類別維度;Phase 5 一期=Gmail 互動通知分類(`classify` 平台通知網域/片語+自媒體「最新互動」卡,唯讀零紅線)。**二期以上(Threads 輪詢等)需維護者拍板,評估見 `docs/NOTIFY-PLAN.md`(含總驗收檢查表)**
-4. **階段 4(可選)— Web Push + Service Worker 提醒**
+4. **雲端列 Drive（2026-09-08 提案並同日完成一期）** — 新頁籤（第七）：串接 Google Drive（**唯讀** `drive.readonly`，GIS 模式，token 僅記憶體）；一期=搜尋/瀏覽 Docs 與純文字檔、純文字預覽、引用到編發器（附加尾端/空白開始），未設定或未連線顯示示範文檔；規劃與決策 D1–D5 見 `docs/DRIVE-PLAN.md`。**二期（未開工）：Gemini（BYOK）參照行文風格生成與「存為範本」寫入文庫**
+5. **階段 4(可選)— Web Push + Service Worker 提醒**
 
 ### 既有功能可優化(2026-08-31 完成第一輪)
 

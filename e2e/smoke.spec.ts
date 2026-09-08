@@ -7,10 +7,10 @@ async function gotoTab(page: import('@playwright/test').Page, name: string) {
   await page.locator('nav').getByText(name, { exact: true }).click();
 }
 
-test('載入:標題與側邊欄六個分頁', async ({ page }) => {
+test('載入:標題與側邊欄七個分頁', async ({ page }) => {
   await page.goto(PATH);
   await expect(page).toHaveTitle('TEXT-Message');
-  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '編發器 Text', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '定排程 Task', '文庫 Library']) {
     await expect(page.locator('nav').getByText(nav, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('近期排程')).toBeVisible();
@@ -18,7 +18,7 @@ test('載入:標題與側邊欄六個分頁', async ({ page }) => {
 
 test('分頁切換:各頁主標題正確', async ({ page }) => {
   await page.goto(PATH);
-  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '編發器 Text', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '定排程 Task', '文庫 Library']) {
     await gotoTab(page, nav);
     await expect(page.locator('main').getByText(nav, { exact: true }).first()).toBeVisible();
   }
@@ -28,6 +28,19 @@ test('分頁切換:各頁主標題正確', async ({ page }) => {
   // IA Phase 5:自媒體頁有「最新互動」卡(平台互動通知信)
   await gotoTab(page, '自媒體 Social');
   await expect(page.getByText('最新互動').first()).toBeVisible();
+});
+
+test('雲端列:示範文檔可預覽並引用到編發器', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '雲端列 Drive');
+  await expect(page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first()).toBeVisible();
+
+  await page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first().click();
+  await expect(page.getByRole('button', { name: '引用到編發器' })).toBeVisible();
+  await page.getByRole('button', { name: '引用到編發器' }).click();
+
+  await expect(page.locator('main').getByText('編發器 Text', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('textarea').first()).toHaveValue(/蘭嶼慢旅記/);
 });
 
 test('郵件匣:示範模式與連線入口的狀態一致', async ({ page }) => {

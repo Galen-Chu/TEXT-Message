@@ -88,6 +88,22 @@ describe('useThreadsProxy', () => {
     expect(result.current.status).toBe('connected');
   });
 
+  it('連點鎖定(2026-09-08 防呆):操作進行中重複呼叫回 null,完成後解鎖', async () => {
+    let release: (v: unknown) => void = () => {};
+    vi.mocked(publishThreadsNow).mockImplementation(
+      () => new Promise((res) => { release = res; }) as unknown as Promise<{ ok: true; data: { id: string } }>,
+    );
+    const { result } = renderHook(() => useThreadsProxy());
+    const first = result.current.publish('文字');
+    const second = result.current.publish('文字'); // 第一次仍在進行中
+    await expect(second).resolves.toBeNull();
+    release({ ok: true, data: { id: 'p9' } });
+    await expect(first).resolves.toEqual({ ok: true, data: { id: 'p9' } });
+
+    vi.mocked(publishThreadsNow).mockResolvedValue({ ok: true, data: { id: 'p10' } });
+    await expect(result.current.publish('再來')).resolves.toEqual({ ok: true, data: { id: 'p10' } });
+  });
+
   it('publish / schedule / loadQueue / cancel 流經 client', async () => {
     vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: true } });
     vi.mocked(publishThreadsNow).mockResolvedValue({ ok: true, data: { id: 'p1' } });
@@ -101,7 +117,7 @@ describe('useThreadsProxy', () => {
     const { result } = renderHook(() => useThreadsProxy());
     await act(async () => {});
 
-    let r: { ok: boolean } | undefined;
+    let r: { ok: boolean } | undefined | null;
     await act(async () => {
       r = await result.current.publish('貼文');
     });

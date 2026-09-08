@@ -7,6 +7,7 @@ const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
   { key: 'dashboard', icon: '🏠', label: '文管 Dashboard' },
   { key: 'inbox', icon: '📥', label: '郵件匣 Gmail' },
   { key: 'social', icon: '📣', label: '自媒體 Social' },
+  { key: 'drive', icon: '☁️', label: '雲端列 Drive' },
   { key: 'draft', icon: '✍️', label: '編發器 Text' },
   { key: 'schedule', icon: '📅', label: '定排程 Task' },
   { key: 'library', icon: '🗂️', label: '文庫 Library' },
@@ -78,21 +79,21 @@ export default function Sidebar({ store }: { store: AppStore }) {
           style={{
             width: 34,
             height: 34,
-            borderRadius: '50%',
-            background: 'var(--brand)',
+            borderRadius: 10,
+            background: 'linear-gradient(135deg,#6C5CE7,#FF7A59)',
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 16,
           }}
         >
-          小日
+          文
         </div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>小日子生活誌</div>
-          <div style={{ fontSize: 11, color: 'var(--text-weak)' }}>個人自媒體帳號</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>文管庫</div>
+          <div style={{ fontSize: 11, color: 'var(--text-weak)' }}>社群媒體每日發文工具</div>
         </div>
       </div>
     </div>

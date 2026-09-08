@@ -29,10 +29,7 @@ import VariableFillModal from './VariableFillModal';
 export default function Draft({ store }: { store: AppStore }) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showSocialPicker, setShowSocialPicker] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState(store.tomorrowISO);
-  const [scheduleTime, setScheduleTime] = useState('09:00');
   const [customInstruction, setCustomInstruction] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
@@ -96,8 +93,6 @@ export default function Draft({ store }: { store: AppStore }) {
 
   const draftLength = charCount(store.draftText);
   const selectedPlatforms = PLATFORM_LIST.filter((p) => store.draftPlatforms[p.key]);
-  const selectedPlatformLabelsText =
-    selectedPlatforms.map((p) => p.label).join('、') || '尚未選擇平台';
 
   return (
     <div>
@@ -462,6 +457,28 @@ export default function Draft({ store }: { store: AppStore }) {
                   );
                 })}
               </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <button
+                  onClick={store.discardDraft}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: 9,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: 'var(--error)',
+                    background: 'var(--bg)',
+                  }}
+                >
+                  捨棄草稿
+                </button>
+                <button
+                  className="btn btn-outline"
+                  style={{ padding: '9px 16px', fontSize: 12.5 }}
+                  onClick={store.saveDraft}
+                >
+                  儲存草稿
+                </button>
+              </div>
             </div>
 
             <div className="card" style={{ padding: 18 }}>
@@ -754,9 +771,14 @@ export default function Draft({ store }: { store: AppStore }) {
                       className="btn btn-accent"
                       onClick={() => void store.publishDraftToThreadsNow()}
                       disabled={store.threadsProxy.busy}
-                      style={{ width: '100%', marginBottom: 12 }}
+                      style={{
+                        width: '100%',
+                        marginBottom: 12,
+                        opacity: store.threadsProxy.busy ? 0.5 : 1,
+                        cursor: store.threadsProxy.busy ? 'not-allowed' : 'pointer',
+                      }}
                     >
-                      {BACKEND_COPY.publishNow}
+                      {store.threadsProxy.busy ? BACKEND_COPY.publishingLabel : BACKEND_COPY.publishNow}
                     </button>
                     <div className="field-label">{BACKEND_COPY.scheduleLabel}</div>
                     <input
@@ -771,9 +793,13 @@ export default function Draft({ store }: { store: AppStore }) {
                       className="btn btn-outline"
                       onClick={() => void store.scheduleDraftToThreads(threadsScheduleAt)}
                       disabled={store.threadsProxy.busy}
-                      style={{ width: '100%' }}
+                      style={{
+                        width: '100%',
+                        opacity: store.threadsProxy.busy ? 0.5 : 1,
+                        cursor: store.threadsProxy.busy ? 'not-allowed' : 'pointer',
+                      }}
                     >
-                      {BACKEND_COPY.schedulePublish}
+                      {store.threadsProxy.busy ? BACKEND_COPY.schedulingLabel : BACKEND_COPY.schedulePublish}
                     </button>
                   </div>
                 )}
@@ -784,25 +810,6 @@ export default function Draft({ store }: { store: AppStore }) {
                 )}
               </div>
             )}
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={store.discardDraft}
-                style={{ padding: '11px 12px', fontSize: 12.5, fontWeight: 700, color: 'var(--error)' }}
-              >
-                捨棄草稿
-              </button>
-              <button className="btn btn-outline" style={{ padding: '11px 20px' }} onClick={store.saveDraft}>
-                儲存草稿
-              </button>
-              <button
-                className="btn btn-accent"
-                style={{ padding: '11px 22px' }}
-                onClick={() => setShowScheduleModal(true)}
-              >
-                加入排程 →
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1026,51 +1033,6 @@ export default function Draft({ store }: { store: AppStore }) {
         </Modal>
       )}
 
-      {showScheduleModal && (
-        <Modal onClose={() => setShowScheduleModal(false)} width={420} label="加入排程">
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
-            加入排程
-          </div>
-          <div className="field-label">日期</div>
-          <input
-            className="text-input"
-            type="date"
-            value={scheduleDate}
-            onChange={(e) => setScheduleDate(e.target.value)}
-            style={{ marginBottom: 14 }}
-          />
-          <div className="field-label">時間</div>
-          <input
-            className="text-input"
-            type="time"
-            value={scheduleTime}
-            onChange={(e) => setScheduleTime(e.target.value)}
-            style={{ marginBottom: 16 }}
-          />
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 16 }}>
-            將發布至:{selectedPlatformLabelsText}
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              className="btn btn-ghost"
-              style={{ borderRadius: 9 }}
-              onClick={() => setShowScheduleModal(false)}
-            >
-              取消
-            </button>
-            <button
-              className="btn btn-accent"
-              style={{ borderRadius: 9 }}
-              onClick={() => {
-                store.confirmSchedule(scheduleDate, scheduleTime);
-                setShowScheduleModal(false);
-              }}
-            >
-              確認排程
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

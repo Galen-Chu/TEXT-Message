@@ -2,6 +2,32 @@ import type { DraftDoc, Email, ScheduleItem, SocialPost, Template } from '../typ
 import { getWeekDates, toISODate } from '../utils/date';
 
 /**
+ * 雲端列 Drive 示範文檔(未連線/未設定時顯示;DRIVE-PLAN D5)。
+ */
+export function initialDriveDocs(): Array<{ id: string; name: string; mimeType: string; modifiedTime?: string }> {
+  return [
+    {
+      id: 'demo-d1',
+      name: '蘭嶼慢旅記:三天兩夜的手帳筆記',
+      mimeType: 'application/vnd.google-apps.document',
+      modifiedTime: '2026-08-28T10:00:00Z',
+    },
+    {
+      id: 'demo-d2',
+      name: '寫作風格筆記——我怎麼寫開場',
+      mimeType: 'application/vnd.google-apps.document',
+      modifiedTime: '2026-08-15T08:00:00Z',
+    },
+    {
+      id: 'demo-d3',
+      name: '讀者問答整理(2026 Q3).txt',
+      mimeType: 'text/plain',
+      modifiedTime: '2026-07-30T16:00:00Z',
+    },
+  ];
+}
+
+/**
  * 草稿管理預設範本(2026-09-07 UX 優化):常見電子郵件回覆骨架,首次使用即有起點;
  * 使用者儲存任一草稿後即為自己的內容(預設僅在從無 drafts 記錄時載入)。
  */

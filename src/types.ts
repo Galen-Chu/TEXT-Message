@@ -1,4 +1,4 @@
-export type Tab = 'dashboard' | 'inbox' | 'social' | 'schedule' | 'draft' | 'library';
+export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'schedule' | 'draft' | 'library';
 
 export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt';
 
