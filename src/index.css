@@ -1,6 +1,11 @@
 :root {
-  --brand: #6c5ce7;
-  --accent: #ff7a59;
+  /* 文字對比以 WCAG 2.1 AA(≥4.5:1)驗證,全組合數值見 scripts/contrast-audit.mjs */
+  color-scheme: light;
+  /* brand/accent=文字用色調(淺底深、深底淺);brand-fill/accent-fill=底色填充(白/深字搭配) */
+  --brand: #5849d2;
+  --brand-fill: #6c5ce7;
+  --accent: #b03d1d;
+  --accent-fill: #ff7a59;
   --bg: #f6f5fb;
   --card: #ffffff;
   --surface-soft: #f8f7fd;
@@ -9,18 +14,23 @@
   --border-3: #e4e1f5;
   --text-main: #1f2333;
   --text-sub: #5b5773;
-  --text-weak: #8b87a8;
-  --text-faint: #b4afcb;
+  --text-weak: #66627e;
+  --text-faint: #736e92;
   --pill-purple-bg: #f1edff;
   --pill-purple-bg-2: #edeafb;
   --pill-orange-bg: #fff1ec;
-  --error: #e74c3c;
+  --error: #d62f1c;
   --shadow-card: 0 2px 10px rgba(108, 92, 231, 0.06);
 }
 
-/* 深色模式:僅覆寫語意變數(元件皆走變數),品牌色維持識別 */
+/* 深色模式:僅覆寫語意變數(元件皆走變數);brand 文字調亮、fill 維持識別 */
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+    --brand: #a79aff;
+    --brand-fill: #6c5ce7;
+    --accent: #ff9d7d;
+    --accent-fill: #ff7a59;
     --bg: #15152a;
     --card: #22223a;
     --surface-soft: #2a2a44;
@@ -30,7 +40,7 @@
     --text-main: #eceaf7;
     --text-sub: #c6c3dd;
     --text-weak: #9b97b8;
-    --text-faint: #716d90;
+    --text-faint: #8d89ae;
     --pill-purple-bg: #2f2a4e;
     --pill-purple-bg-2: #342f57;
     --pill-orange-bg: #45312a;
@@ -59,9 +69,24 @@ body {
   border-radius: 8px;
 }
 
+/* 表單控制項:明確配對底色與文字色(深色模式下 UA 預設白底曾導致近白字壓白底) */
+input,
+textarea,
+select {
+  background: var(--card);
+  color: var(--text-main);
+}
+::placeholder {
+  color: var(--text-sub);
+  opacity: 1;
+}
+
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   outline: none;
+  border-color: var(--brand-fill);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.18);
 }
 
 button {
@@ -86,7 +111,7 @@ button {
   padding: 10px 18px;
 }
 .btn-primary {
-  background: var(--brand);
+  background: var(--brand-fill);
   color: #fff;
 }
 .btn-outline {
@@ -95,8 +120,8 @@ button {
   color: var(--brand);
 }
 .btn-accent {
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-fill);
+  color: #38130a;
 }
 .btn-ghost {
   background: var(--bg);

@@ -32,7 +32,7 @@ function BarRow({ label, count, max }: { label: string; count: number; max: numb
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: 'var(--brand)',
+            background: 'var(--brand-fill)',
             borderRadius: '2px 4px 4px 2px',
           }}
         />

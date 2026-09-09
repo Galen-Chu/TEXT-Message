@@ -244,7 +244,7 @@ export default function Inbox({ store }: { store: AppStore }) {
                 style={{
                   padding: '8px 14px',
                   borderRadius: 9,
-                  background: 'var(--brand)',
+                  background: 'var(--brand-fill)',
                   color: '#fff',
                   fontSize: 12.5,
                   fontWeight: 700,

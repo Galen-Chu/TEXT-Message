@@ -52,7 +52,8 @@ npm run test:e2e   # Playwright E2E(serve dist;跑之前先 npm run build)
 ## 開發待辦與優化清單(2026-09-07 IA 重整收尾歸檔;2026-09-02 社群管理清單見下)
 
 **階段現況(2026-09-07 IA 重整收尾歸檔)**:**IA 重整 Phase 1–5 已於 2026-09-07 一日全數完成**(`docs/IA-PLAN.md`;Phase 5 二期方案待維護者拍板,見 `docs/NOTIFY-PLAN.md`);**階段 3(平台代發)已閉環**——worker 部署上線、OAuth 與立即代發端到端驗收通過、正式站 `BACKEND_API_BASE` 已注入(2026-09-07)。**2026-09-07 晚追加 UX 優化批(D12)**:套用編發器/發佈用語/頁籤更名編發器/草稿管理預設範本/OAuth 授權分頁 popup 自動返回。**2026-09-08 上午:回歸測試驗收**(逐項檢查表見 `docs/NOTIFY-PLAN.md` §5,已對齊新命名)。
-**2026-09-08 晚:雲端列 Drive 一、二期同日完成**(AI 風格參照+存為範本,`docs/DRIVE-PLAN.md` D1–D7)、UX 優化二批 D13、worker cron 改每小時整點(KV list 額度約束)、全 repo U+FFFD 壞字元清查完畢。**明日(09-09)接續:FB 粉專發佈串接**(維護者建立粉專中,工程評估已完成——單步 Pages API);技術債 sprint(React 19 等)另排獨立時段。歷史階段狀況(2026-09-02 收尾歸檔):階段 0/1/2 完成、文管庫深化四期完成;階段 4(Web Push)未開工;IG/X 代發為後續增量。
+**2026-09-08 晚:雲端列 Drive 一、二期同日完成**(AI 風格參照+存為範本,`docs/DRIVE-PLAN.md` D1–D7)、UX 優化二批 D13、worker cron 改每小時整點(KV list 額度約束)、全 repo U+FFFD 壞字元清查完畢。歷史階段狀況(2026-09-02 收尾歸檔):階段 0/1/2 完成、文管庫深化四期完成;階段 4(Web Push)未開工;IG/X 代發為後續增量。
+**2026-09-09:Drive 首次真實串接+搜尋 q 語法 bug 修復、全站配色 WCAG AA 修正、技術債評估定案。**維護者另建 Cloud 專案與獨立 OAuth client 啟用 Drive API(本機 `.env.local` 已設 `VITE_DRIVE_CLIENT_ID`;正式站待 GitHub secret+`deploy.yml` 注入,`.env.example` 已補說明);首次真打 Drive API 揭漏 `buildListQuery` mimeType 子句語法錯誤(400 invalid q),已修+測試斷言補完整請求形狀(09-04 串接紀律重演案例)。配色:深色模式 `color-scheme` 缺失致輸入框白底白字(對比 1.19:1)等多項未達 AA,全數修正;brand/accent 分離「文字色調/填充 fill」雙 token(深色模式文字自動轉亮);btn-accent 白字→深棕字;輸入框補 focus 視覺;稽核腳本 `scripts/contrast-audit.mjs`(PlatformBadge 平台識別色除外,識別優先)。技術債遷移順序定案:**React 19 → Vite 8+Vitest 4+plugin-react v6 綁同一步**(Vitest 4 要求 Vite ≥6,唯一硬耦合)**→ TS 7**(`tsc -b` 已支援;`moduleResolution: bundler` 無虞)。**09-10 接續:FB 粉專發佈串接**(粉專建立中);待辦:正式站 Drive 注入、`SETUP.md` 補 Drive 章節、Cloudflare token 刪除、Google API 稽核申請。
 
 已上線:Gmail 唯讀收件匣(2026-08-18)、Gemini BYOK 語氣改寫(2026-08-28,`services/gemini/rewrite.ts`)。以下各項動手時仍受「重要行為」紅線約束。
 

@@ -721,7 +721,7 @@ export default function Draft({ store }: { store: AppStore }) {
                           style={{
                             width: `${Math.round(yt.uploadProgress * 100)}%`,
                             height: '100%',
-                            background: 'var(--brand)',
+                            background: 'var(--brand-fill)',
                             transition: 'width 0.2s ease',
                           }}
                         />

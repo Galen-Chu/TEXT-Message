@@ -21,12 +21,13 @@ export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 /**
  * 搜尋清單查詢(DRIVE-PLAN D3):名稱包含關鍵字、僅 Docs 與純文字檔、排除垃圾筒。
- * query 為空 = 列出全部(依修改時間新→舊)。
+ * query 為空 = 列出全部(依修改時間新→舊)。q 語法:字串值一律單引號、項目在運算子左側
+ * (值含 ' 或 \ 時以反斜線跳脫)。https://developers.google.com/drive/api/guides/search-files
  */
 export function buildListQuery(query: string): string {
   const parts = [
     'trashed = false',
-    `(${DOCS_MIME.replace(/[/]/g, '\\/')} = mimeType or mimeType = 'text/plain')`,
+    `(mimeType = '${DOCS_MIME}' or mimeType = 'text/plain')`,
   ];
   const q = query.trim();
   if (q) parts.push(`name contains '${q.replace(/'/g, "\\'")}'`);

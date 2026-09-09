@@ -4,12 +4,15 @@ import { DOCS_MIME, buildListQuery, exportDocText, listDriveDocs, type Fetcher }
 describe('buildListQuery', () => {
   it('僅 Docs 與純文字檔、排除垃圾筒;關鍵字進 name contains(引號轉義)', () => {
     const base = buildListQuery('');
-    expect(base).toContain('trashed = false');
-    expect(base).toContain('mimeType');
-    expect(base).not.toContain('name contains');
+    expect(base).toBe(
+      "trashed = false and (mimeType = 'application/vnd.google-apps.document' or mimeType = 'text/plain')",
+    );
 
     const q = buildListQuery("旅途's 記事");
-    expect(q).toContain("name contains '旅途\\'s 記事'");
+    expect(q).toBe(
+      "trashed = false and (mimeType = 'application/vnd.google-apps.document' or mimeType = 'text/plain')" +
+        " and name contains '旅途\\'s 記事'",
+    );
   });
 });
 
@@ -22,11 +25,16 @@ describe('listDriveDocs', () => {
         url: u.origin + u.pathname,
         auth: ((init?.headers ?? {}) as Record<string, string>)['Authorization'] ?? '',
       };
-      expect(u.searchParams.get('q')).toContain('trashed = false');
       expect(u.searchParams.get('orderBy')).toBe('modifiedTime desc');
       if (u.searchParams.get('pageToken') === 'p2') {
+        expect(u.searchParams.get('q')).toBe(
+          "trashed = false and (mimeType = 'application/vnd.google-apps.document' or mimeType = 'text/plain')",
+        );
         return new Response(JSON.stringify({ files: [{ id: 'f2', name: 'B', mimeType: 'text/plain' }] }));
       }
+      expect(u.searchParams.get('q')).toBe(
+        "trashed = false and (mimeType = 'application/vnd.google-apps.document' or mimeType = 'text/plain') and name contains '遊記'",
+      );
       return new Response(
         JSON.stringify({
           nextPageToken: 'p2',
