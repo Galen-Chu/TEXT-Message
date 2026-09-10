@@ -163,7 +163,7 @@ npm run dev        # http://localhost:5173
 2. 同意畫面(§3)Scopes 加入 `https://www.googleapis.com/auth/drive.readonly`;測試使用者清單同樣適用
 3. OAuth 用戶端兩種路線:
    - **沿用 §4 的用戶端**(同一專案):`VITE_DRIVE_CLIENT_ID` 留空即可,自動沿用 `VITE_GMAIL_CLIENT_ID`
-   - **獨立用戶端**(本專案 2026-09-09 起採用,另建 Cloud 專案與 Gmail 授權隔離):Credentials 另建 Web application 用戶端,origins 同 §4 兩筆,填入 `VITE_DRIVE_CLIENT_ID`
+   - **獨立用戶端**(本專案現行採用;2026-09-10 起**建在原專案內**另建 Web application 用戶端,origins 同 §4 兩筆,填入 `VITE_DRIVE_CLIENT_ID`——09-09 曾另建獨立 Cloud 專案,翌日遷回集中管理)
 4. 本機:`.env.local` 填 `VITE_DRIVE_CLIENT_ID=你的用戶端ID`,重啟 dev server
 5. 正式部署:GitHub repo → Settings → Secrets and variables → Actions → New repository secret,Name **`DRIVE_CLIENT_ID`**、Secret 貼用戶端 ID;`deploy.yml` 會寫入 `.env.production`(未設 = 沿用 Gmail 用戶端——若 Gmail 專案未啟用 Drive API,連線會失敗;建置本身不受影響)
 
