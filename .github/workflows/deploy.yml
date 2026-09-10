@@ -43,6 +43,14 @@ jobs:
           if [ -n "$BACKEND_API_BASE" ]; then
             printf 'VITE_API_BASE=%s\n' "$BACKEND_API_BASE" >> .env.production
           fi
+      # 雲端列 Drive(選用):secret DRIVE_CLIENT_ID 缺漏 = 沿用 Gmail 用戶端,建置不失敗
+      - name: Write Drive client ID env
+        env:
+          DRIVE_CLIENT_ID: ${{ secrets.DRIVE_CLIENT_ID }}
+        run: |
+          if [ -n "$DRIVE_CLIENT_ID" ]; then
+            printf 'VITE_DRIVE_CLIENT_ID=%s\n' "$DRIVE_CLIENT_ID" >> .env.production
+          fi
       - run: npm test
       # build 內含 tsc -b 型別檢查,等同基本 CI 關卡
       - run: npm run build

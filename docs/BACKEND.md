@@ -21,7 +21,7 @@
 ## 2. 部署步驟
 
 ```bash
-# 1) 安裝 wrangler 並登入(瀏覽器授權)
+# 1) 安裝 wrangler 並登入(瀏覽器授權;本 repo 慣例改用 API token,見 §2.1)
 npx wrangler login
 
 # 2) 建立 KV namespace,記下回傳的 id
@@ -41,6 +41,21 @@ cd worker && npx wrangler deploy
 ```
 
 部署後 `npx wrangler secret list` 應列出三個 secrets;`curl https://<worker-domain>/health` 應回 `{"ok":true,"threadsConfigured":true}`。
+
+### 2.1 Cloudflare API token:取得、使用、用完即刪(2026-09-10 回補)
+
+`wrangler login` 的 `localhost:8976` 回呼在某些環境會被瀏覽器/安全軟體攔(§6.2 #4);本 repo 慣例是**全程以 API token 認證**,不依賴 `wrangler login`:
+
+1. **取得**:<https://dash.cloudflare.com> → 右上角頭像 → **My Profile → API Tokens → Create Token** → 選範本 **Edit Cloudflare Workers**(涵蓋 Workers Scripts 與 KV 編輯權限,足夠 deploy、secret 與 KV 管理)→ 建立後**立刻複製(只顯示一次)**
+2. **使用**:以環境變數傳入,所有 wrangler 指令比照,例:`CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy`(務必在 `worker/` 目錄執行)
+3. **用完即刪**:部署與日常維運不需要常駐 token——做完回同一頁面 **Roll** 或 **Delete**,下次部署再重建一枚
+4. **紀律(2026-09 教訓)**:token 不寫進 repo、不貼進任何對話或文件、不存 shell 設定檔;一旦出現在任何非預期場所,即視同外洩,立即 Roll;跨設備傳遞走密碼管理器
+
+> 前端手冊 `docs/SETUP.md` 開頭「前置:Cloudflare API token」為同流程簡版,供只需部署後端的人快速查閱。
+
+### 2.2 KV namespace id:repo 佔位符、真實 id 僅本機(慣例)
+
+`worker/wrangler.toml` 在 repo 中**保持佔位符 `REPLACE_WITH_YOUR_KV_NAMESPACE_ID`**;維護者的真實 namespace id 只存在**本機未提交的 wrangler.toml**,部署以本機檔案為準。因此 commit 時勿 `git add -A`,以指定檔案清單排除該檔。自架者以 §2 步驟 2 建立自己的 namespace 後,同樣只需改本機檔案——namespace id 非機密,此慣例是為了讓 repo 範本對自架者永遠是「待填」狀態。
 
 ## 3. 本機開發與驗收
 

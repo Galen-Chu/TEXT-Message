@@ -2,6 +2,15 @@
 
 本文件說明如何設定「文管庫」的 Gmail API 串接,以及驗收測試者如何使用。全程不需要任何伺服器——本專案是純前端應用,Gmail 授權與郵件讀取都在你的瀏覽器內完成。
 
+## 前置:Cloudflare API token(僅「平台代發」後端路線需要)
+
+本手冊主體(Gmail / YouTube / Drive 前端串接)**完全不需要 Cloudflare**;只有選��後端輔助(Threads 等平台代發)時,才需要一枚 Cloudflare API token 部署 worker(完整部署手冊見 `docs/BACKEND.md`):
+
+1. 登入 <https://dash.cloudflare.com> → 右上角頭像 → **My Profile → API Tokens → Create Token**
+2. 選範本 **Edit Cloudflare Workers**(涵蓋 Workers Scripts 與 KV 的編輯權限,足夠 `wrangler deploy` 與 secret 管理)→ 建立後**立刻複製**(只顯示一次)
+3. 部署時以環境變數傳入,並在 `worker/` 目錄��行:`CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy`——此方式可完全繞過 `wrangler login` 的 localhost 回呼問題
+4. **資安紀律(2026-09 教訓)**:token 只存在環境變數或密碼管理器,**不寫進 repo、不貼進任何對話或文件**;部署完的日常不需要它——建議直接回同一頁面 **Roll** 或 **Delete**,下次部署再重建即可
+
 ## 0. 這份文件給誰看
 
 | 你的角色 | 請看 |
@@ -104,6 +113,7 @@ npm run dev        # http://localhost:5173
 - 分類標籤與「建議可發文」為本機關鍵字規則(非 AI),判斷都在瀏覽器內完成
 - 應用維持 Google OAuth **Testing** 模式:這是免驗證使用受限範圍的合法路徑,代價是 100 位測試使用者上限與測試者會看到未驗證警告;若未來要正式公開,需依 Google 政策完成驗證(可能含獨立資安評估),詳見 Google 官方文件
 - YouTube 上傳(§11)授權僅 `youtube.upload`(上傳影片與設定說明,不含讀取頻道數據);影片檔由瀏覽器直傳 Google,不經任何第三方
+- 雲端列 Drive(§12)授權僅 `drive.readonly`(唯讀):不會上傳、修改或刪除任何 Drive 檔案;文檔內容只在瀏覽器處理,風格樣本僅保存中繼資料(名稱/類型),內容不落地、不上傳後端
 
 ## 10. 疑難排解
 
@@ -142,3 +152,35 @@ npm run dev        # http://localhost:5173
 3. 選一支短影片檔 → 選「立即公開」→ 上傳 → 進度條跑完後出現成功 toast,且社群媒體頁頂端多一筆 YouTube 真實記錄
 4. 再試「預約發佈」:選未來時間 → 上傳後排程頁多一筆 YouTube 排程(YouTube 會在排定時間自動公開,屆時手動「標記已發佈」即可)
 5. 到 YouTube Studio 確認影片存在;若顯示「私人(鎖定)」屬上述稽核前預期行為
+
+## 12. 雲端列 Drive 文檔庫(選用,2026-09 新增)
+
+第七頁籤「雲端列 Drive」:唯讀瀏覽自己 Google Drive 裡的 Docs 與純文字檔,搜尋、純文字預覽、引用到編發器;並支援「AI 風格參照」(至多 3 篇樣本,模仿你的行文)與「存為範本」入文庫。與 Gmail/YouTube 同一唯讀哲學,全程在瀏覽器內完成。
+
+### 設定步驟
+
+1. 在發 Client ID 的 Google Cloud 專案啟用 **Google Drive API**(APIs & Services → Library → 搜尋 Google Drive API → Enable)——**必須啟用在同一個專案**,否則 API 呼叫會 403
+2. 同意畫面(§3)Scopes 加入 `https://www.googleapis.com/auth/drive.readonly`;測試使用者清單同樣適用
+3. OAuth 用戶端兩種路線:
+   - **沿用 §4 的用戶端**(同一專案):`VITE_DRIVE_CLIENT_ID` 留空即可,自動沿用 `VITE_GMAIL_CLIENT_ID`
+   - **獨立用戶端**(本專案 2026-09-09 起採用,另建 Cloud 專案與 Gmail 授權隔離):Credentials 另建 Web application 用戶端,origins 同 §4 兩筆,填入 `VITE_DRIVE_CLIENT_ID`
+4. 本機:`.env.local` 填 `VITE_DRIVE_CLIENT_ID=你的用戶端ID`,重啟 dev server
+5. 正式部署:GitHub repo → Settings → Secrets and variables → Actions → New repository secret,Name **`DRIVE_CLIENT_ID`**、Secret 貼用戶端 ID;`deploy.yml` 會寫入 `.env.production`(未設 = 沿用 Gmail 用戶端——若 Gmail 專案未啟用 Drive API,連線會失敗;建置本身不受影響)
+
+### 重要注意事項
+
+- 授權範圍僅 `drive.readonly`(唯讀):不會上傳、修改或刪除任何檔案
+- 文檔內容與郵件同級紅線:**不落地、不上傳後端**;token 僅存記憶體,中斷連線即向 Google 撤銷
+- 「風格樣本」只保存中繼資料(檔名/類型);生成時才即時匯出文字、每篇截前 800 字,且走使用者自己的 Gemini key(BYOK)
+- 支援範圍:Google Docs 與純文字檔;PDF/試算表/圖片不支援(清單誠實標示)
+- 未設定 Client ID 的建置顯示示範文檔(同 Gmail 哲學),CI 建置不受影響
+
+### 驗收測試
+
+1. 「雲端列 Drive」頁 →「連接 Google 帳號」→ 同意唯讀授權(測試模式會出現未驗證警告,同 §7 的繼續方式)
+2. 輸入關鍵字搜尋 → 清單列出自己 Drive 中的 Docs / 純文字檔(名稱與修改時間)
+3. 點選文檔 → 純文字預覽,中文正確顯示
+4. 「引用到編發器」→ 跳到編發器且草稿附加該文內容
+5. 預覽內標記「風格樣本」(至多 3 篇)→ 編發器 AI 卡出現「參照我的 Drive 風格(N 篇)」,語氣改寫結果貼近樣本行文
+6. 「存為範本」→ 選三大類 → 文庫對應分類出現該範本
+7. 「中斷連線」→ 回示範模式;重新整理後不殘留任何 Drive 資料(token 僅在記憶體)
