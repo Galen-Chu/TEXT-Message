@@ -84,11 +84,13 @@ test('文庫:三分頁切換與新增內容 modal', async ({ page }) => {
   await expect(page.getByText('新增內容', { exact: true })).toHaveCount(0);
 });
 
-test('草稿管理:儲存草稿入文庫,重新整理後仍在,可開啟至編輯器', async ({ page }) => {
+test('草稿管理:儲存文體入文庫,重新整理後仍在,可開啟至編輯器', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '郵件匣 Gmail');
   await page.getByRole('button', { name: '轉為草稿' }).first().click();
-  await page.getByRole('button', { name: '儲存草稿' }).click();
+  // B4(2026-09-11):儲存文體依文檔類型歸檔——選「草稿」體才入草稿管理(郵件轉換預設為文案體)
+  await page.getByRole('button', { name: '草稿', exact: true }).click();
+  await page.getByRole('button', { name: '儲存文體' }).click();
 
   await gotoTab(page, '文庫 Library');
   await page.getByRole('button', { name: '草稿管理', exact: true }).click();
@@ -149,7 +151,7 @@ test('持久化:新增範本重新整理後仍在', async ({ page }) => {
   await expect(page.getByText('E2E持久化範本')).toBeVisible();
 });
 
-test('持久化:草稿重新整理後仍在,捨棄後清除', async ({ page }) => {
+test('持久化:草稿重新整理後仍在,刪除內容後清除', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '郵件匣 Gmail');
   await page.getByRole('button', { name: '轉為草稿' }).first().click();
@@ -159,7 +161,7 @@ test('持久化:草稿重新整理後仍在,捨棄後清除', async ({ page }) =
   await gotoTab(page, '編發器 Text');
   await expect(page.locator('textarea')).toHaveValue(/E2E持久化草稿/);
 
-  await page.getByRole('button', { name: '捨棄草稿' }).click();
+  await page.getByRole('button', { name: '刪除內容' }).click();
   await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
 
   await page.reload();

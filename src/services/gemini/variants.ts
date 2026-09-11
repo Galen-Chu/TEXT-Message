@@ -3,7 +3,14 @@
  * 沿用 rewrite.ts 的模型降級迴圈與錯誤碼;prompt 組裝/回應解析為純函式。
  * 回應要求 JSON(變體=物件、標籤=陣列),解析容忍 ```json 圍欄。
  */
-import { generateContent, styleSampleBlock, type RewriteErrorCode } from './rewrite';
+import {
+  generateContent,
+  languageRuleText,
+  personaText,
+  styleSampleBlock,
+  type RewriteErrorCode,
+  type RewriteExtras,
+} from './rewrite';
 
 export interface PlatformSpec {
   key: string;
@@ -30,12 +37,14 @@ export function buildVariantsPrompt(
   text: string,
   platforms: PlatformSpec[],
   styleSamples?: string[],
+  extras?: RewriteExtras,
 ): string {
   const spec = platforms.map((p) => `- ${p.key}(${p.label}):上限 ${p.limit} 字`).join('\n');
   return [
-    '你是社群媒體文案編輯。請把「原始草稿」改寫為下列每個平台各一版的繁體中文貼文。',
+    `你是${personaText('copy', extras)}。請以${extras?.language ?? '繁體中文'}把「原始草稿」改寫為下列每個平台各一版的貼文。`,
     '規則:',
     '- 保留原意與關鍵資訊,不改變任何事實',
+    `- 輸出語言:${languageRuleText(extras)}`,
     '- 依各平台特性調整語氣、結構與長度(上限如下,含空白與 emoji)',
     '- 每一版都要完整可用,不是摘要',
     '- 只輸出一個 JSON 物件:鍵為平台代碼、值為該版全文,不要任何前言、說明或程式碼圍欄',
@@ -106,11 +115,16 @@ export async function generatePlatformVariants(input: {
   text: string;
   platforms: PlatformSpec[];
   styleSamples?: string[];
+  role?: RewriteExtras['role'];
+  language?: RewriteExtras['language'];
   signal?: AbortSignal;
 }): Promise<VariantsResult> {
   const result = await generateContent(
     input.apiKey,
-    buildVariantsPrompt(input.text, input.platforms, input.styleSamples),
+    buildVariantsPrompt(input.text, input.platforms, input.styleSamples, {
+      role: input.role,
+      language: input.language,
+    }),
     input.signal,
   );
   if (!result.ok) return result;

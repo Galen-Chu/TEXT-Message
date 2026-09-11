@@ -9,7 +9,7 @@
  * 純邏輯(prompt 組裝/回應解析/狀態碼對應)與 DOM 依賴(key 的
  * localStorage 存取)集中於此,方便 vitest 測試與日後替換模型。
  */
-import type { Tone } from '../../constants';
+import type { RewriteLanguage, Role, Tone } from '../../constants';
 import type { DocKind } from '../../types';
 
 /**
@@ -38,13 +38,60 @@ export const GEMINI_FALLBACK_DELAY_MS = 800;
 
 export type RewriteResult = { ok: true; text: string } | { ok: false; code: RewriteErrorCode };
 
-/** 各語氣給模型的具體指引(按鈕文字之外的完整定義)。 */
+/** 各語氣給模型的具體指引(按鈕文字之外的完整定義;2026-09-11 B1 擴充至十種)。 */
 const TONE_PROMPT_HINTS: Record<Tone, string> = {
   專業: '專業——清晰、可信、條理分明,適合品牌對外發言',
   親切: '親切——溫暖、口語,像朋友分享般自然',
   活潑: '活潑——有活力、節奏輕快,可多用具互動語氣',
   簡短: '簡短——精煉,一至兩句內直切重點',
+  溫暖: '溫暖——柔和、關懷,像對身邊的人說話',
+  幽默: '幽默——輕鬆詼諧,可以玩梗,但不失分寸',
+  勵志: '勵志——正向激勵,給人行動的能量,避免說教',
+  敘事: '敘事——像說故事,有場景與起伏,引人想看下去',
+  教學: '教學——清楚拆解重點與步驟,像耐心的小老師',
+  行銷: '行銷——突顯價值、有號召力,引導讀者行動(CTA)',
 };
+
+/** 角色列(2026-09-11 B2)給模型的發言身份;覆寫文檔類型 persona。 */
+const ROLE_PERSONA: Record<Role, string> = {
+  品牌主理人: '品牌主理人——對品牌理念有立場與熱情,以真誠的第一人稱發言',
+  行銷小編: '行銷小編——親民、跟得上流行,擅長與粉絲打成一片',
+  客服人員: '客服人員——禮貌、耐心、條理清楚,以解決對方的問題為優先',
+  專業講師: '專業講師——深入淺出、有條理,樂於把知識講清楚',
+  創作者本人: '創作者本人——真實直白,像和讀者面對面聊天',
+};
+
+/** 語言列(2026-09-11 B3)的輸出語言規則;台語文/南島語文附書寫系統指引。 */
+const LANGUAGE_RULES: Record<RewriteLanguage, string> = {
+  繁體中文: '繁體中文',
+  英文: '英文(自然流暢,台灣慣用譯名)',
+  西班牙文: '西班牙文',
+  德文: '德文',
+  法文: '法文',
+  日文: '日文',
+  韓文: '韓文',
+  泰文: '泰文',
+  台語文: '台語書面語(台灣台語,漢字為主、可輔以台羅拼音)',
+  南島語文: '台灣南島語言(依內容擇最合適的一種,如阿美語、排灣語、泰雅語;難以對應的詞彙可保留中文)',
+};
+
+/** 語氣/指令/平台版本生成共用的角色與語言維度(B2/B3)。 */
+export interface RewriteExtras {
+  /** 角色:覆寫文檔類型 persona(未選 = null/undefined)。 */
+  role?: Role | null;
+  /** 輸出語言(預設繁體中文)。 */
+  language?: RewriteLanguage;
+}
+
+/** persona 一行字:角色覆寫 > 文檔類型;variants 等其他 prompt 共用。 */
+export function personaText(kind: DocKind, extras?: RewriteExtras): string {
+  return extras?.role ? ROLE_PERSONA[extras.role] : KIND_PERSONA[kind];
+}
+
+/** 「輸出語言」規則行內文;variants 等其他 prompt 共用。 */
+export function languageRuleText(extras?: RewriteExtras): string {
+  return LANGUAGE_RULES[extras?.language ?? '繁體中文'];
+}
 
 /**
  * 各文檔類型的生成文體(IA Phase 3 D5/D9):persona、產出物與類型專屬規則。
@@ -90,12 +137,14 @@ export function buildRewritePrompt(
   limit?: number,
   kind: DocKind = 'copy',
   styleSamples?: string[],
+  extras?: RewriteExtras,
 ): string {
   const lines = [
-    `你是${KIND_PERSONA[kind]}。請把「原始草稿」改寫為${TONE_PROMPT_HINTS[tone]}的繁體中文${KIND_OUTPUT[kind]}。`,
+    `你是${personaText(kind, extras)}。請以${extras?.language ?? '繁體中文'}把「原始草稿」改寫為${TONE_PROMPT_HINTS[tone]}的${KIND_OUTPUT[kind]}。`,
     '規則:',
     '- 保留原意與關鍵資訊,不改變任何事實',
     KIND_RULES[kind],
+    `- 輸出語言:${languageRuleText(extras)}`,
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
@@ -129,19 +178,21 @@ export function buildSummarizePrompt(input: {
   ].join('\n');
 }
 
-/** 自訂指令改寫 prompt:使用者自由輸入指令(例:「改成 3 行重點」);文體依文檔類型。 */
+/** 自訂指令改寫 prompt:使用者自由輸入指令(例:「改成 3 行重點」);文體依文檔類型,含角色/語言維度。 */
 export function buildInstructionPrompt(
   text: string,
   instruction: string,
   limit?: number,
   kind: DocKind = 'copy',
   styleSamples?: string[],
+  extras?: RewriteExtras,
 ): string {
   const lines = [
-    `你是${KIND_PERSONA[kind]}。請依「使用者指令」改寫「原始草稿」,輸出繁體中文${KIND_OUTPUT[kind]}。`,
+    `你是${personaText(kind, extras)}。請以${extras?.language ?? '繁體中文'}依「使用者指令」改寫「原始草稿」,輸出${KIND_OUTPUT[kind]}。`,
     '規則:',
     '- 嚴格遵守使用者指令,但不改變任何事實',
     KIND_RULES[kind],
+    `- 輸出語言:${languageRuleText(extras)}`,
     '- 只輸出改寫後的全文,不要任何前言、說明或引號',
   ];
   if (limit && limit > 0) lines.push(`- 總長度不得超過 ${limit} 字(含空白與 emoji)`);
@@ -250,6 +301,8 @@ export async function rewriteWithGemini(input: {
   limit?: number;
   kind?: DocKind;
   styleSamples?: string[];
+  role?: Role | null;
+  language?: RewriteLanguage;
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
   return generateContent(
@@ -260,6 +313,7 @@ export async function rewriteWithGemini(input: {
       input.limit,
       input.kind ?? 'copy',
       input.styleSamples,
+      { role: input.role, language: input.language },
     ),
     input.signal,
   );
@@ -281,7 +335,7 @@ export async function summarizeWithGemini(input: {
   );
 }
 
-/** 自訂指令改寫:使用者自由下指令(無 key 時呼叫端不會走到這裡);文體依文檔類型。 */
+/** 自訂指令改寫:使用者自由下指令(無 key 時呼叫端不會走到這裡);文體依文檔類型,含角色/語言維度。 */
 export async function rewriteWithInstruction(input: {
   apiKey: string;
   text: string;
@@ -289,6 +343,8 @@ export async function rewriteWithInstruction(input: {
   limit?: number;
   kind?: DocKind;
   styleSamples?: string[];
+  role?: Role | null;
+  language?: RewriteLanguage;
   signal?: AbortSignal;
 }): Promise<RewriteResult> {
   return generateContent(
@@ -299,6 +355,7 @@ export async function rewriteWithInstruction(input: {
       input.limit,
       input.kind ?? 'copy',
       input.styleSamples,
+      { role: input.role, language: input.language },
     ),
     input.signal,
   );

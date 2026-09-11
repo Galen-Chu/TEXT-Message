@@ -17,6 +17,17 @@ describe('buildVariantsPrompt', () => {
     expect(p).toContain('JSON 物件');
     expect(p.endsWith('草稿內容')).toBe(true);
   });
+
+  it('角色與語言(B2/B3):角色覆寫 persona、語言帶入開頭與規則行', () => {
+    const p = buildVariantsPrompt('草稿內容', [{ key: 'threads', label: 'Threads', limit: 500 }], undefined, {
+      role: '行銷小編',
+      language: '日文',
+    });
+    expect(p).toContain('你是行銷小編');
+    expect(p).not.toContain('社群媒體文案編輯');
+    expect(p).toContain('請以日文把「原始草稿」改寫');
+    expect(p).toContain('輸出語言:日文');
+  });
 });
 
 describe('parseVariantsResponse', () => {

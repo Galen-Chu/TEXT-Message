@@ -9,15 +9,20 @@ import {
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
+  DRAFT_SAVE_COPY,
   DRAFT_VARIANTS_COPY,
   DRIVE_COPY,
   GEMINI_ERROR_COPY,
+  LANGUAGE_OPTIONS,
   LIBRARY_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
+  ROLE_OPTIONS,
   SCHEDULE_COPY,
   TONE_REWRITES,
   type LibraryMainTab,
+  type RewriteLanguage,
+  type Role,
   type Tone,
 } from '../constants';
 import {
@@ -180,12 +185,28 @@ export function useAppStore() {
   const [selectedMailId, setSelectedMailId] = useState<string | null>(() =>
     loadPersistedValue('draftSourceId', null, (v): v is string => typeof v === 'string'),
   );
-  // 文檔類型(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類;預設 'copy'(編輯器主產出是貼文)。
+  // 文檔類型(IA Phase 3 D9):影響 AI 生成文體與「儲存文體」的文庫歸檔;預設 'copy'(編輯器主產出是貼文)。
   const [draftKind, setDraftKind] = useState<DocKind>(() =>
     loadPersistedValue<DocKind>(
       'draftKind',
       'copy',
       (v): v is DocKind => v === 'draft' || v === 'copy' || v === 'message',
+    ),
+  );
+  // AI 角色與語言(2026-09-11 B2/B3):語氣/自訂指令/平台版本生成的共同維度,隨偏好持久化。
+  const [aiRole, setAiRole] = useState<Role | null>(() =>
+    loadPersistedValue<Role | null>(
+      'aiRole',
+      null,
+      (v): v is Role | null => v === null || (ROLE_OPTIONS as readonly string[]).includes(v as Role),
+    ),
+  );
+  const [aiLanguage, setAiLanguage] = useState<RewriteLanguage>(() =>
+    loadPersistedValue<RewriteLanguage>(
+      'aiLanguage',
+      '繁體中文',
+      (v): v is RewriteLanguage =>
+        (LANGUAGE_OPTIONS as readonly string[]).includes(v as RewriteLanguage),
     ),
   );
   // Drive 風格樣本(DRIVE-PLAN D6):**僅存中繼資料(id/name/mimeType)**——文檔內容不落地,
@@ -212,10 +233,15 @@ export function useAppStore() {
   });
 
   // 草稿管理集合(IA Phase 2 D8):多筆可管理文檔;activeDraftId 標示編輯緩衝對應的
-  // 集合文檔(「儲存草稿」更新該筆;null = 下次儲存建立新文檔)。
+  // 集合文檔(「儲存文體」選草稿體時更新該筆;null = 下次儲存建立新文檔)。
   const [drafts, setDrafts] = useState<DraftDoc[]>(() => loadDrafts());
   const [activeDraftId, setActiveDraftId] = useState<string | null>(() =>
     loadPersistedValue('activeDraftId', null, (v): v is string => typeof v === 'string'),
+  );
+  // 「儲存文體」選文案/訊息體時追蹤的範本 id(B4,2026-09-11):同緩衝再儲存即原地更新;
+  // null = 下次儲存建立新範本。切換文體儲存後追蹤會改指新目標。
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(() =>
+    loadPersistedValue('activeTemplateId', null, (v): v is string => typeof v === 'string'),
   );
 
   useEffect(() => {
@@ -231,16 +257,19 @@ export function useAppStore() {
           draftPlatforms,
           draftSourceId: selectedMailId,
           draftKind,
+          aiRole,
+          aiLanguage,
           driveStyleSamples,
           driveStyleEnabled,
           drafts,
           activeDraftId,
+          activeTemplateId,
         }),
       );
     } catch {
       // localStorage 不可用時僅退回記憶體模式,不影響操作
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId]);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -278,6 +307,7 @@ export function useAppStore() {
   const convertToDraft = async (mail: Email) => {
     setSelectedMailId(mail.id);
     setActiveDraftId(null);
+    setActiveTemplateId(null);
     setDraftKind('copy');
     const fallback = mail.snippet + '\n\n' + DRAFT_AI_COPY.convertFallbackNote;
     setDraftText(fallback);
@@ -305,18 +335,20 @@ export function useAppStore() {
   const startBlankDraft = () => {
     setSelectedMailId('blank');
     setActiveDraftId(null);
+    setActiveTemplateId(null);
     setDraftKind('copy');
     setDraftText('');
   };
 
-  /** 捨棄草稿:清空內容與來源,回到「尚未選擇內容來源」空狀態(持久化隨之清除)。 */
+  /** 刪除內容(原「捨棄草稿」,2026-09-11 B4 更名):清空編輯緩衝與來源,回到空狀態(持久化隨之清除)。 */
   const discardDraft = () => {
     setSelectedMailId(null);
     setActiveDraftId(null);
+    setActiveTemplateId(null);
     setDraftKind('copy');
     setDraftText('');
     setDraftPlatforms({ ...DEFAULT_DRAFT_PLATFORMS });
-    showToast('已捨棄草稿');
+    showToast(DRAFT_SAVE_COPY.deletedToast);
   };
 
   // Gemini BYOK:key 僅存使用者瀏覽器;未設定 → 規則示範路徑
@@ -335,6 +367,17 @@ export function useAppStore() {
     setGeminiKeyState(key);
   };
 
+  /** 角色與語言選擇(2026-09-11 B2/B3):僅影響真實 AI 路徑;無 key 時選了即提示(角色/翻譯無法規則示範)。 */
+  const selectAiRole = (role: Role | null) => {
+    setAiRole(role);
+    if (role && !geminiKey) showToast(DRAFT_AI_COPY.roleLangNeedKey);
+  };
+
+  const selectAiLanguage = (language: RewriteLanguage) => {
+    setAiLanguage(language);
+    if (language !== '繁體中文' && !geminiKey) showToast(DRAFT_AI_COPY.roleLangNeedKey);
+  };
+
   const applyTone = async (tone: Tone) => {
     if (aiBusy) return;
     const limit = strictestSelectedLimit();
@@ -344,8 +387,10 @@ export function useAppStore() {
       // 規則示範不懂字數:超過所選平台最嚴格上限時明確告知,而不是默默通過
       if (limit && charCount(next) > limit) {
         showToast(DRAFT_AI_COPY.overLimitHint(limit));
+      } else if (aiRole || aiLanguage !== '繁體中文') {
+        showToast(DRAFT_AI_COPY.toneDemoExtrasToast(tone));
       } else {
-        showToast(`已套用「${tone}」語氣(規則示範;於「AI 設定」輸入 key 可啟用真實 AI)`);
+        showToast(DRAFT_AI_COPY.toneDemoToast(tone));
       }
       return;
     }
@@ -358,6 +403,8 @@ export function useAppStore() {
       limit,
       kind: draftKind,
       styleSamples,
+      role: aiRole,
+      language: aiLanguage,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -393,6 +440,8 @@ export function useAppStore() {
       limit: strictestSelectedLimit(),
       kind: draftKind,
       styleSamples,
+      role: aiRole,
+      language: aiLanguage,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -426,6 +475,8 @@ export function useAppStore() {
       text: draftText,
       platforms: platforms.map((p) => ({ key: p.key, label: p.label, limit: p.limit })),
       styleSamples,
+      role: aiRole,
+      language: aiLanguage,
     });
     setAiBusy(false);
     if (result.ok) {
@@ -645,12 +696,44 @@ export function useAppStore() {
 
   // 草稿已隨內容變動自動持久化(見上方 effect);按鈕僅回饋確認
   /**
-   * 「儲存草稿」(IA Phase 2 D8):將目前編輯緩衝存入文庫 · 草稿管理——
-   * activeDraftId 有對應文檔則原地更新,否則建立新文檔(標題取內容前綴)。
+   * 文案/訊息體的「儲存文體」(2026-09-11 B4):存入對應範本集(文案管理/訊息管理),
+   * activeTemplateId 追蹤同緩衝的原地更新;分類預設沿 saveDriveDocAsTemplate(D7)慣例。
+   */
+  const saveEditorTemplate = (kind: 'copy' | 'message') => {
+    const isCopy = kind === 'copy';
+    const list = isCopy ? copyTemplates : templates;
+    const existing = activeTemplateId ? list.find((t) => t.id === activeTemplateId) : undefined;
+    if (existing) {
+      const map = (l: Template[]) =>
+        l.map((t) => (t.id === existing.id ? { ...t, text: draftText } : t));
+      if (isCopy) setCopyTemplates(map);
+      else setTemplates(map);
+    } else {
+      const tpl: Template = {
+        id: newId(isCopy ? 'ec' : 'em'),
+        category: DRAFT_SAVE_COPY.defaultCategory[kind],
+        title: draftText.trim().slice(0, 12),
+        text: draftText,
+      };
+      if (isCopy) setCopyTemplates((l) => [tpl, ...l]);
+      else setTemplates((l) => [tpl, ...l]);
+      setActiveTemplateId(tpl.id);
+    }
+    showToast(DRAFT_SAVE_COPY.savedToast[kind]);
+  };
+
+  /**
+   * 「儲存文體」(原「儲存草稿」,IA Phase 2 D8;2026-09-11 B4 依文檔類型歸檔)——
+   * 草稿體存入文庫 · 草稿管理(activeDraftId 有對應文檔則原地更新,否則建立新文檔);
+   * 文案/訊息體存入對應範本集(文案管理/訊息管理),不再是「草稿管理 + kind 標籤」。
    */
   const saveDraft = () => {
     if (!draftText.trim()) {
-      showToast(DRAFT_LIBRARY_COPY.emptyTextToast);
+      showToast(DRAFT_SAVE_COPY.needTextToast);
+      return;
+    }
+    if (draftKind !== 'draft') {
+      saveEditorTemplate(draftKind);
       return;
     }
     const now = new Date().toISOString();
@@ -659,14 +742,14 @@ export function useAppStore() {
       setDrafts((ds) =>
         ds.map((d) =>
           d === existing
-            ? { ...d, kind: draftKind, text: draftText, platforms: draftPlatforms, sourceId: selectedMailId, updatedAt: now }
+            ? { ...d, kind: 'draft', text: draftText, platforms: draftPlatforms, sourceId: selectedMailId, updatedAt: now }
             : d,
         ),
       );
     } else {
       const doc: DraftDoc = {
         id: newId('doc-'),
-        kind: draftKind,
+        kind: 'draft',
         title: draftText.trim().slice(0, 12),
         text: draftText,
         platforms: draftPlatforms,
@@ -676,14 +759,15 @@ export function useAppStore() {
       setDrafts((ds) => [doc, ...ds]);
       setActiveDraftId(doc.id);
     }
-    showToast(DRAFT_LIBRARY_COPY.savedToast);
+    showToast(DRAFT_SAVE_COPY.savedToast.draft);
   };
 
-  /** 開啟草稿文檔至編輯器:載入緩衝並追蹤 activeDraftId(後續儲存原地更新同一筆)。 */
+  /** 開啟草稿文檔至編輯器:載入緩衝並追蹤 activeDraftId(後續儲存原地更新同一筆);範本追蹤解除。 */
   const openDraftDoc = (id: string) => {
     const doc = drafts.find((d) => d.id === id);
     if (!doc) return;
     setActiveDraftId(doc.id);
+    setActiveTemplateId(null);
     setSelectedMailId(doc.sourceId);
     setDraftKind(doc.kind);
     setDraftText(doc.text);
@@ -955,6 +1039,10 @@ export function useAppStore() {
     draftPlatforms,
     draftKind,
     setDraftKind,
+    aiRole,
+    aiLanguage,
+    selectAiRole,
+    selectAiLanguage,
     drafts,
     activeDraftId,
     openDraftDoc,

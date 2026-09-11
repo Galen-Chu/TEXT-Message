@@ -90,15 +90,13 @@ export const DOC_KIND_LABELS = { draft: '草稿', copy: '文案', message: '訊�
 /** 草稿管理(IA 重整 Phase 2:三大類文檔,D8)的使用者文案。 */
 export const DRAFT_LIBRARY_COPY = {
   tabLabel: '草稿管理',
-  subtitle: '保存的編輯內容,依更新時間排序(在編輯器按「儲存草稿」即存入)',
+  subtitle: '保存的草稿文檔,依更新時間排序(編輯器選「草稿」文體、按「儲存文體」即存入)',
   emptyTitle: '還沒有保存的草稿',
-  emptyDesc: '在編輯器完成內容後按「儲存草稿」,內容會保存在這裡',
+  emptyDesc: '在編輯器選「草稿」文體、完成內容後按「儲存文體」,內容會保存在這裡',
   openToEditor: '開啟至編輯器',
   copyButton: '複製',
   deleteButton: '刪除',
   deletedToast: '已刪除草稿',
-  savedToast: '已存入文庫 · 草稿管理 ✅',
-  emptyTextToast: '沒有可保存的內容',
   openedToast: '已開啟草稿至編輯器',
   kindBadge: DOC_KIND_LABELS,
 };
@@ -154,15 +152,42 @@ export const DRIVE_ERROR_COPY: Record<string, string> = {
   unknown: '發生未預期的錯誤,請重試',
 };
 
-/** 編輯器「文檔類型」chip(IA Phase 3 D9):影響 AI 生成文體與「儲存草稿」歸類。 */
+/** 編輯器「文檔類型」chip(IA Phase 3 D9):影響 AI 生成文體與「儲存文體」的文庫歸檔。 */
 export const DRAFT_KIND_META: Array<{ key: DocKind; label: string }> = [
   { key: 'draft', label: '草稿' },
   { key: 'copy', label: '文案' },
   { key: 'message', label: '訊息' },
 ];
-export const DRAFT_KIND_HINT = '文檔類型——影響 AI 生成的文體與「儲存草稿」的歸類';
+export const DRAFT_KIND_HINT = '文檔類型——影響 AI 生成的文體與「儲存文體」的文庫歸檔';
 
-export const TONE_OPTIONS = ['專業', '親切', '活潑', '簡短'] as const;
+/** 「儲存文體」(2026-09-11 B4):依文檔類型歸檔到文庫對應頁簽(沿 saveDriveDocAsTemplate 慣例)。 */
+export const DRAFT_SAVE_COPY = {
+  saveButton: '儲存文體',
+  deleteButton: '刪除內容',
+  deletedToast: '已刪除內容',
+  needTextToast: '沒有可保存的內容',
+  savedToast: {
+    draft: '已存入文庫 · 草稿管理 ✅',
+    copy: '已存入文庫 · 文案管理 ✅',
+    message: '已存入文庫 · 訊息管理 ✅',
+  } as Record<DocKind, string>,
+  /** 文案/訊息直接存入範本集的預設分類(同 Drive 存為範本 D7)。 */
+  defaultCategory: { copy: '日常分享', message: '粉絲互動' } as Record<'copy' | 'message', string>,
+};
+
+/** 語氣(2026-09-11 B1 擴充至十種):按鈕列即點即改寫;規則示範為無 key 時的輕量退回。 */
+export const TONE_OPTIONS = [
+  '專業',
+  '親切',
+  '活潑',
+  '簡短',
+  '溫暖',
+  '幽默',
+  '勵志',
+  '敘事',
+  '教學',
+  '行銷',
+] as const;
 export type Tone = (typeof TONE_OPTIONS)[number];
 
 // 純前端規則示範(非真實 AI),生產環境應接後端 AI 改寫 API
@@ -171,7 +196,32 @@ export const TONE_REWRITES: Record<Tone, (t: string) => string> = {
   親切: (t) => (t ? t + '\n\n謝謝你一直以來的陪伴 🌿' : t),
   活潑: (t) => (t ? t.replace(/。/g, '!') + ' ✨' : t),
   簡短: (t) => (t ? t.split('\n')[0] : t),
+  溫暖: (t) => (t ? t + '\n\n記得照顧好自己 ☀️' : t),
+  幽默: (t) => (t ? t + ' 😆' : t),
+  勵志: (t) => (t ? t + '\n\n今天也要繼續前進 💪' : t),
+  敘事: (t) => (t ? '話說從頭——\n' + t : t),
+  教學: (t) => (t ? '三分鐘看重點:\n' + t : t),
+  行銷: (t) => (t ? t + '\n\n👉 立即查看了解更多!' : t),
 };
+
+/** 角色(2026-09-11 B2):覆寫 AI 生成的發言身份;未選 = 依文檔類型 persona。 */
+export const ROLE_OPTIONS = ['品牌主理人', '行銷小編', '客服人員', '專業講師', '創作者本人'] as const;
+export type Role = (typeof ROLE_OPTIONS)[number];
+
+/** 語言(2026-09-11 B3):潤飾/改寫的輸出語言;預設繁體中文。 */
+export const LANGUAGE_OPTIONS = [
+  '繁體中文',
+  '英文',
+  '西班牙文',
+  '德文',
+  '法文',
+  '日文',
+  '韓文',
+  '泰文',
+  '台語文',
+  '南島語文',
+] as const;
+export type RewriteLanguage = (typeof LANGUAGE_OPTIONS)[number];
 
 export const WEEKDAY_LABELS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
 
@@ -221,6 +271,12 @@ export const DRAFT_AI_COPY = {
   customInstructionEmpty: '請先輸入自訂指令',
   customInstructionDoneToast: 'Gemini 已套用自訂指令 ✨',
   overLimitHint: (limit: number) => `目前內容超過所選平台中最嚴格的上限(${limit} 字),建議啟用 AI 或手動精簡`,
+  roleRowLabel: '角色',
+  roleDefault: '依文檔預設',
+  langRowLabel: '語言',
+  roleLangNeedKey: '角色與非中文語言需真實 AI:於「AI 設定」輸入 key 後生效',
+  toneDemoToast: (tone: string) => `已套用「${tone}」語氣(規則示範;於「AI 設定」輸入 key 可啟用真實 AI)`,
+  toneDemoExtrasToast: (tone: string) => `已套用「${tone}」語氣(規則示範;角色/語言潤飾需於「AI 設定」輸入 key)`,
 };
 
 /** 排程即時狀態(含推導的 overdue)的顯示文案與顏色。 */

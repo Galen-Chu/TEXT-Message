@@ -6,12 +6,15 @@ import {
   DRAFT_AI_COPY,
   DRAFT_KIND_HINT,
   DRAFT_KIND_META,
+  DRAFT_SAVE_COPY,
   DRAFT_VARIANTS_COPY,
   DRIVE_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
+  LANGUAGE_OPTIONS,
   PLATFORM_LIST,
   PLATFORM_META,
+  ROLE_OPTIONS,
   TONE_OPTIONS,
   YOUTUBE_COPY,
   YOUTUBE_ERROR_COPY,
@@ -260,6 +263,78 @@ export default function Draft({ store }: { store: AppStore }) {
                   </button>
                 ))}
               </div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  marginTop: 10,
+                }}
+              >
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-faint)' }}>
+                  {DRAFT_AI_COPY.roleRowLabel}
+                </span>
+                {[null, ...ROLE_OPTIONS].map((role) => {
+                  const active = store.aiRole === role;
+                  return (
+                    <button
+                      key={role ?? 'doc-default'}
+                      onClick={() => store.selectAiRole(role)}
+                      disabled={store.aiBusy}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 9,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: active ? 'var(--pill-purple-bg)' : 'var(--bg)',
+                        color: active ? 'var(--brand)' : 'var(--text-faint)',
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        opacity: store.aiBusy ? 0.5 : 1,
+                        cursor: store.aiBusy ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {role ?? DRAFT_AI_COPY.roleDefault}
+                    </button>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  marginTop: 10,
+                }}
+              >
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-faint)' }}>
+                  {DRAFT_AI_COPY.langRowLabel}
+                </span>
+                {LANGUAGE_OPTIONS.map((lang) => {
+                  const active = store.aiLanguage === lang;
+                  return (
+                    <button
+                      key={lang}
+                      onClick={() => store.selectAiLanguage(lang)}
+                      disabled={store.aiBusy}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 9,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: active ? 'var(--pill-purple-bg)' : 'var(--bg)',
+                        color: active ? 'var(--brand)' : 'var(--text-faint)',
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        opacity: store.aiBusy ? 0.5 : 1,
+                        cursor: store.aiBusy ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {lang}
+                    </button>
+                  );
+                })}
+              </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <input
                   className="text-input"
@@ -490,14 +565,14 @@ export default function Draft({ store }: { store: AppStore }) {
                     background: 'var(--bg)',
                   }}
                 >
-                  捨棄草稿
+                  {DRAFT_SAVE_COPY.deleteButton}
                 </button>
                 <button
                   className="btn btn-outline"
                   style={{ padding: '9px 16px', fontSize: 12.5 }}
                   onClick={store.saveDraft}
                 >
-                  儲存草稿
+                  {DRAFT_SAVE_COPY.saveButton}
                 </button>
               </div>
             </div>

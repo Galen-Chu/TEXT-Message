@@ -515,6 +515,9 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       result.current.startBlankDraft();
     });
     act(() => {
+      result.current.setDraftKind('draft');
+    });
+    act(() => {
       result.current.setDraftText('第一版內容');
     });
     act(() => {
@@ -554,6 +557,9 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       result.current.startBlankDraft();
     });
     act(() => {
+      result.current.setDraftKind('draft');
+    });
+    act(() => {
       result.current.setDraftText('要開啟的草稿');
     });
     act(() => {
@@ -580,36 +586,161 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(readStore().drafts).toEqual([]);
   });
 
-  it('draftKind(IA Phase 3 D9):預設 copy;切換影響 saveDraft 歸類並持久化;openDraftDoc 載入文檔 kind;捨棄重置', () => {
+  it('儲存文體歸檔(B4,2026-09-11):文案→文案管理、訊息→訊息管理、草稿→草稿管理;同緩衝原地更新;重新掛載追蹤不變;刪除內容重置', () => {
     seedEmptyDrafts();
-    const { result } = renderHook(() => useAppStore());
-    expect(result.current.draftKind).toBe('copy');
+    const first = renderHook(() => useAppStore());
+    expect(first.result.current.draftKind).toBe('copy');
 
+    // copy → copyTemplates(文案管理)
+    act(() => {
+      first.result.current.startBlankDraft();
+    });
+    act(() => {
+      first.result.current.setDraftText('文案內容');
+    });
+    act(() => {
+      first.result.current.saveDraft();
+    });
+    expect(first.result.current.drafts).toHaveLength(0);
+    const copyTpl = first.result.current.copyTemplates.find((t) => t.text === '文案內容');
+    expect(copyTpl).toBeTruthy();
+    expect(copyTpl?.category).toBe('日常分享');
+
+    // 同緩衝再儲存 → 原地更新(不重複建立)
+    act(() => {
+      first.result.current.setDraftText('文案第二版');
+    });
+    act(() => {
+      first.result.current.saveDraft();
+    });
+    expect(
+      first.result.current.copyTemplates.filter((t) => t.id === copyTpl?.id),
+    ).toHaveLength(1);
+    expect(first.result.current.copyTemplates.find((t) => t.id === copyTpl?.id)?.text).toBe(
+      '文案第二版',
+    );
+
+    // message → templates(訊息管理);kind 持久化
+    act(() => {
+      first.result.current.setDraftKind('message');
+    });
+    act(() => {
+      first.result.current.setDraftText('留言回覆內容');
+    });
+    act(() => {
+      first.result.current.saveDraft();
+    });
+    expect(first.result.current.templates.some((t) => t.text === '留言回覆內容')).toBe(true);
+    expect(readStore().draftKind).toBe('message');
+
+    // draft → drafts(草稿管理)
+    act(() => {
+      first.result.current.setDraftKind('draft');
+    });
+    act(() => {
+      first.result.current.setDraftText('長文草稿');
+    });
+    act(() => {
+      first.result.current.saveDraft();
+    });
+    expect(first.result.current.drafts[0].kind).toBe('draft');
+
+    // 刪除內容(原捨棄草稿)重置 kind 與追蹤
+    act(() => {
+      first.result.current.discardDraft();
+    });
+    expect(first.result.current.draftKind).toBe('copy');
+
+    const id = first.result.current.drafts[0].id;
+    act(() => {
+      first.result.current.openDraftDoc(id);
+    });
+    expect(first.result.current.draftKind).toBe('draft');
+
+    // 追蹤為「最近儲存目標」:存過訊息/草稿後切回文案體,另建新範本(舊文案範本不動)
+    first.unmount();
+    const second = renderHook(() => useAppStore());
+    act(() => {
+      second.result.current.setDraftKind('copy');
+    });
+    act(() => {
+      second.result.current.setDraftText('文案第三版');
+    });
+    act(() => {
+      second.result.current.saveDraft();
+    });
+    expect(second.result.current.copyTemplates.filter((t) => t.text === '文案第三版')).toHaveLength(
+      1,
+    );
+    expect(second.result.current.copyTemplates.find((t) => t.id === copyTpl?.id)?.text).toBe(
+      '文案第二版',
+    );
+  });
+
+  it('儲存文體(B4):重新掛載(重整)後追蹤仍指向原範本,同文體再儲存原地更新', () => {
+    seedEmptyDrafts();
+    const first = renderHook(() => useAppStore());
+    act(() => {
+      first.result.current.startBlankDraft();
+    });
+    act(() => {
+      first.result.current.setDraftText('文案A');
+    });
+    act(() => {
+      first.result.current.saveDraft();
+    });
+    const id = first.result.current.copyTemplates.find((t) => t.text === '文案A')?.id;
+    expect(id).toBeTruthy();
+
+    first.unmount();
+    const second = renderHook(() => useAppStore());
+    act(() => {
+      second.result.current.setDraftText('文案A改');
+    });
+    act(() => {
+      second.result.current.saveDraft();
+    });
+    expect(second.result.current.copyTemplates.filter((t) => t.text === '文案A改')).toHaveLength(1);
+    expect(second.result.current.copyTemplates.find((t) => t.id === id)?.text).toBe('文案A改');
+  });
+
+  it('AI 角色與語言(B2/B3,2026-09-11):選擇、持久化;無 key 選非預設時提示;規則示範路徑不受影響', () => {
+    const { result } = renderHook(() => useAppStore());
+    expect(result.current.aiRole).toBeNull();
+    expect(result.current.aiLanguage).toBe('繁體中文');
+
+    act(() => {
+      result.current.selectAiRole('行銷小編');
+    });
+    expect(result.current.aiRole).toBe('行銷小編');
+    expect(result.current.toastMessage).toContain('需真實 AI');
+
+    act(() => {
+      result.current.selectAiLanguage('日文');
+    });
+    expect(result.current.aiLanguage).toBe('日文');
+    expect(readStore().aiRole).toBe('行銷小編');
+    expect(readStore().aiLanguage).toBe('日文');
+
+    // 無 key 規則示範:角色/語言不參與改寫,僅提示
     act(() => {
       result.current.startBlankDraft();
     });
     act(() => {
-      result.current.setDraftKind('message');
+      result.current.setDraftText('早安');
     });
     act(() => {
-      result.current.setDraftText('留言回覆內容');
+      result.current.applyTone('親切');
     });
-    act(() => {
-      result.current.saveDraft();
-    });
-    expect(result.current.drafts[0].kind).toBe('message');
-    expect(readStore().draftKind).toBe('message');
+    expect(result.current.draftText).toContain('早安');
+    expect(result.current.draftText).toContain('謝謝你一直以來的陪伴');
+    expect(result.current.toastMessage).toContain('角色/語言潤飾需');
 
+    // 取消角色回到預設
     act(() => {
-      result.current.discardDraft();
+      result.current.selectAiRole(null);
     });
-    expect(result.current.draftKind).toBe('copy');
-
-    const id = result.current.drafts[0].id;
-    act(() => {
-      result.current.openDraftDoc(id);
-    });
-    expect(result.current.draftKind).toBe('message');
+    expect(result.current.aiRole).toBeNull();
   });
 
   it('全新使用者:草稿管理載入預設電子郵件範本(2026-09-07 UX 優化)', () => {
@@ -719,6 +850,9 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       result.current.startBlankDraft();
     });
     act(() => {
+      result.current.setDraftKind('draft');
+    });
+    act(() => {
       result.current.setDraftText('手寫草稿');
     });
     act(() => {
@@ -741,6 +875,9 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       await result.current.convertToDraft(mail);
     });
     expect(result.current.activeDraftId).toBeNull();
+    act(() => {
+      result.current.setDraftKind('draft');
+    });
     act(() => {
       result.current.saveDraft();
     });

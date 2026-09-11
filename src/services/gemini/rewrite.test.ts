@@ -69,6 +69,56 @@ describe('buildRewritePrompt', () => {
   });
 });
 
+describe('角色與語言維度(2026-09-11 B2/B3)', () => {
+  it('角色覆寫 persona;未選時依文檔類型', () => {
+    const withRole = buildRewritePrompt('內容', '親切', undefined, 'copy', undefined, {
+      role: '行銷小編',
+    });
+    expect(withRole).toContain('你是行銷小編');
+    expect(withRole).not.toContain('社群媒體文案編輯');
+
+    const noRole = buildRewritePrompt('內容', '親切', undefined, 'copy', undefined, {});
+    expect(noRole).toContain('你是社群媒體文案編輯');
+  });
+
+  it('語言:預設繁體中文;指定語言帶入開頭與「輸出語言」規則行', () => {
+    const def = buildRewritePrompt('內容', '親切');
+    expect(def).toContain('請以繁體中文把「原始草稿」改寫');
+    expect(def).toContain('輸出語言:繁體中文');
+
+    const ja = buildRewritePrompt('內容', '親切', undefined, 'copy', undefined, { language: '日文' });
+    expect(ja).toContain('請以日文把「原始草稿」改寫');
+    expect(ja).toContain('輸出語言:日文');
+  });
+
+  it('台語文/南島語文附書寫系統指引', () => {
+    const tw = buildInstructionPrompt('x', 'y', undefined, 'copy', undefined, { language: '台語文' });
+    expect(tw).toContain('台語書面語');
+    expect(tw).toContain('台羅拼音');
+
+    const au = buildRewritePrompt('x', '親切', undefined, 'copy', undefined, { language: '南島語文' });
+    expect(au).toContain('台灣南島語言');
+  });
+
+  it('角色 × 語氣 × 語言組合注入同一 prompt', () => {
+    const p = buildRewritePrompt('內容', '幽默', undefined, 'message', undefined, {
+      role: '客服人員',
+      language: '英文',
+    });
+    expect(p).toContain('你是客服人員');
+    expect(p).toContain('幽默——');
+    expect(p).toContain('請以英文把「原始草稿」改寫');
+    expect(p).toContain('粉絲留言或私訊的回覆訊息');
+    expect(p).toContain('輸出語言:英文');
+  });
+
+  it('十種語氣皆有指引(B1 擴充:新增六種出現在 prompt)', () => {
+    for (const tone of ['溫暖', '幽默', '勵志', '敘事', '教學', '行銷'] as const) {
+      expect(buildRewritePrompt('x', tone)).toContain(`${tone}——`);
+    }
+  });
+});
+
 describe('buildSummarizePrompt', () => {
   it('包含主旨、寄件者與內容,並要求輸出貼文', () => {
     const p = buildSummarizePrompt({ subject: '週報', from: 'news@example.com', body: '本週重點…' });
