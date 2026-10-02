@@ -110,6 +110,41 @@ export async function exchangeLongLivedUserToken(
   return { accessToken: data.access_token, expiresIn: Number(data.expires_in ?? 0) };
 }
 
+/** 系統工作人員模式診斷(2026-10-02,排查 #200):token 實際被授予的權限與可存取粉專。
+ *  GET /me/permissions 回 data:[{permission}];粉專存取含 tasks(資產指派的任務角色)。 */
+export async function facebookDiagnostics(
+  opts: { accessToken: string },
+  fetcher: Fetcher = fetch,
+): Promise<{
+  permissions: string[];
+  pages: Array<{ id: string; name: string; tasks: string[] }>;
+}> {
+  const permUrl = new URL(`${FACEBOOK_API_BASE}/me/permissions`);
+  permUrl.searchParams.set('access_token', opts.accessToken);
+  const { data: permData } = await getJson(permUrl.toString(), fetcher, 'me/permissions');
+  const permissions = Array.isArray(permData.data)
+    ? (permData.data as Array<Record<string, unknown>>)
+        .map((p) => (typeof p.permission === 'string' ? p.permission : ''))
+        .filter(Boolean)
+    : [];
+  const pagesUrl = new URL(`${FACEBOOK_API_BASE}/me/accounts`);
+  pagesUrl.searchParams.set('fields', 'id,name,tasks');
+  pagesUrl.searchParams.set('access_token', opts.accessToken);
+  const { data: pageData } = await getJson(pagesUrl.toString(), fetcher, 'me/accounts(diag)');
+  const pages = Array.isArray(pageData.data)
+    ? (pageData.data as Array<Record<string, unknown>>).flatMap((p) => {
+        // 粉專 id 為 15-16 位數,實務在 JS 安全整數內;仍從原始文字回填防邊角案例
+        const id = typeof p.id === 'string' && /^\d+$/.test(p.id) ? p.id : '';
+        if (!id || typeof p.name !== 'string') return [];
+        const tasks = Array.isArray(p.tasks)
+          ? (p.tasks as unknown[]).filter((t): t is string => typeof t === 'string')
+          : [];
+        return [{ id, name: p.name, tasks }];
+      })
+    : [];
+  return { permissions, pages };
+}
+
 /**
  * 使用者管理的粉專清單(fields=id,name,access_token)。
  * page id 依串接紀律從原始回應文字抽取(可能超 JS 安全整數;BACKEND.md §6)——

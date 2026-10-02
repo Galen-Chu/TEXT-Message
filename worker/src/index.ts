@@ -34,6 +34,7 @@ import {
   buildFbAuthorizeUrl,
   exchangeCode as exchangeFbCode,
   exchangeLongLivedUserToken,
+  facebookDiagnostics,
   listFacebookPages,
 } from './facebook/oauth';
 import { publishThreadsText, validateThreadsText } from './threads/publish';
@@ -239,6 +240,20 @@ export default {
       const token = await loadFacebookToken(env.QUEUE, installId, env.TOKEN_ENCRYPTION_KEY);
       // 僅回報「是否已連線」與粉專名稱,不揭露 token 內容
       return json({ connected: !!token, pageName: token?.pageName ?? null, mode: 'oauth' }, 200, cors);
+    }
+
+    if (url.pathname === '/api/facebook/diag' && request.method === 'GET') {
+      // 系統模式診斷(2026-10-02,排查 #200):回 token 實際權限與粉專存取任務。
+      // 僅在被明確要求時用於維運排查;不揭露 token 本體。
+      const installId = url.searchParams.get('install') ?? '';
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      if (!facebookSystemUserMode(env)) return json({ error: 'not_system_mode' }, 400, cors);
+      try {
+        const d = await facebookDiagnostics({ accessToken: env.FACEBOOK_PAGE_TOKEN as string });
+        return json(d, 200, cors);
+      } catch (err) {
+        return json({ error: 'diag_failed', detail: String(err).slice(0, 300) }, 502, cors);
+      }
     }
 
     if (url.pathname === '/api/facebook/publish' && request.method === 'POST') {

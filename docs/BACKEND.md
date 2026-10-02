@@ -79,6 +79,7 @@ cd worker && npx wrangler dev      # http://localhost:8787
 | GET | `/auth/facebook/callback` | 換長效 user token → `/me/accounts` 取首個粉專 page token、加密存 KV |
 | GET | `/api/threads/status?install=<id>` | 是否已連線(僅回 true/false,不揭露 token) |
 | GET | `/api/facebook/status?install=<id>` | 是否已連線 + 粉專名稱(不揭露 token) |
+| GET | `/api/facebook/diag?install=<id>` | 系統工作人員模式限定:token 權限清單+粉專任務(維運排查用,見 §7.3) |
 | POST | `/api/threads/publish` | 立即代發 `{installId, text}` |
 | POST | `/api/facebook/publish` | FB 粉專立即發佈 `{installId, text}` |
 | POST | `/api/schedule` | 加入排程 `{installId, text, publishAt(ms), platform?}`(`platform`:`threads`(預設)/`facebook`;限未來 90 天內) |
@@ -98,7 +99,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 - **Meta App 審核**:開發模式僅限測試者帳號;正式開放需 App Review(每個 `threads_*` scope 約 2–7 個工作天,首輪退件率不低)
 - **KV 為最終一致性**:剛寫入的排程項目在其他邊緣節點可能要數秒才可見——對「分鐘級排程」無實害,但代表 cron 掃描與立即寫入之間有短暫窗口
 - **cron 每小時整點觸發(2026-09-08 維護者調整)**:排程發佈為整點批次,精確度約 ±60 分;頻率受 KV 免費方案 list 額度(1,000 次/日)約束,若未來需要分鐘級精度可改「佇列有項目時才 list」的旗標鍵設計
-- **單一平台(Threads)**:IG(需商業帳號)與 X(量計費)為後續增量;LINE 個人動態無 API,永不支援代發
+- **平台(Threads、FB 粉專)**:IG(需商業帳號)與 X(量計費)為後續增量;LINE 個人動態無 API,永不支援代發
 - **真實代發已驗收(2026-09-07)**:立即代發 `/api/threads/publish` 端到端成功(見 §6.1 #5 user_id 精度修正);排程 cron 路徑由單元測試覆蓋,如需實測可排一筆 2 分鐘後的短測試文觀察佇列狀態流轉
 
 ## 6. 首次端到端實測:偵錯紀錄與檢討(2026-09-04)
@@ -115,6 +116,8 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 | 4 | Meta 回 `user_id` 為 **JSON number**,寫入未轉字串,讀取端型別檢查靜默回 null | 寫入 `String()`;讀取容錯數字舊值(`store/kv.ts`) |
 | 5(2026-09-07)| `user_id` 數值**超過 JS 安全整數(2^53-1)**,`JSON.parse` 靜默進位失真(尾數差 2),發佈時 Meta 回「Object does not exist」——`String()` 補在 parse 之後救不回 | 從**原始回應文字**正則抽取完整位數字串(`oauth.ts` exchangeCode),勿經 JSON.parse |
 | 6(2026-09-07)| 代發中文亂碼——**根因在驗收工具而非程式**:zh-TW Windows 上 Git Bash 把命令列中的中文參數傳給原生 curl.exe 時轉為 CP950 位元組,worker 忠實轉發壞位元組(先前「Meta 以 Latin-1 解碼表單」的推測**不成立**,已驗證乾淨輸入下管線正常) | 驗收含中文的請求一律 `curl -d @檔案`(UTF-8 檔案位元組原樣上線);發佈參數改走 URL 查詢字串保留為防禦性強化(Graph API 官方支援) |
+| 7(2026-10-02)| FB 粉專 API 誤用**粉專網址**的數字 id(`profile.php?id=`,global id)→ `#100 The global id ... is not allowed for this call`。新版粉專網址 id ≠ API 用的粉專 id | API 用的 id 以商業後台「資產 → 粉絲專頁」為準;OAuth 模式由 `/me/accounts` 自動取得,天然免疫 |
+| 8(2026-10-02)| FB 系統工作人員 token 發文全線 `#200`:token 帳面權限齊(`/me/permissions` 三項)、粉專任務齊(`MANAGE`/`CREATE_CONTENT`)、App 層級權限開通、token 重產——**仍拒**。此 App 世代(商家版導向、無標準版 Facebook Login、組態型錄被限縮)對系統用戶發文有無法關閉的閘門 | 定案改走 **OAuth 組態模式**(App 層級先開權限 → 組態勾三項 → `config_id` 授權,使用者實際同意)一次通關;排查方法:worker 診斷端點 `/api/facebook/diag`(權限/任務一覽)+ curl 直打端點看 `detail` 的 Meta 原始錯誤 |
 
 單元測試當時沒抓到的原因:注入 fetcher 可測試只斷言了部分欄位(`grant_type`/`code`),**「與真實 API 的契約」(端點 URL、完整欄位名、回應值型別)不在測試裡**。已補:完整欄位名斷言、端點 URL 斷言、數字 id 轉型測試(`oauth.test.ts`)與 KV 讀取容錯測試(`store/kv.test.ts`)。
 
@@ -155,11 +158,11 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 4. e2e 前掛 `wrangler tail`;先用 bogus probe 驗憑證層。
 5. 狀態端點優先做成可獨立驗證(本次 `/api/threads/status` 讓 KV 問題得以隔離)。
 
-## 7. Facebook 粉專串接(2026-09-30 實作;2026-10-01 定案走系統工作人員模式)
+## 7. Facebook 粉專串接(2026-09-30 實作;2026-10-02 端到端驗收通過:OAuth 組態模式)
 
 鏡像 Threads 模組(`worker/src/facebook/`),發佈目標為**粉絲專頁**(非個人檔案)。依 §6.4 預防清單實作:寫碼前已對照當下官方文件(URL 註解於 `worker/src/config.ts` 常數旁),單元測試斷言完整請求形狀,page id 與貼文 id 從原始回應文字抽取。
 
-### 7.1 與 Threads 的差異(OAuth 模式備查;現行採 §7.2 系統工作人員模式)
+### 7.1 與 Threads 的差異(OAuth 模式;即現行採用的模式)
 
 | | Threads | Facebook 粉專 |
 | --- | --- | --- |
@@ -170,28 +173,29 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 | KV key | `token:threads:<installId>`(90 天 TTL) | `token:facebook:<installId>`(無 TTL) |
 | 授權帳號需求 | Threads 帳號 | 授權帳號需具粉專管理權(單粉專場景取 `/me/accounts` 第一個;多粉專選擇 UI 為後續增量) |
 
-### 7.2 維護者啟用檢查表(系統工作人員模式,採用中)
+### 7.2 啟用檢查表:OAuth 組態模式(現行;2026-10-02 端到端驗收通過)
 
-1. **商業組合後台**([business.facebook.com](https://business.facebook.com) → 商業設定):
-   - 資產:粉專(新增你的粉專)、應用程式(新增 App `1808247027192643`)皆隸屬商業組合;
-   - 「用戶 → **系統工作人員**」→ 新增(類型:系統員工,不需 email;若介面要求 email 僅通知用途);
-   - 對該人員「**指派資產**」:粉專(權限勾管理內容/完整控制)+ **應用程式(角色選「開發人員」——未指派 App 角色則產生權杖時顯示「沒有可用權限」)**;
-   - 「**產生權限**」精靈:選 App → 到期時間 → 勾 `pages_show_list`、`pages_read_engagement`、`pages_manage_posts` → 產生 → **立刻複製 token(只顯示一次)**;
-   - ⚠ **紀律(2026-10-01 教訓):系統工作人員 token 永不過期,貼進任何對話即視同外洩——至商業後台對該權限組「撤銷權限」作廢重發;新 token 只進 `wrangler secret put`,不經任何對話/文件/第三方**。
-2. **Worker secrets(僅兩個,OAuth 相關皆不需要)**:
+1. **Meta App 端**(與 Threads 同一個 App):
+   - 「應用程式審核 → 權限與功能」:`pages_manage_posts`/`pages_read_engagement` 已可選(**2026-10-02 於此開通後,組態的權限型錄才出現這兩項**——此前僅四項商業權限,見 §6.1 #8);
+   - 「商家專用 Facebook 登入 → 組態」:建立組態(用戶存取權杖),勾 `pages_show_list`、`pages_read_engagement`、`pages_manage_posts`,記下**組態 ID**;
+   - 「商家專用 Facebook 登入 → 設定」:有效的 OAuth 重新導向 URI 已含 `https://<worker-domain>/auth/facebook/callback`。
+2. **Worker secrets(三個;⚠ 勿設 `FACEBOOK_PAGE_TOKEN`/`FACEBOOK_PAGE_ID`——設了會切系統模式,此 App 不可用)**:
    ```bash
    cd worker
-   npx wrangler secret put FACEBOOK_PAGE_TOKEN   # 新產生的 token(未貼過任何對話)
-   npx wrangler secret put FACEBOOK_PAGE_ID      # 粉專數字 id(粉專網址 profile.php?id= 後那串)
-   npx wrangler deploy
-   curl https://<worker-domain>/health           # facebookConfigured:true
+   npx wrangler secret put FACEBOOK_CLIENT_ID        # = App ID(同 THREADS_CLIENT_ID)
+   npx wrangler secret put FACEBOOK_CLIENT_SECRET    # = App Secret(同 THREADS_CLIENT_SECRET)
+   npx wrangler secret put FACEBOOK_LOGIN_CONFIG_ID  # 組態 ID
    ```
-3. **端到端驗收**:正式站 → 編發器勾選 Facebook → 「📘 Facebook 粉專發佈」卡應直接顯示已連線(免連接按鈕)→ 立即發佈/排程發佈;或照 §3 的 curl 流程打 `/api/facebook/publish`。
+   (secrets 即時生效,免重新部署)
+3. **驗收**:正式站 → 編發器勾 Facebook → 「連接 Facebook 粉專」→ 授權頁**實際列出三個 pages 權限**並同意 → 返回後「已連線 · 粉專『<名稱〉」」→ 立即發佈/排程發佈。token 為 per-install 加密保管於 KV(`token:facebook:<installId>`),重新授權即覆寫。
 
-**OAuth 模式(保留未用,雙軌自動切換)**:未設 `FACEBOOK_PAGE_TOKEN`/`FACEBOOK_PAGE_ID` 時走原 OAuth 流程——商家版 App 設 `FACEBOOK_LOGIN_CONFIG_ID` 走組態(`config_id`),標準版 App 不設則走 `scope`;Meta App 端設定(redirect URI、組態、權限型錄實測限制)如下備查:新增產品頁無標準版可加;商家版組態型錄僅 business_management/pages_manage_metadata/pages_messaging/pages_show_list 四項(已選用戶存取權杖亦然),無 pages 發文權限——此即改走系統工作人員模式的原因。
+### 7.3 系統工作人員模式(2026-10-01 嘗試;此 App 驗證不可用,程式碼保留)
 
-### 7.3 已知限制(誠實清單)
+商業組合「系統工作人員」token 直接作為 secret 的單租戶模式(`FACEBOOK_PAGE_TOKEN`+`FACEBOOK_PAGE_ID`,兩 secret 齊備即啟用)。實測結論:**token 權限齊(`/me/permissions` 三項)、粉專任務齊(`MANAGE`/`CREATE_CONTENT`)、App 層級權限開通、token 重產——發文仍 `#200`**(完整排查記錄見 §6.1 #8):此 App 世代(商家版導向)對系統用戶發文存在無法關閉的閘門;若日後改用標準版 App 可重試。診斷專用端點 `/api/facebook/diag`(回報 token 權限清單與粉專任務)僅此模式可用。⚠ 紀律:系統工作人員 token 永不過期,貼進任何對話即視同外洩——撤銷重發,新 token 只進 `wrangler secret put`。
 
-- 系統工作人員模式為**單租戶**:所有使用該 worker 的前端都能發到該粉專(自用可接受;多用戶需改 OAuth 模式);
-- token 失效(撤銷權限、資產異動)不會自動修復——排程項目以重試耗盡轉 `failed`,重新產生 token 更新 secret 即恢復;
-- OAuth 模式(若啟用)多粉專時固定取 `/me/accounts` 第一個;App 開發模式僅 App 角色帳號可用。
+### 7.4 已知限制(誠實清單)
+
+- 多粉專時固定取 `/me/accounts` 第一個;需要指定粉專時再做選擇 UI;
+- page token 失效(改密碼/收回權限/組態異動)不自動修復——排程項目重試耗盡轉 `failed`,重新授權即覆寫;
+- App 開發模式僅 App 角色帳號可授權(自用足夠);對外開放需 App Review;
+- 商家版 App:標準版 Facebook Login 不可加;組態權限型錄隨 App 層級權限動態變化(§6.1 #8)。

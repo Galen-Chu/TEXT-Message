@@ -8,6 +8,7 @@ import {
   buildFbAuthorizeUrl,
   exchangeCode,
   exchangeLongLivedUserToken,
+  facebookDiagnostics,
   listFacebookPages,
 } from './oauth';
 import type { Fetcher } from '../threads/oauth';
@@ -129,5 +130,35 @@ describe('listFacebookPages(GET /me/accounts)', () => {
     const err: Fetcher = async () =>
       new Response(JSON.stringify({ error: { message: 'bad' } }), { status: 400 });
     await expect(listFacebookPages({ userAccessToken: 'ut' }, err)).rejects.toThrow('me/accounts failed');
+  });
+});
+
+describe('facebookDiagnostics(2026-10-02 排查 #200 用)', () => {
+  it('完整請求形狀與解析:/me/permissions 與 /me/accounts?fields=id,name,tasks', async () => {
+    const calls: string[] = [];
+    const fetcher: Fetcher = async (url) => {
+      calls.push(String(url));
+      if (String(url).includes('/me/permissions')) {
+        return new Response(
+          JSON.stringify({ data: [{ permission: 'pages_show_list' }, { permission: 'pages_manage_posts' }] }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({ data: [{ id: '1317480644786626', name: '測試粉專', tasks: ['MANAGE', 'CREATE_CONTENT'] }] }),
+        { status: 200 },
+      );
+    };
+    const d = await facebookDiagnostics({ accessToken: 'st' }, fetcher);
+    expect(d.permissions).toEqual(['pages_show_list', 'pages_manage_posts']);
+    expect(d.pages).toEqual([
+      { id: '1317480644786626', name: '測試粉專', tasks: ['MANAGE', 'CREATE_CONTENT'] },
+    ]);
+    const perm = new URL(calls[0]);
+    expect(`${perm.origin}${perm.pathname}`).toBe(`${FACEBOOK_API_BASE}/me/permissions`);
+    expect(perm.searchParams.get('access_token')).toBe('st');
+    const pages = new URL(calls[1]);
+    expect(`${pages.origin}${pages.pathname}`).toBe(`${FACEBOOK_API_BASE}/me/accounts`);
+    expect(pages.searchParams.get('fields')).toBe('id,name,tasks');
   });
 });
