@@ -199,3 +199,49 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 - page token 失效(改密碼/收回權限/組態異動)不自動修復——排程項目重試耗盡轉 `failed`,重新授權即覆寫;
 - App 開發模式僅 App 角色帳號可授權(自用足夠);對外開放需 App Review;
 - 商家版 App:標準版 Facebook Login 不可加;組態權限型錄隨 App 層級權限動態變化(§6.1 #8)。
+
+## 8. 串接實錄:定案架構與問題總表(Threads + FB 粉專;2026-10-02 彙整)
+
+> 一站式總覽,供日後 IG/X 等新平台串接前複習。細節:Threads 見 §6,FB 見 §7 與 §6.1 #7/#8。
+
+### 8.1 定案架構(現行上線中)
+
+| | Threads | Facebook 粉專 |
+| --- | --- | --- |
+| 授權方式 | OAuth(`threads.net/oauth/authorize`,scope=`threads_basic,threads_content_publish`) | **OAuth 組態模式**(`facebook.com/<v>/dialog/oauth` 帶 `config_id`,不帶 scope——商家版 App 權限綁在組態上) |
+| 授權前提(App 後台) | Threads 產品 + redirect URI | 商家版 Facebook Login + redirect URI + **App 層級先開 pages 權限**(應用程式審核→權限與功能)→ 組態勾三項 |
+| worker 保管 | 長效 user token(60 天,到期前 7 天自動刷新) | page token(`/me/accounts` 於 callback 取得;不隨時間過期,無刷新) |
+| KV key | `token:threads:<installId>`(加密,90 天 TTL) | `token:facebook:<installId>`(加密,無 TTL) |
+| 發佈端點 | 兩步 container(`POST /{user}/threads` → `threads_publish`) | 單步 `POST /{page-id}/feed`(message 走 URL 查詢字串,中文安全) |
+| 排程 | 共用佇列 `/api/schedule`(`platform` 欄位)+ 每小時 cron 依平台分派,失敗指數退避 | 同左(`platform=facebook`) |
+| worker secrets | `THREADS_CLIENT_ID`、`THREADS_CLIENT_SECRET` | `FACEBOOK_CLIENT_ID`、`FACEBOOK_CLIENT_SECRET`、`FACEBOOK_LOGIN_CONFIG_ID`(同 App 的 id/secret + 組態 ID) |
+| 撤銷 | 前端重新授權即覆寫;或 Meta 後台移除 App 授權 | 同左;組態/權限異動後重新授權 |
+| 版本 | Threads API v1.0 | Graph **v25.0**(刻意釘版,升級改 `worker/src/config.ts`) |
+
+### 8.2 Threads 踩坑總表(2026-09-04/07;詳 §6.1 #1–#6、§6.2)
+
+- **端點與參數**:code 交換欄位須 snake_case;長效交換/刷新是**獨立端點**(`/access_token`、`/refresh_access_token`,非 `/oauth/access_token`);
+- **id 精度**:`user_id` 為 JSON number 且**超過 2^53**,`JSON.parse` 靜默失真——一律從原始回應文字正則抽取;
+- **驗收工具編碼**:zh-TW Windows 的 Git Bash 把命令列中文轉 CP950 傳給 curl.exe——含 CJK 的請求一律 `-d @檔案`;
+- **Meta 後台碎片化**:redirect URI 在「使用案例→存取 Threads API→設定」;OAuth 憑證用 Threads App ID/Secret(非 App ID);開發模式測試邀請要在 Threads 手機 App 接受;表單儲存卡住換無痕視窗。
+
+### 8.3 Facebook 粉專踩坑全記錄(2026-09-30 ~ 10-02,依時序)
+
+1. **此 App 無標準版 Facebook Login 可加**(新增產品頁僅 Webhooks/Threads Webhooks;Meta 對此 App 世代僅留商家版)→ 只能以商家版 Facebook Login 為載體。
+2. **商家版的授權參數不同**:權限綁「組態」、dialog 吃 `config_id` 不吃 `scope`——若沿用 Threads 式 scope 流程,會**靜默拿到無粉專權限的 token**(連線看似成功、發佈才爆)。
+3. **組態權限型錄會動態變化**:初期僅四項商業權限(business_management/pages_manage_metadata/pages_messaging/pages_show_list),**沒有 pages 發文權限**——須先至「應用程式審核→權限與功能」於 App 層級開通 `pages_manage_posts`/`pages_read_engagement`,組態選單才會出現這兩項。
+4. **redirect URI 設定地雷**:設定頁頂端是「檢查工具」(只能驗證);真正輸入處在同頁下方的「有效的 OAuth 重新導向 URI」;URI 須逐字一致;表單儲存無反應→換無痕視窗。
+5. **系統工作人員路線(嘗試後證明此 App 不可行)**:
+   - 建立系統工作人員(新版介面名;舊稱系統用戶)需**指派 App 資產(角色:開發人員)**,否則產生權杖時「沒有可用權限」;
+   - 粉專 API 不可用網址上的數字 id(`profile.php?id=` 的 global id,`#100`)——API id 以商業後台資產頁或 `/me/accounts` 為準(§6.1 #7);
+   - token 權限、粉專任務、App 權限、重產 token **全部驗證通過仍 `#200`**(§6.1 #8)——此 App 世代對系統用戶發文存在無法關閉的閘門;診斷利器=worker `/api/facebook/diag`+curl 直打端點看 `detail`;
+   - ⚠ 紀律:系統工作人員 token 永不過期,**貼進任何對話即視同外洩**——撤銷重發,新 token 只進 `wrangler secret put`。
+6. **定案(2026-10-02 驗收通關)**:App 層級開權限 → 組態勾三項(pages_show_list/pages_read_engagement/pages_manage_posts)→ worker 以 `config_id` 走 OAuth → 使用者在授權頁**實際同意**權限 → page token 加密入 KV → 發文成功。教訓:**「帳面權限」≠「有效授權」,標準消費者授權流程(真人按同意)才是 Graph 的正門**。
+
+### 8.4 新平台串接前複習清單(IG/X 適用,續 §6.4)
+
+1. 先確認 App 的**產品與權限型錄**能支援目標 API(加不了產品=換 App,別硬繞);
+2. 授權模式先定型:標準 scope / 組態 config_id / 系統用戶——**逐一實測最小樣本**,別信帳面;
+3. 所有 id 從原始回應文字抽取;所有含 CJK 的請求以 URL 查詢字串或 `-d @檔案` 送;
+4. 上線前備妥分層診斷:狀態端點、探針 curl、必要時診斷端點;
+5. 不可過期的憑證(系統用戶 token 等)一律不進對話,只進 secret。
