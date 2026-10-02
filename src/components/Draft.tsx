@@ -2,6 +2,8 @@ import { useState } from 'react';
 import {
   BACKEND_COPY,
   BACKEND_ERROR_COPY,
+  BACKEND_FB_COPY,
+  BACKEND_FB_ERROR_COPY,
   COPY_CATEGORIES,
   DRAFT_AI_COPY,
   DRAFT_KIND_HINT,
@@ -40,6 +42,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
   const [fillInsert, setFillInsert] = useState<{ tpl: Template; text: string } | null>(null);
   const [threadsScheduleAt, setThreadsScheduleAt] = useState(`${store.tomorrowISO}T10:00`);
+  const [fbScheduleAt, setFbScheduleAt] = useState(`${store.tomorrowISO}T10:30`);
   const [showVariantSave, setShowVariantSave] = useState(false);
   const [variantSaveTitle, setVariantSaveTitle] = useState('');
   const [variantSaveCategory, setVariantSaveCategory] = useState(
@@ -902,6 +905,98 @@ export default function Draft({ store }: { store: AppStore }) {
                 {store.threadsProxy.status === 'error' && (
                   <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
                     {BACKEND_ERROR_COPY.unknown}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {store.draftPlatforms.fb && store.facebookProxy.enabled && (
+              <div className="card" style={{ padding: 18 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                    {BACKEND_FB_COPY.cardTitle}
+                  </div>
+                  <button
+                    onClick={() => void store.facebookProxy.refresh()}
+                    style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+                  >
+                    {BACKEND_FB_COPY.refreshStatus}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+                  {BACKEND_FB_COPY.cardDesc}
+                </div>
+
+                {store.facebookProxy.status !== 'connected' ? (
+                  <div>
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                      <button className="btn btn-outline" onClick={store.facebookProxy.connect}>
+                        {BACKEND_FB_COPY.connect}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+                      {store.facebookProxy.authReturn === 'connected' &&
+                        BACKEND_FB_COPY.connectedBackToast}
+                      {store.facebookProxy.authReturn === 'error' && BACKEND_FB_COPY.connectErrorToast}
+                      {store.facebookProxy.authReturn === null && BACKEND_FB_COPY.connectHint}
+                    </div>
+                    {store.facebookProxy.status === 'unknown' && (
+                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+                        {BACKEND_COPY.checking}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
+                      {BACKEND_FB_COPY.connectedHint(store.facebookProxy.pageName)}
+                    </div>
+                    <button
+                      className="btn btn-accent"
+                      onClick={() => void store.publishDraftToFacebookNow()}
+                      disabled={store.facebookProxy.busy}
+                      style={{
+                        width: '100%',
+                        marginBottom: 12,
+                        opacity: store.facebookProxy.busy ? 0.5 : 1,
+                        cursor: store.facebookProxy.busy ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {store.facebookProxy.busy ? BACKEND_FB_COPY.publishingLabel : BACKEND_FB_COPY.publishNow}
+                    </button>
+                    <div className="field-label">{BACKEND_FB_COPY.scheduleLabel}</div>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={fbScheduleAt}
+                      onChange={(e) => setFbScheduleAt(e.target.value)}
+                      aria-label={BACKEND_FB_COPY.scheduleAtLabel}
+                      style={{ marginBottom: 10 }}
+                    />
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => void store.scheduleDraftToFacebook(fbScheduleAt)}
+                      disabled={store.facebookProxy.busy}
+                      style={{
+                        width: '100%',
+                        opacity: store.facebookProxy.busy ? 0.5 : 1,
+                        cursor: store.facebookProxy.busy ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {store.facebookProxy.busy ? BACKEND_FB_COPY.schedulingLabel : BACKEND_FB_COPY.schedulePublish}
+                    </button>
+                  </div>
+                )}
+                {store.facebookProxy.status === 'error' && (
+                  <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+                    {BACKEND_FB_ERROR_COPY.unknown ?? BACKEND_ERROR_COPY.unknown}
                   </div>
                 )}
               </div>

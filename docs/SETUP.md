@@ -4,11 +4,11 @@
 
 ## 前置:Cloudflare API token(僅「平台代發」後端路線需要)
 
-本手冊主體(Gmail / YouTube / Drive 前端串接)**完全不需要 Cloudflare**;只有選��後端輔助(Threads 等平台代發)時,才需要一枚 Cloudflare API token 部署 worker(完整部署手冊見 `docs/BACKEND.md`):
+本手冊主體(Gmail / YouTube / Drive 前端串接)**完全不需要 Cloudflare**;只有選用後端輔助(Threads 等平台代發)時,才需要一枚 Cloudflare API token 部署 worker(完整部署手冊見 `docs/BACKEND.md`):
 
 1. 登入 <https://dash.cloudflare.com> → 右上角頭像 → **My Profile → API Tokens → Create Token**
 2. 選範本 **Edit Cloudflare Workers**(涵蓋 Workers Scripts 與 KV 的編輯權限,足夠 `wrangler deploy` 與 secret 管理)→ 建立後**立刻複製**(只顯示一次)
-3. 部署時以環境變數傳入,並在 `worker/` 目錄��行:`CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy`——此方式可完全繞過 `wrangler login` 的 localhost 回呼問題
+3. 部署時以環境變數傳入,並在 `worker/` 目錄下執行:`CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy`——此方式可完全繞過 `wrangler login` 的 localhost 回呼問題
 4. **資安紀律(2026-09 教訓)**:token 只存在環境變數或密碼管理器,**不寫進 repo、不貼進任何對話或文件**;部署完的日常不需要它——建議直接回同一頁面 **Roll** 或 **Delete**,下次部署再重建即可
 
 ## 0. 這份文件給誰看

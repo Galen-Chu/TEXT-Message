@@ -22,6 +22,8 @@ export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface ThreadsQueueItemView {
   id: string;
+  /** 佇列項目平台:'threads' | 'facebook'(舊資料無此欄位 = threads)。 */
+  platform?: string;
   text: string;
   publishAt: number;
   status: 'pending' | 'done' | 'failed' | 'cancelled';
@@ -33,6 +35,11 @@ export interface ThreadsQueueItemView {
 /** OAuth 起始 URL(瀏覽器新分頁開啟;state 由 worker 簽章)。 */
 export function threadsAuthStartUrl(base: string, installId: string): string {
   return `${base}/auth/threads/start?install=${encodeURIComponent(installId)}`;
+}
+
+/** Facebook OAuth 起始 URL(2026-09-30;同款簽章 state)。 */
+export function facebookAuthStartUrl(base: string, installId: string): string {
+  return `${base}/auth/facebook/start?install=${encodeURIComponent(installId)}`;
 }
 
 async function requestJson<T>(
@@ -105,6 +112,32 @@ export function publishThreadsNow(opts: {
   );
 }
 
+/** FB 粉專狀態(2026-09-30):connected + pageName(未連線時 null)。 */
+export function checkFacebookStatus(opts: {
+  base: string;
+  installId: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ connected: boolean; pageName: string | null }>> {
+  return requestJson(
+    `${opts.base}/api/facebook/status?install=${encodeURIComponent(opts.installId)}`,
+    jsonInit('GET'),
+    opts.fetcher ?? fetch,
+  );
+}
+
+export function publishFacebookNow(opts: {
+  base: string;
+  installId: string;
+  text: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ id: string }>> {
+  return requestJson(
+    `${opts.base}/api/facebook/publish`,
+    jsonInit('POST', { installId: opts.installId, text: opts.text }),
+    opts.fetcher ?? fetch,
+  );
+}
+
 export function scheduleThreadsPost(opts: {
   base: string;
   installId: string;
@@ -115,6 +148,26 @@ export function scheduleThreadsPost(opts: {
   return requestJson(
     `${opts.base}/api/schedule`,
     jsonInit('POST', { installId: opts.installId, text: opts.text, publishAt: opts.publishAt }),
+    opts.fetcher ?? fetch,
+  );
+}
+
+/** FB 粉專排程(platform='facebook';佇列與 Threads 共用,由 worker cron 依平台代發)。 */
+export function scheduleFacebookPost(opts: {
+  base: string;
+  installId: string;
+  text: string;
+  publishAt: number;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ itemId: string }>> {
+  return requestJson(
+    `${opts.base}/api/schedule`,
+    jsonInit('POST', {
+      installId: opts.installId,
+      text: opts.text,
+      publishAt: opts.publishAt,
+      platform: 'facebook',
+    }),
     opts.fetcher ?? fetch,
   );
 }

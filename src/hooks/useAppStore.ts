@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDrive } from './useDrive';
+import { useFacebookProxy } from './useFacebookProxy';
 import { useGmail } from './useGmail';
 import { useThreadsProxy } from './useThreadsProxy';
 import { useYoutube } from './useYoutube';
 import {
   BACKEND_COPY,
   BACKEND_ERROR_COPY,
+  BACKEND_FB_COPY,
+  BACKEND_FB_ERROR_COPY,
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
@@ -157,6 +160,7 @@ export function useAppStore() {
   const gmail = useGmail();
   const youtube = useYoutube();
   const threadsProxy = useThreadsProxy();
+  const facebookProxy = useFacebookProxy();
   const drive = useDrive();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -977,6 +981,50 @@ export function useAppStore() {
     }
   };
 
+  /** FB 粉專立即發佈(2026-09-30,鏡像 Threads):成功即寫入發文歷史。 */
+  const publishDraftToFacebookNow = async () => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_FB_COPY.needTextToast);
+      return;
+    }
+    const result = await facebookProxy.publish(draftText);
+    if (!result) return; // 連點被鎖定忽略
+    if (result.ok) {
+      appendPublishedHistory('fb', draftText.split('\n')[0], draftText);
+      showToast(BACKEND_FB_COPY.publishedToast);
+    } else {
+      showToast(BACKEND_FB_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY.unknown);
+    }
+  };
+
+  /** FB 粉專排程發佈:加入雲端佇列(platform='facebook',cron 到點自動發佈)並建立本地排程。 */
+  const scheduleDraftToFacebook = async (publishAtLocal: string) => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_FB_COPY.needTextToast);
+      return;
+    }
+    const dt = new Date(publishAtLocal);
+    if (!publishAtLocal || Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+      showToast(BACKEND_FB_COPY.pastTimeToast);
+      return;
+    }
+    const result = await facebookProxy.schedule(draftText, dt.getTime());
+    if (!result) return; // 連點被鎖定忽略
+    if (result.ok) {
+      addManualSchedule(
+        draftText.split('\n')[0],
+        publishAtLocal.slice(0, 10),
+        publishAtLocal.slice(11, 16),
+        'fb',
+        draftText,
+        draftKind,
+      );
+      showToast(BACKEND_FB_COPY.scheduledToast);
+    } else {
+      showToast(BACKEND_FB_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY[result.code] ?? BACKEND_ERROR_COPY.unknown);
+    }
+  };
+
   /** 發佈輔助:複製排程貼文內容(無全文時退回標題)。 */
   const copyScheduleText = async (item: ScheduleItem) => {
     const text = item.content?.trim() || item.title;
@@ -1025,6 +1073,7 @@ export function useAppStore() {
     gmail,
     youtube,
     threadsProxy,
+    facebookProxy,
     drive,
     emails,
     templates,
@@ -1110,6 +1159,8 @@ export function useAppStore() {
     appendPublishedHistory,
     publishDraftToThreadsNow,
     scheduleDraftToThreads,
+    publishDraftToFacebookNow,
+    scheduleDraftToFacebook,
     copyScheduleText,
     openSchedulePublish,
     deleteScheduleItem,

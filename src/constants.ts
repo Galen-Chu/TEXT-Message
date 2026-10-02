@@ -388,7 +388,7 @@ export const BACKEND_COPY = {
   pastTimeToast: '排定時間已過,請選擇未來時間',
   publishedToast: '已發佈至 Threads ✅(已記錄至社群媒體歷史)',
   scheduledToast: '已加入雲端佇列,後端會在排定時間自動發佈(本地同步建立排程)',
-  queueTitle: '🧵 Threads 雲端佇列',
+  queueTitle: '☁️ 雲端發佈佇列',
   queueEmpty: '雲端佇列沒有項目',
   queueRefresh: '重新載入',
   queueCancel: '取消',
@@ -410,6 +410,38 @@ export const BACKEND_ERROR_COPY: Record<string, string> = {
   forbidden_origin: '後端未允許此網站來源(檢查 worker 的 FRONTEND_URL 設定)',
   publish_failed: '後端發佈失敗,請稍後再試或檢查 worker 日誌',
   unknown: '後端服務異常,請稍後再試',
+};
+
+/** FB 粉專發佈卡(2026-09-30;鏡像 Threads 卡,同 worker 後端輔助)。 */
+export const BACKEND_FB_COPY = {
+  cardTitle: '📘 Facebook 粉專發佈(後端輔助)',
+  cardDesc: '由你的後端 worker 代為發佈至粉專;只送貼文內容與安裝識別碼,不送其他資料',
+  connect: '連接 Facebook 粉專',
+  connectHint: '開啟新分頁完成 Meta 授權(需要粉專管理權限),完成後會自動返回此頁',
+  refreshStatus: '檢查連線',
+  connectedHint: (name: string | null) =>
+    name
+      ? `已連線 · 粉專「${name}」(worker 保管加密 page token,可隨時重新授權取代)`
+      : '已連線(系統工作人員模式:token 由 worker secret 保管,撤銷請至商業組合後台)',
+  publishNow: '立即發佈',
+  publishingLabel: '發佈中…',
+  scheduleLabel: '排程發佈(由後端 cron 到點自動發佈)',
+  scheduleAtLabel: '排定時間',
+  schedulePublish: '排程發佈',
+  schedulingLabel: '加入排程中…',
+  needTextToast: '請先撰寫草稿內容',
+  pastTimeToast: '排定時間已過,請選擇未來時間',
+  publishedToast: '已發佈至 Facebook 粉專 ✅(已記錄至社群媒體歷史)',
+  scheduledToast: '已加入雲端佇列,後端會在排定時間自動發佈(本地同步建立排程)',
+  connectedQueryParam: 'facebook',
+  connectedBackToast: 'Facebook 連接成功 ✨',
+  connectErrorToast: 'Facebook 授權未完成(帳號需具粉專管理權限),可重新再試',
+};
+
+/** FB 卡專屬錯誤文案(覆寫平台相關者,其餘沿用 BACKEND_ERROR_COPY)。 */
+export const BACKEND_FB_ERROR_COPY: Record<string, string> = {
+  not_connected: '尚未連接 Facebook 粉專,請先完成授權',
+  invalid_text: '貼文內容無效(空白或超過 Facebook 上限)',
 };
 
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */

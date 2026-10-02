@@ -5,10 +5,12 @@
  */
 import type { KvLike } from '../config';
 import { aesDecrypt, aesEncrypt } from './crypto';
+import type { FacebookToken } from '../facebook/oauth';
 import type { ThreadsToken } from '../threads/oauth';
 import { parseQueueItem, type QueueItem } from '../queue/due';
 
 const TOKEN_PREFIX = 'token:threads:';
+const FB_TOKEN_PREFIX = 'token:facebook:';
 
 function tokenKey(installId: string): string {
   return `${TOKEN_PREFIX}${installId}`;
@@ -40,6 +42,39 @@ export async function loadThreadsToken(
     const userId = typeof parsed.userId === 'number' ? String(parsed.userId) : parsed.userId;
     if (typeof parsed.accessToken !== 'string' || typeof userId !== 'string') return null;
     return { accessToken: parsed.accessToken, userId, expiresAt: parsed.expiresAt ?? 0 };
+  } catch {
+    return null;
+  }
+}
+
+/** FB 粉專 page token(加密落地)。與 threads 不同:page token 不隨時間過期,故不設 TTL——
+ *  失效時(改密碼/收回權限)由發佈失敗反映,使用者重新授權覆寫即可。 */
+export async function saveFacebookToken(
+  kv: KvLike,
+  installId: string,
+  token: FacebookToken,
+  encryptionKey: string,
+): Promise<void> {
+  await kv.put(`${FB_TOKEN_PREFIX}${installId}`, await aesEncrypt(JSON.stringify(token), encryptionKey));
+}
+
+export async function loadFacebookToken(
+  kv: KvLike,
+  installId: string,
+  encryptionKey: string,
+): Promise<FacebookToken | null> {
+  const payload = await kv.get(`${FB_TOKEN_PREFIX}${installId}`);
+  if (!payload) return null;
+  try {
+    const parsed = JSON.parse(await aesDecrypt(payload, encryptionKey)) as Partial<FacebookToken>;
+    if (
+      typeof parsed.pageId !== 'string' ||
+      typeof parsed.pageName !== 'string' ||
+      typeof parsed.accessToken !== 'string'
+    ) {
+      return null;
+    }
+    return { pageId: parsed.pageId, pageName: parsed.pageName, accessToken: parsed.accessToken };
   } catch {
     return null;
   }

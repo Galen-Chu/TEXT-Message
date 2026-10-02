@@ -16,6 +16,7 @@
 2. **Meta 開發者帳號與 App**:建立 App → 加入 Threads 產品 → 取得 Threads API 的 client id/secret
    - App 在開發模式時**只有 App 的測試者/管理者帳號**能完成授權(自用足夠)
    - 要開放給其他使用者需通過 Meta App Review(`threads_basic` + `threads_content_publish`)
+   - **FB 粉專串接(2026-09-30)用同一個 App**:另加入 Facebook Login 產品即可,詳見 §7
 3. **注意 redirect_uri 限制**:Threads OAuth 對 callback 的 host 有額外規範,且須在 Meta App 後台登錄完整的 redirect URI(`https://<你的-worker-domain>/auth/threads/callback`)。host 若不被接受,Meta 會在 App 設定階段提示——遇到時以後台可接受的方案調整(worker 網址可自訂路由)。
 
 ## 2. 部署步驟
@@ -31,7 +32,7 @@ npx wrangler kv namespace create QUEUE
 #    - 把 QUEUE 的 id 換成上一步的值
 #    - FRONTEND_URL 指向你的前端完整網址(含路徑)
 
-# 4) 設定三個 secrets
+# 4) 設定三個 secrets(啟用 FB 粉專串接另加兩個,見 §7)
 npx wrangler secret put THREADS_CLIENT_ID        # Meta App 的 client id
 npx wrangler secret put THREADS_CLIENT_SECRET    # Meta App 的 client secret
 npx wrangler secret put TOKEN_ENCRYPTION_KEY     # 32 bytes hex:openssl rand -hex 32
@@ -74,9 +75,13 @@ cd worker && npx wrangler dev      # http://localhost:8787
 | GET | `/health` | 狀態檢查 |
 | GET | `/auth/threads/start?install=<id>` | 302 至 Threads 授權頁(state 已簽章) |
 | GET | `/auth/threads/callback` | 交換長效 token、加密存 KV、302 回前端 |
+| GET | `/auth/facebook/start?install=<id>` | 302 至 Facebook 授權頁(2026-09-30,見 §7) |
+| GET | `/auth/facebook/callback` | 換長效 user token → `/me/accounts` 取首個粉專 page token、加密存 KV |
 | GET | `/api/threads/status?install=<id>` | 是否已連線(僅回 true/false,不揭露 token) |
+| GET | `/api/facebook/status?install=<id>` | 是否已連線 + 粉專名稱(不揭露 token) |
 | POST | `/api/threads/publish` | 立即代發 `{installId, text}` |
-| POST | `/api/schedule` | 加入排程 `{installId, text, publishAt(ms)}`(限未來 90 天內) |
+| POST | `/api/facebook/publish` | FB 粉專立即發佈 `{installId, text}` |
+| POST | `/api/schedule` | 加入排程 `{installId, text, publishAt(ms), platform?}`(`platform`:`threads`(預設)/`facebook`;限未來 90 天內) |
 | GET | `/api/queue?install=<id>` | 檢視該安裝的佇列 |
 | POST | `/api/queue/cancel` | 取消未發佈項目 `{installId, itemId}` |
 | cron | 每小時整點(`0 */1 * * *`,2026-09-08 維護者調整) | 發佈到期項目(整點批次);失敗指數退避(60s→2m→4m,上限 3 次後標記 failed)。**勿改回每分鐘**:KV 免費方案 list 上限 1,000 次/日,每分鐘掃描(1,440/日)會超額,隔夜排程將失敗;若需分鐘級精度改「佇列旗標鍵」設計 |
@@ -149,3 +154,44 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 3. Meta 系 API 的 id/user_id 可能是 JSON number,且**可能超過 JS 安全整數(2^53-1)**——`String()` 不夠,必須從原始回應文字抽取(見 §6.1 #5)。
 4. e2e 前掛 `wrangler tail`;先用 bogus probe 驗憑證層。
 5. 狀態端點優先做成可獨立驗證(本次 `/api/threads/status` 讓 KV 問題得以隔離)。
+
+## 7. Facebook 粉專串接(2026-09-30 實作;2026-10-01 定案走系統工作人員模式)
+
+鏡像 Threads 模組(`worker/src/facebook/`),發佈目標為**粉絲專頁**(非個人檔案)。依 §6.4 預防清單實作:寫碼前已對照當下官方文件(URL 註解於 `worker/src/config.ts` 常數旁),單元測試斷言完整請求形狀,page id 與貼文 id 從原始回應文字抽取。
+
+### 7.1 與 Threads 的差異(OAuth 模式備查;現行採 §7.2 系統工作人員模式)
+
+| | Threads | Facebook 粉專 |
+| --- | --- | --- |
+| OAuth 對話框 | `threads.net/oauth/authorize` | `www.facebook.com/<v>/dialog/oauth`(版本固定 v25.0) |
+| 換 token | `graph.threads.net`,Threads 專屬 grant | `graph.facebook.com/<v>/oauth/access_token`:`code` 交換與 `grant_type=fb_exchange_token` 短換長共用端點 |
+| 保管物 | user token(60 天,需刷新) | **page token**(`/me/accounts` 取得,每粉專一枚;不隨時間過期,**無刷新邏輯**,失效即重新授權) |
+| 發佈 | 兩步 container | 單步 `POST /{page-id}/feed`(`message`) |
+| KV key | `token:threads:<installId>`(90 天 TTL) | `token:facebook:<installId>`(無 TTL) |
+| 授權帳號需求 | Threads 帳號 | 授權帳號需具粉專管理權(單粉專場景取 `/me/accounts` 第一個;多粉專選擇 UI 為後續增量) |
+
+### 7.2 維護者啟用檢查表(系統工作人員模式,採用中)
+
+1. **商業組合後台**([business.facebook.com](https://business.facebook.com) → 商業設定):
+   - 資產:粉專(新增你的粉專)、應用程式(新增 App `1808247027192643`)皆隸屬商業組合;
+   - 「用戶 → **系統工作人員**」→ 新增(類型:系統員工,不需 email;若介面要求 email 僅通知用途);
+   - 對該人員「**指派資產**」:粉專(權限勾管理內容/完整控制)+ **應用程式(角色選「開發人員」——未指派 App 角色則產生權杖時顯示「沒有可用權限」)**;
+   - 「**產生權限**」精靈:選 App → 到期時間 → 勾 `pages_show_list`、`pages_read_engagement`、`pages_manage_posts` → 產生 → **立刻複製 token(只顯示一次)**;
+   - ⚠ **紀律(2026-10-01 教訓):系統工作人員 token 永不過期,貼進任何對話即視同外洩——至商業後台對該權限組「撤銷權限」作廢重發;新 token 只進 `wrangler secret put`,不經任何對話/文件/第三方**。
+2. **Worker secrets(僅兩個,OAuth 相關皆不需要)**:
+   ```bash
+   cd worker
+   npx wrangler secret put FACEBOOK_PAGE_TOKEN   # 新產生的 token(未貼過任何對話)
+   npx wrangler secret put FACEBOOK_PAGE_ID      # 粉專數字 id(粉專網址 profile.php?id= 後那串)
+   npx wrangler deploy
+   curl https://<worker-domain>/health           # facebookConfigured:true
+   ```
+3. **端到端驗收**:正式站 → 編發器勾選 Facebook → 「📘 Facebook 粉專發佈」卡應直接顯示已連線(免連接按鈕)→ 立即發佈/排程發佈;或照 §3 的 curl 流程打 `/api/facebook/publish`。
+
+**OAuth 模式(保留未用,雙軌自動切換)**:未設 `FACEBOOK_PAGE_TOKEN`/`FACEBOOK_PAGE_ID` 時走原 OAuth 流程——商家版 App 設 `FACEBOOK_LOGIN_CONFIG_ID` 走組態(`config_id`),標準版 App 不設則走 `scope`;Meta App 端設定(redirect URI、組態、權限型錄實測限制)如下備查:新增產品頁無標準版可加;商家版組態型錄僅 business_management/pages_manage_metadata/pages_messaging/pages_show_list 四項(已選用戶存取權杖亦然),無 pages 發文權限——此即改走系統工作人員模式的原因。
+
+### 7.3 已知限制(誠實清單)
+
+- 系統工作人員模式為**單租戶**:所有使用該 worker 的前端都能發到該粉專(自用可接受;多用戶需改 OAuth 模式);
+- token 失效(撤銷權限、資產異動)不會自動修復——排程項目以重試耗盡轉 `failed`,重新產生 token 更新 secret 即恢復;
+- OAuth 模式(若啟用)多粉專時固定取 `/me/accounts` 第一個;App 開發模式僅 App 角色帳號可用。

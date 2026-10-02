@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { facebookSystemUserMode, type Env } from './config';
 import { aesDecrypt, aesEncrypt, hmacHex } from './store/crypto';
+
+describe('FB 系統工作人員模式判定(2026-10-01)', () => {
+  it('兩個 secret 齊備才啟用;缺一即回 OAuth 模式', () => {
+    const base = { FACEBOOK_PAGE_TOKEN: 'tok', FACEBOOK_PAGE_ID: '61595163560239' } as Env;
+    expect(facebookSystemUserMode(base)).toBe(true);
+    expect(facebookSystemUserMode({ ...base, FACEBOOK_PAGE_TOKEN: '' })).toBe(false);
+    expect(facebookSystemUserMode({ ...base, FACEBOOK_PAGE_ID: '' })).toBe(false);
+    expect(facebookSystemUserMode({} as Env)).toBe(false);
+  });
+});
 
 const KEY = 'a'.repeat(64); // 32 bytes hex
 

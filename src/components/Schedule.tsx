@@ -16,7 +16,7 @@ import { effectiveStatus, overdueItems, scheduleKindOf } from '../utils/schedule
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
 
-/** Threads 雲端佇列項目狀態顯示(與本地排程狀態分開定義:語意不同——雲端由 cron 執行)。 */
+/** 雲端佇列項目狀態顯示(Threads/FB 共用佇列;與本地排程狀態分開定義——雲端由 cron 執行)。 */
 const QUEUE_STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: '待發佈', color: 'var(--brand)' },
   done: { label: '✓ 已發佈', color: '#06C755' },
@@ -37,7 +37,7 @@ export default function Schedule({ store }: { store: AppStore }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Threads 雲端佇列:後端啟用時進入本頁自動載入
+  // 雲端佇列(Threads/FB 共用一個佇列端點):後端啟用時進入本頁自動載入
   const proxy = store.threadsProxy;
   useEffect(() => {
     if (proxy.enabled) void proxy.loadQueue();
@@ -399,6 +399,9 @@ export default function Schedule({ store }: { store: AppStore }) {
                   >
                     {item.text.split('\n')[0]}
                   </span>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', flexShrink: 0 }}>
+                  {item.platform === 'facebook' ? 'FB' : 'Threads'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</div>
                 {item.status === 'pending' && (
