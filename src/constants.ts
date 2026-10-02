@@ -444,6 +444,15 @@ export const BACKEND_FB_ERROR_COPY: Record<string, string> = {
   invalid_text: '貼文內容無效(空白或超過 Facebook 上限)',
 };
 
+/** 發佈卡(D14,2026-10-03):單卡+平台頁簽;連接/發佈依平台,半自動平台提供複製+深連結。 */
+export const PUBLISH_CARD_COPY = {
+  cardTitle: '🚀 發佈',
+  noPlatformHint: '勾選上方「選擇發布平台」,這裡會出現各平台的發佈頁簽',
+  emptyTextToast: '請先撰寫草稿內容',
+  semiAutoHint: '此平台為半自動:一鍵複製內容並開啟平台,貼上後即可發佈',
+  youtubeDisabledHint: '此版本未設定 YouTube 連線(設定方式見 docs/SETUP.md)',
+};
+
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
 export const DRAFT_VARIANTS_COPY = {
   variantsButton: '✨ 產生平台版本',

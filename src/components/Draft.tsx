@@ -1,9 +1,5 @@
 import { useState } from 'react';
 import {
-  BACKEND_COPY,
-  BACKEND_ERROR_COPY,
-  BACKEND_FB_COPY,
-  BACKEND_FB_ERROR_COPY,
   COPY_CATEGORIES,
   DRAFT_AI_COPY,
   DRAFT_KIND_HINT,
@@ -18,18 +14,15 @@ import {
   PLATFORM_META,
   ROLE_OPTIONS,
   TONE_OPTIONS,
-  YOUTUBE_COPY,
-  YOUTUBE_ERROR_COPY,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import { YOUTUBE_ENABLED } from '../services/youtube/config';
-import { fileSizeMb, resolvePublishPlan } from '../services/youtube/video';
 import { charCount, dateLabel } from '../utils/date';
 import { buildTemplateInsertText } from '../utils/variants';
 import { extractVariables } from '../utils/variables';
 import type { Template } from '../types';
 import Modal from './Modal';
 import GeminiKeyModal from './GeminiKeyModal';
+import PublishCard from './PublishCard';
 import VariableFillModal from './VariableFillModal';
 
 export default function Draft({ store }: { store: AppStore }) {
@@ -37,12 +30,7 @@ export default function Draft({ store }: { store: AppStore }) {
   const [showSocialPicker, setShowSocialPicker] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
-  const [publishAtLocal, setPublishAtLocal] = useState(`${store.tomorrowISO}T09:00`);
   const [fillInsert, setFillInsert] = useState<{ tpl: Template; text: string } | null>(null);
-  const [threadsScheduleAt, setThreadsScheduleAt] = useState(`${store.tomorrowISO}T10:00`);
-  const [fbScheduleAt, setFbScheduleAt] = useState(`${store.tomorrowISO}T10:30`);
   const [showVariantSave, setShowVariantSave] = useState(false);
   const [variantSaveTitle, setVariantSaveTitle] = useState('');
   const [variantSaveCategory, setVariantSaveCategory] = useState(
@@ -53,45 +41,6 @@ export default function Draft({ store }: { store: AppStore }) {
     (p) => store.draftVariants && p.key in store.draftVariants,
   );
 
-  const yt = store.youtube;
-
-  const handleYoutubeUpload = async () => {
-    if (!videoFile) {
-      store.showToast(YOUTUBE_COPY.noFileToast);
-      return;
-    }
-    if (!store.draftText.trim()) {
-      store.showToast(YOUTUBE_COPY.noTextToast);
-      return;
-    }
-    let plan;
-    try {
-      plan = resolvePublishPlan(publishMode, publishAtLocal);
-    } catch {
-      store.showToast(YOUTUBE_COPY.pastTimeToast);
-      return;
-    }
-    const title = store.draftText.split('\n')[0];
-    try {
-      await yt.upload({
-        file: videoFile,
-        title,
-        description: store.draftText,
-        privacyStatus: plan.privacyStatus,
-        publishAt: plan.mode === 'schedule' ? plan.publishAt : undefined,
-      });
-      if (plan.mode === 'now') {
-        store.appendPublishedHistory('yt', title, store.draftText);
-        store.showToast(YOUTUBE_COPY.uploadedToast);
-      } else {
-        store.addManualSchedule(title, plan.date, plan.time, 'yt', store.draftText);
-        store.showToast(YOUTUBE_COPY.scheduledToast);
-      }
-    } catch {
-      // 錯誤已由 useYoutube 記錄(yt.error),於卡片內顯示,此處不再 toast
-    }
-  };
-
   const hasDraftTarget = !!store.selectedMailId;
   const sourceMail =
     store.selectedMailId && store.selectedMailId !== 'blank'
@@ -99,7 +48,6 @@ export default function Draft({ store }: { store: AppStore }) {
       : null;
 
   const draftLength = charCount(store.draftText);
-  const selectedPlatforms = PLATFORM_LIST.filter((p) => store.draftPlatforms[p.key]);
 
   return (
     <div>
@@ -626,381 +574,9 @@ export default function Draft({ store }: { store: AppStore }) {
                 })}
               </div>
 
-              {selectedPlatforms.map((p) => {
-                const over = draftLength > p.limit;
-                return (
-                  <div
-                    key={p.key}
-                    style={{
-                      border: '1px solid var(--border-2)',
-                      borderRadius: 12,
-                      padding: 14,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 5,
-                          background: p.color,
-                          color: '#fff',
-                          fontSize: 9,
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {p.badge}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>
-                        {p.label} 預覽
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: over ? 'var(--error)' : 'var(--text-faint)',
-                          marginLeft: 'auto',
-                        }}
-                      >
-                        {draftLength} / {p.limit} 字
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-                      {store.draftText || '(尚未輸入內容)'}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
 
-            {store.draftPlatforms.yt && YOUTUBE_ENABLED && (
-              <div className="card" style={{ padding: 18 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 4,
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                    {YOUTUBE_COPY.cardTitle}
-                  </div>
-                  {yt.status === 'connected' && (
-                    <button
-                      onClick={yt.disconnect}
-                      style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
-                    >
-                      {YOUTUBE_COPY.disconnect}
-                    </button>
-                  )}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
-                  {YOUTUBE_COPY.cardDesc}
-                </div>
-
-                {yt.status !== 'connected' ? (
-                  <div>
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => void yt.connect()}
-                      disabled={yt.status === 'connecting'}
-                    >
-                      {yt.status === 'connecting' ? YOUTUBE_COPY.connecting : YOUTUBE_COPY.connect}
-                    </button>
-                    {yt.status === 'error' && yt.error && (
-                      <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
-                        {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
-                      {YOUTUBE_COPY.connectedHint}
-                    </div>
-                    <input
-                      id="yt-video-file"
-                      type="file"
-                      accept="video/*"
-                      hidden
-                      onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-                    />
-                    <label
-                      htmlFor="yt-video-file"
-                      className="btn btn-outline"
-                      style={{ display: 'inline-block', cursor: 'pointer', marginBottom: 12 }}
-                    >
-                      {videoFile
-                        ? `🎬 ${videoFile.name}(${fileSizeMb(videoFile.size)} MB)`
-                        : `📎 ${YOUTUBE_COPY.pickFile}`}
-                    </label>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      {(
-                        [
-                          ['now', YOUTUBE_COPY.publishNowLabel],
-                          ['schedule', YOUTUBE_COPY.publishScheduleLabel],
-                        ] as const
-                      ).map(([mode, label]) => {
-                        const active = publishMode === mode;
-                        return (
-                          <button
-                            key={mode}
-                            onClick={() => setPublishMode(mode)}
-                            style={{
-                              padding: '7px 14px',
-                              borderRadius: 9,
-                              fontSize: 12.5,
-                              fontWeight: 600,
-                              background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
-                              color: active ? 'var(--brand)' : 'var(--text-faint)',
-                              border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
-                            }}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {publishMode === 'schedule' && (
-                      <input
-                        className="text-input"
-                        type="datetime-local"
-                        value={publishAtLocal}
-                        onChange={(e) => setPublishAtLocal(e.target.value)}
-                        aria-label={YOUTUBE_COPY.publishAtLabel}
-                        style={{ marginBottom: 12 }}
-                      />
-                    )}
-                    <button
-                      className="btn btn-accent"
-                      onClick={() => void handleYoutubeUpload()}
-                      disabled={!videoFile || yt.uploadState === 'uploading'}
-                      style={{ width: '100%' }}
-                    >
-                      {yt.uploadState === 'uploading'
-                        ? YOUTUBE_COPY.uploading(Math.round(yt.uploadProgress * 100))
-                        : YOUTUBE_COPY.upload}
-                    </button>
-                    {yt.uploadState === 'uploading' && (
-                      <div
-                        style={{
-                          height: 6,
-                          borderRadius: 3,
-                          background: 'var(--bg)',
-                          marginTop: 10,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.round(yt.uploadProgress * 100)}%`,
-                            height: '100%',
-                            background: 'var(--brand-fill)',
-                            transition: 'width 0.2s ease',
-                          }}
-                        />
-                      </div>
-                    )}
-                    {yt.error && (
-                      <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
-                        {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
-                      </div>
-                    )}
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 10 }}>
-                      {YOUTUBE_COPY.auditCaveat}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {store.draftPlatforms.threads && store.threadsProxy.enabled && (
-              <div className="card" style={{ padding: 18 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 4,
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                    {BACKEND_COPY.cardTitle}
-                  </div>
-                  <button
-                    onClick={() => void store.threadsProxy.refresh()}
-                    style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
-                  >
-                    {BACKEND_COPY.refreshStatus}
-                  </button>
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
-                  {BACKEND_COPY.cardDesc}
-                </div>
-
-                {store.threadsProxy.status !== 'connected' ? (
-                  <div>
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-                      <button className="btn btn-outline" onClick={store.threadsProxy.connect}>
-                        {BACKEND_COPY.connect}
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
-                      {store.threadsProxy.authReturn === 'connected' &&
-                        BACKEND_COPY.connectedBackToast}
-                      {store.threadsProxy.authReturn === 'error' && BACKEND_COPY.connectErrorToast}
-                      {store.threadsProxy.authReturn === null && BACKEND_COPY.connectHint}
-                    </div>
-                    {store.threadsProxy.status === 'unknown' && (
-                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
-                        {BACKEND_COPY.checking}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
-                      {BACKEND_COPY.connectedHint}
-                    </div>
-                    <button
-                      className="btn btn-accent"
-                      onClick={() => void store.publishDraftToThreadsNow()}
-                      disabled={store.threadsProxy.busy}
-                      style={{
-                        width: '100%',
-                        marginBottom: 12,
-                        opacity: store.threadsProxy.busy ? 0.5 : 1,
-                        cursor: store.threadsProxy.busy ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {store.threadsProxy.busy ? BACKEND_COPY.publishingLabel : BACKEND_COPY.publishNow}
-                    </button>
-                    <div className="field-label">{BACKEND_COPY.scheduleLabel}</div>
-                    <input
-                      className="text-input"
-                      type="datetime-local"
-                      value={threadsScheduleAt}
-                      onChange={(e) => setThreadsScheduleAt(e.target.value)}
-                      aria-label={BACKEND_COPY.scheduleAtLabel}
-                      style={{ marginBottom: 10 }}
-                    />
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => void store.scheduleDraftToThreads(threadsScheduleAt)}
-                      disabled={store.threadsProxy.busy}
-                      style={{
-                        width: '100%',
-                        opacity: store.threadsProxy.busy ? 0.5 : 1,
-                        cursor: store.threadsProxy.busy ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {store.threadsProxy.busy ? BACKEND_COPY.schedulingLabel : BACKEND_COPY.schedulePublish}
-                    </button>
-                  </div>
-                )}
-                {store.threadsProxy.status === 'error' && (
-                  <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
-                    {BACKEND_ERROR_COPY.unknown}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {store.draftPlatforms.fb && store.facebookProxy.enabled && (
-              <div className="card" style={{ padding: 18 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 4,
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                    {BACKEND_FB_COPY.cardTitle}
-                  </div>
-                  <button
-                    onClick={() => void store.facebookProxy.refresh()}
-                    style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
-                  >
-                    {BACKEND_FB_COPY.refreshStatus}
-                  </button>
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
-                  {BACKEND_FB_COPY.cardDesc}
-                </div>
-
-                {store.facebookProxy.status !== 'connected' ? (
-                  <div>
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-                      <button className="btn btn-outline" onClick={store.facebookProxy.connect}>
-                        {BACKEND_FB_COPY.connect}
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
-                      {store.facebookProxy.authReturn === 'connected' &&
-                        BACKEND_FB_COPY.connectedBackToast}
-                      {store.facebookProxy.authReturn === 'error' && BACKEND_FB_COPY.connectErrorToast}
-                      {store.facebookProxy.authReturn === null && BACKEND_FB_COPY.connectHint}
-                    </div>
-                    {store.facebookProxy.status === 'unknown' && (
-                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
-                        {BACKEND_COPY.checking}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
-                      {BACKEND_FB_COPY.connectedHint(store.facebookProxy.pageName)}
-                    </div>
-                    <button
-                      className="btn btn-accent"
-                      onClick={() => void store.publishDraftToFacebookNow()}
-                      disabled={store.facebookProxy.busy}
-                      style={{
-                        width: '100%',
-                        marginBottom: 12,
-                        opacity: store.facebookProxy.busy ? 0.5 : 1,
-                        cursor: store.facebookProxy.busy ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {store.facebookProxy.busy ? BACKEND_FB_COPY.publishingLabel : BACKEND_FB_COPY.publishNow}
-                    </button>
-                    <div className="field-label">{BACKEND_FB_COPY.scheduleLabel}</div>
-                    <input
-                      className="text-input"
-                      type="datetime-local"
-                      value={fbScheduleAt}
-                      onChange={(e) => setFbScheduleAt(e.target.value)}
-                      aria-label={BACKEND_FB_COPY.scheduleAtLabel}
-                      style={{ marginBottom: 10 }}
-                    />
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => void store.scheduleDraftToFacebook(fbScheduleAt)}
-                      disabled={store.facebookProxy.busy}
-                      style={{
-                        width: '100%',
-                        opacity: store.facebookProxy.busy ? 0.5 : 1,
-                        cursor: store.facebookProxy.busy ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {store.facebookProxy.busy ? BACKEND_FB_COPY.schedulingLabel : BACKEND_FB_COPY.schedulePublish}
-                    </button>
-                  </div>
-                )}
-                {store.facebookProxy.status === 'error' && (
-                  <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
-                    {BACKEND_FB_ERROR_COPY.unknown ?? BACKEND_ERROR_COPY.unknown}
-                  </div>
-                )}
-              </div>
-            )}
+            <PublishCard store={store} />
           </div>
         </div>
       )}
