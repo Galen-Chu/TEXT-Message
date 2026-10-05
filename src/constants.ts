@@ -453,6 +453,29 @@ export const PUBLISH_CARD_COPY = {
   youtubeDisabledHint: '此版本未設定 YouTube 連線(設定方式見 docs/SETUP.md)',
 };
 
+/** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
+export const LIBRARY_BACKUP_COPY = {
+  cardTitle: '☁️ 雲端備份',
+  cardDesc:
+    '以同步碼加密文庫內容後存至你的後端 worker——金鑰由同步碼在你瀏覽器衍生,後端只保管密文;換瀏覽器/清資料後可用同一組同步碼還原',
+  codeLabel: '同步碼',
+  codePlaceholder: '自訂 8–64 字(遺失即無法還原,請妥善保管)',
+  backupButton: '備份至雲端',
+  backingUpLabel: '備份中…',
+  backedUpToast: (d: string) => `已備份至雲端(${d})✅`,
+  restoreButton: '從雲端還原',
+  restoringLabel: '還原中…',
+  confirmTitle: '從雲端還原',
+  confirmDesc: (d: string) => `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿),確認嗎?`,
+  confirmApply: '覆蓋本機並還原',
+  restoredToast: '已從雲端還原文庫 ✅',
+  emptyCodeToast: '請先輸入同步碼(8–64 字)',
+  notFoundToast: '雲端沒有這組同步碼的備份',
+  wrongCodeToast: '同步碼不正確或備份已損毀,無法解密',
+  badPayloadToast: '雲端備份內容格式不符,取消還原',
+  failToast: '備份/還原失敗,請稍後再試',
+};
+
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
 export const DRAFT_VARIANTS_COPY = {
   variantsButton: '✨ 產生平台版本',

@@ -9,12 +9,21 @@ function seedEmptyDrafts(): void {
 
 import { useAppStore } from './useAppStore';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
+import { libraryLoad, librarySave } from '../services/backend/client';
+import { encryptLibraryBlob } from '../services/library/crypto';
+import { buildLibraryPayload } from '../services/library/payload';
 
 // 第四期(Gemini 產出)僅 mock 服務層;BYOK 分流與 UI 狀態走真實 store 邏輯
 vi.mock('../services/gemini/variants', () => ({
   generatePlatformVariants: vi.fn(),
   suggestHashtagsFor: vi.fn(),
 }));
+
+// 文庫雲端備份(方案 A):client 傳輸層 mock,加密/payload 走真實模組
+vi.mock('../services/backend/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/backend/client')>();
+  return { ...actual, librarySave: vi.fn(), libraryLoad: vi.fn() };
+});
 
 // 測試環境未設 VITE_GMAIL_CLIENT_ID → Gmail 為 disabled(示範模式),不需 mock Google 服務
 
@@ -883,5 +892,80 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     });
     expect(result.current.drafts).toHaveLength(2);
     expect(result.current.drafts[0].sourceId).toBe('mail-9');
+  });
+});
+
+describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
+  it('備份:加密後送 worker(codeId=同步碼 SHA-256);同步碼不合格僅提示、不送出', async () => {
+    vi.mocked(librarySave).mockResolvedValue({ ok: true, data: { savedAt: 1 } });
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.startBlankDraft());
+    act(() => result.current.setDraftText('要備份的草稿'));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.backupLibraryToCloud('short');
+    });
+    expect(ok).toBe(false);
+    expect(librarySave).not.toHaveBeenCalled();
+
+    await act(async () => {
+      ok = await result.current.backupLibraryToCloud('good-code-2026');
+    });
+    expect(ok).toBe(true);
+    expect(librarySave).toHaveBeenCalledTimes(1);
+    const arg = vi.mocked(librarySave).mock.calls[0][0];
+    expect(arg.codeId).toMatch(/^[0-9a-f]{64}$/);
+    expect(arg.savedAt).toBeGreaterThan(0);
+    expect(arg.data.length).toBeGreaterThan(0);
+  });
+
+  it('還原兩段式:prepare(抓取+解密+驗證)→ apply 覆蓋本機並持久化;錯誤同步碼→ bad_code 且本機不動', async () => {
+    seedEmptyDrafts();
+    const payload = buildLibraryPayload({
+      templates: [],
+      copyTemplates: [],
+      scheduleItems: [],
+      publishedHistory: [],
+      drafts: [],
+      activeDraftId: null,
+      activeTemplateId: null,
+      draftText: '雲端還原後的內容',
+      draftPlatforms: { fb: true, ig: false, threads: false, line: false, yt: false },
+      draftSourceId: 'blank',
+      draftKind: 'copy',
+      aiRole: null,
+      aiLanguage: '繁體中文',
+      driveStyleSamples: [],
+      driveStyleEnabled: true,
+    });
+    const enc = await encryptLibraryBlob('restore-code-1', JSON.stringify(payload));
+    vi.mocked(libraryLoad).mockResolvedValue({
+      ok: true,
+      data: { v: 1, data: enc.data, iv: enc.iv, savedAt: payload.savedAt },
+    });
+
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.startBlankDraft());
+    act(() => result.current.setDraftText('本機舊內容'));
+
+    let r: { ok: boolean; savedAt?: number; code?: string } | undefined;
+    await act(async () => {
+      r = await result.current.restoreLibraryPrepare('restore-code-1');
+    });
+    expect(r?.ok).toBe(true);
+    expect(r?.savedAt).toBe(payload.savedAt);
+    act(() => {
+      expect(result.current.restoreLibraryApply()).toBe(true);
+    });
+    expect(result.current.draftText).toBe('雲端還原後的內容');
+    expect(result.current.draftPlatforms.fb).toBe(true);
+    expect(readStore().draftText).toBe('雲端還原後的內容');
+
+    await act(async () => {
+      r = await result.current.restoreLibraryPrepare('wrong-code-x');
+    });
+    expect(r).toEqual({ ok: false, code: 'bad_code' });
+    expect(result.current.draftText).toBe('雲端還原後的內容');
   });
 });

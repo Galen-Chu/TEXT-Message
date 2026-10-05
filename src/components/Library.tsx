@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   COPY_CATEGORIES,
   DRAFT_LIBRARY_COPY,
+  LIBRARY_BACKUP_COPY,
   LIBRARY_CATEGORIES,
   LIBRARY_COPY,
   PLATFORM_LIST,
@@ -69,6 +70,11 @@ export default function Library({ store }: { store: AppStore }) {
     choice: PlatformKey | 'generic';
     text: string;
   } | null>(null);
+
+  // 雲端備份(方案 A):同步碼僅存在此元件狀態,不落地
+  const [syncCode, setSyncCode] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<number | null>(null);
 
   const isMessageTab = store.libraryMainTab === 'message';
   const isDraftTab = store.libraryMainTab === 'draft';
@@ -179,6 +185,64 @@ export default function Library({ store }: { store: AppStore }) {
           </button>
         )}
       </div>
+
+      {store.backendEnabled && (
+        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
+            {LIBRARY_BACKUP_COPY.cardTitle}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+            {LIBRARY_BACKUP_COPY.cardDesc}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              className="text-input"
+              type="password"
+              value={syncCode}
+              onChange={(e) => setSyncCode(e.target.value)}
+              placeholder={LIBRARY_BACKUP_COPY.codePlaceholder}
+              aria-label={LIBRARY_BACKUP_COPY.codeLabel}
+              style={{ flex: 1, minWidth: 220, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
+            />
+            <button
+              className="btn btn-outline"
+              style={{ borderRadius: 9 }}
+              disabled={backupBusy}
+              onClick={async () => {
+                setBackupBusy(true);
+                await store.backupLibraryToCloud(syncCode);
+                setBackupBusy(false);
+              }}
+            >
+              {backupBusy ? LIBRARY_BACKUP_COPY.backingUpLabel : LIBRARY_BACKUP_COPY.backupButton}
+            </button>
+            <button
+              className="btn btn-outline"
+              style={{ borderRadius: 9 }}
+              disabled={backupBusy}
+              onClick={async () => {
+                setBackupBusy(true);
+                const r = await store.restoreLibraryPrepare(syncCode);
+                setBackupBusy(false);
+                if (r.ok) {
+                  setPendingRestore(r.savedAt);
+                } else {
+                  const copy = {
+                    empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
+                    network: LIBRARY_BACKUP_COPY.failToast,
+                    not_found: LIBRARY_BACKUP_COPY.notFoundToast,
+                    bad_code: LIBRARY_BACKUP_COPY.wrongCodeToast,
+                    bad_payload: LIBRARY_BACKUP_COPY.badPayloadToast,
+                  }[r.code];
+                  store.showToast(copy);
+                }
+              }}
+            >
+              {backupBusy ? LIBRARY_BACKUP_COPY.restoringLabel : LIBRARY_BACKUP_COPY.restoreButton}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {MAIN_TABS.map((tab) => {
@@ -628,6 +692,39 @@ export default function Library({ store }: { store: AppStore }) {
             void store.copyTemplate(tpl, values, choice);
           }}
         />
+      )}
+
+      {pendingRestore !== null && (
+        <Modal
+          onClose={() => setPendingRestore(null)}
+          width={420}
+          label={LIBRARY_BACKUP_COPY.confirmTitle}
+        >
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 14 }}>
+            {LIBRARY_BACKUP_COPY.confirmTitle}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 18 }}>
+            {LIBRARY_BACKUP_COPY.confirmDesc(new Date(pendingRestore).toLocaleString('zh-TW'))}
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-ghost"
+              style={{ borderRadius: 9 }}
+              onClick={() => setPendingRestore(null)}
+            >
+              取消
+            </button>
+            <button
+              className="btn btn-primary"
+              style={{ borderRadius: 9 }}
+              onClick={() => {
+                if (store.restoreLibraryApply()) setPendingRestore(null);
+              }}
+            >
+              {LIBRARY_BACKUP_COPY.confirmApply}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

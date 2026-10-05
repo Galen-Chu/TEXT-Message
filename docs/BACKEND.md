@@ -84,6 +84,8 @@ cd worker && npx wrangler dev      # http://localhost:8787
 | POST | `/api/facebook/publish` | FB 粉專立即發佈 `{installId, text}` |
 | POST | `/api/schedule` | 加入排程 `{installId, text, publishAt(ms), platform?}`(`platform`:`threads`(預設)/`facebook`;限未來 90 天內) |
 | GET | `/api/queue?install=<id>` | 檢視該安裝的佇列 |
+| POST | `/api/library/save` | 文庫雲端備份:存瀏覽器加密之密文 `{codeId, data, iv, savedAt}`(方案 A,見 §9;worker 不解析內容) |
+| POST | `/api/library/load` | 取回密文 blob `{codeId}` → `{v, data, iv, savedAt}` |
 | POST | `/api/queue/cancel` | 取消未發佈項目 `{installId, itemId}` |
 | cron | 每小時整點(`0 */1 * * *`,2026-09-08 維護者調整) | 發佈到期項目(整點批次);失敗指數退避(60s→2m→4m,上限 3 次後標記 failed)。**勿改回每分鐘**:KV 免費方案 list 上限 1,000 次/日,每分鐘掃描(1,440/日)會超額,隔夜排程將失敗;若需分鐘級精度改「佇列旗標鍵」設計 |
 
@@ -245,3 +247,13 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 3. 所有 id 從原始回應文字抽取;所有含 CJK 的請求以 URL 查詢字串或 `-d @檔案` 送;
 4. 上線前備妥分層診斷:狀態端點、探針 curl、必要時診斷端點;
 5. 不可過期的憑證(系統用戶 token 等)一律不進對話,只進 secret。
+
+## 9. 文庫雲端備份(方案 A,2026-10-05)
+
+**零知識設計**:備份內容由瀏覽器以「同步碼 → PBKDF2(150,000 次,固定鹽)→ AES-GCM」加密後上傳;worker 僅保管密文 blob,**不解析內容、不經手同步碼原文**——請求只帶 `codeId`(同步碼的 SHA-256 hex)作為 KV 鍵(`library:<codeId>`)。金鑰與解密能力只在使用者瀏覽器,**同步碼遺失即無法還原**(UI 已誠實標示);固定鹽為單人產品取捨,強度由同步碼本身承擔。
+
+- 端點:`/api/library/save`、`/api/library/load`——**皆 POST**(codeId 不進 URL 日誌);blob 上限 512KB(資料+IV);
+- 備份範圍:`text-message:v2` 全部使用者內容(範本/排程/發佈記錄/草稿/AI 偏好/Drive 樣本中繼資料);**emails 與 Gemini key 永不備份**(紅線);
+- 衝突策略:一律 last-write-wins(備份覆蓋雲端、還原覆蓋本機——還原前有確認 Modal 顯示雲端備份時間);
+- 部署:**無需新增 secrets**——既有 worker 部署即含此功能;前端備份卡僅在 `VITE_API_BASE` 已設時出現;
+- 已知限制(誠實清單):知道 codeId 者可覆寫該 blob(無鑑別;單人自用可接受,codeId 由同步碼單向雜湊而來);無備份版本歷史(僅最新一版)。

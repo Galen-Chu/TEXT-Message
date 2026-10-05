@@ -68,6 +68,10 @@ export const FACEBOOK_API_BASE = `https://graph.facebook.com/${FACEBOOK_GRAPH_VE
 /** FB 貼文字數上限(與前端 PLATFORM_META.fb.limit 一致)。 */
 export const FACEBOOK_TEXT_LIMIT = 63206;
 
+/** 文庫雲端備份(方案 A,2026-10-05):單一 blob 上限(KV 值建議 < 1MB;內容由瀏覽器以
+ *  同步碼衍生金鑰加密,worker 僅存密文、不解析內容、不經手同步碼原文)。 */
+export const LIBRARY_BLOB_LIMIT_BYTES = 512 * 1024;
+
 /** FB 是否走系統工作人員模式(兩個 secret 齊備;優先於 OAuth 模式)。 */
 export function facebookSystemUserMode(env: Env): boolean {
   return !!env.FACEBOOK_PAGE_TOKEN && !!env.FACEBOOK_PAGE_ID;

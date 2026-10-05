@@ -30,6 +30,7 @@ import {
   saveThreadsToken,
 } from './store/kv';
 import { publishFacebookText, validateFacebookText } from './facebook/publish';
+import { loadLibraryBlob, isValidCodeId, saveLibraryBlob, validateSaveRequest } from './library/store';
 import {
   buildFbAuthorizeUrl,
   exchangeCode as exchangeFbCode,
@@ -305,6 +306,23 @@ export default {
       };
       await saveQueueItem(env.QUEUE, item);
       return json({ itemId: item.id }, 201, cors);
+    }
+
+    // ---- 文庫雲端備份(方案 A,2026-10-05;payload 為瀏覽器加密之密文,worker 不解析)----
+    if (url.pathname === '/api/library/save' && request.method === 'POST') {
+      const body = await readJsonBody(request) as { codeId?: unknown; data?: unknown; iv?: unknown; savedAt?: unknown };
+      const valid = validateSaveRequest(body);
+      if (!valid.ok) return json({ error: valid.reason }, 400, cors);
+      await saveLibraryBlob(env.QUEUE, body.codeId as string, valid.blob);
+      return json({ savedAt: valid.blob.savedAt }, 201, cors);
+    }
+
+    if (url.pathname === '/api/library/load' && request.method === 'POST') {
+      const body = await readJsonBody(request);
+      if (!isValidCodeId(body.codeId)) return json({ error: 'invalid_code_id' }, 400, cors);
+      const blob = await loadLibraryBlob(env.QUEUE, body.codeId);
+      if (!blob) return json({ error: 'not_found' }, 404, cors);
+      return json(blob, 200, cors);
     }
 
     if (url.pathname === '/api/queue' && request.method === 'GET') {

@@ -17,6 +17,7 @@ import {
   DRIVE_COPY,
   GEMINI_ERROR_COPY,
   LANGUAGE_OPTIONS,
+  LIBRARY_BACKUP_COPY,
   LIBRARY_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
@@ -37,6 +38,14 @@ import {
   summarizeWithGemini,
 } from '../services/gemini/rewrite';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
+import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
+import { libraryLoad, librarySave } from '../services/backend/client';
+import { codeIdOf, decryptLibraryBlob, encryptLibraryBlob } from '../services/library/crypto';
+import {
+  buildLibraryPayload,
+  isValidLibraryPayload,
+  type LibraryPayload,
+} from '../services/library/payload';
 import {
   DEMO_DRIVE_DOC_TEXT,
   initialCopyTemplates,
@@ -787,6 +796,107 @@ export function useAppStore() {
     showToast(DRAFT_LIBRARY_COPY.deletedToast);
   };
 
+  // ---- 文庫雲端備份(方案 A,2026-10-05;僅 BACKEND_ENABLED 時 UI 出現)----
+  // 同步碼只在呼叫當下使用、不落地;金鑰由同步碼在瀏覽器衍生(PBKDF2),worker 僅存密文。
+  const pendingRestoreRef = useRef<LibraryPayload | null>(null);
+
+  const validSyncCode = (code: string): boolean => {
+    const c = code.trim();
+    return c.length >= 8 && c.length <= 64 && !/\s/.test(c);
+  };
+
+  /** 備份:本機全部使用者內容(emails 與 Gemini key 除外)→ 同步碼加密 → worker。 */
+  const backupLibraryToCloud = async (code: string): Promise<boolean> => {
+    const c = code.trim();
+    if (!validSyncCode(c)) {
+      showToast(LIBRARY_BACKUP_COPY.emptyCodeToast);
+      return false;
+    }
+    const payload = buildLibraryPayload({
+      templates,
+      copyTemplates,
+      scheduleItems,
+      publishedHistory,
+      drafts,
+      activeDraftId,
+      activeTemplateId,
+      draftText,
+      draftPlatforms,
+      draftSourceId: selectedMailId,
+      draftKind,
+      aiRole,
+      aiLanguage,
+      driveStyleSamples,
+      driveStyleEnabled,
+    });
+    const enc = await encryptLibraryBlob(c, JSON.stringify(payload));
+    const r = await librarySave({
+      base: BACKEND_API_BASE,
+      codeId: enc.codeId,
+      data: enc.data,
+      iv: enc.iv,
+      savedAt: payload.savedAt,
+    });
+    if (!r.ok) {
+      showToast(LIBRARY_BACKUP_COPY.failToast);
+      return false;
+    }
+    showToast(LIBRARY_BACKUP_COPY.backedUpToast(new Date(payload.savedAt).toLocaleString('zh-TW')));
+    return true;
+  };
+
+  /** 還原第一步:抓取+解密+驗證,不動本機;成功後暫存 payload 供 restoreLibraryApply。 */
+  const restoreLibraryPrepare = async (
+    code: string,
+  ): Promise<
+    { ok: true; savedAt: number } | { ok: false; code: 'empty' | 'network' | 'not_found' | 'bad_code' | 'bad_payload' }
+  > => {
+    const c = code.trim();
+    if (!validSyncCode(c)) return { ok: false, code: 'empty' };
+    pendingRestoreRef.current = null;
+    const r = await libraryLoad({ base: BACKEND_API_BASE, codeId: await codeIdOf(c) });
+    if (!r.ok) return { ok: false, code: r.code === 'not_found' ? 'not_found' : 'network' };
+    let json: string;
+    try {
+      json = await decryptLibraryBlob(c, r.data);
+    } catch {
+      return { ok: false, code: 'bad_code' };
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return { ok: false, code: 'bad_payload' };
+    }
+    if (!isValidLibraryPayload(parsed)) return { ok: false, code: 'bad_payload' };
+    pendingRestoreRef.current = parsed;
+    return { ok: true, savedAt: r.data.savedAt };
+  };
+
+  /** 還原第二步(使用者確認後):以雲端內容覆蓋本機全部文庫資料。 */
+  const restoreLibraryApply = (): boolean => {
+    const p = pendingRestoreRef.current;
+    if (!p) return false;
+    pendingRestoreRef.current = null;
+    setTemplates(p.templates);
+    setCopyTemplates(p.copyTemplates);
+    setScheduleItems(p.scheduleItems);
+    setPublishedHistory(p.publishedHistory);
+    setDrafts(p.drafts);
+    setActiveDraftId(p.activeDraftId);
+    setActiveTemplateId(p.activeTemplateId);
+    setSelectedMailId(p.draftSourceId);
+    setDraftKind(p.draftKind);
+    setAiRole(p.aiRole);
+    setAiLanguage(p.aiLanguage);
+    setDriveStyleSamples(p.driveStyleSamples);
+    setDriveStyleEnabled(p.driveStyleEnabled);
+    setDraftText(p.draftText);
+    setDraftPlatforms(p.draftPlatforms);
+    showToast(LIBRARY_BACKUP_COPY.restoredToast);
+    return true;
+  };
+
   /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
   const toggleDriveStyleSample = (doc: { id: string; name: string; mimeType: string }) => {
     setDriveStyleSamples((list) => {
@@ -1070,6 +1180,10 @@ export function useAppStore() {
     weekDates,
     activeTab,
     setActiveTab,
+    backendEnabled: BACKEND_ENABLED,
+    backupLibraryToCloud,
+    restoreLibraryPrepare,
+    restoreLibraryApply,
     gmail,
     youtube,
     threadsProxy,

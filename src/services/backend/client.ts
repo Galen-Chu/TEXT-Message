@@ -196,3 +196,31 @@ export function cancelThreadsQueueItem(opts: {
     opts.fetcher ?? fetch,
   );
 }
+
+/** 文庫雲端備份(方案 A,2026-10-05):存/取瀏覽器加密後的密文 blob(以 codeId 定位,不帶同步碼原文)。 */
+export function librarySave(opts: {
+  base: string;
+  codeId: string;
+  data: string;
+  iv: string;
+  savedAt: number;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ savedAt: number }>> {
+  return requestJson(
+    `${opts.base}/api/library/save`,
+    jsonInit('POST', { codeId: opts.codeId, data: opts.data, iv: opts.iv, savedAt: opts.savedAt }),
+    opts.fetcher ?? fetch,
+  );
+}
+
+export function libraryLoad(opts: {
+  base: string;
+  codeId: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ v: 1; data: string; iv: string; savedAt: number }>> {
+  return requestJson(
+    `${opts.base}/api/library/load`,
+    jsonInit('POST', { codeId: opts.codeId }),
+    opts.fetcher ?? fetch,
+  );
+}
