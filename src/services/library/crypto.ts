@@ -23,9 +23,9 @@ function bufToB64(buf: ArrayBuffer): string {
   return btoa(bin);
 }
 
-function b64ToBuf(b64: string): Uint8Array {
+function b64ToBuf(b64: string): Uint8Array<ArrayBuffer> {
   const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
+  const bytes = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
 }

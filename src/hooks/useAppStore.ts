@@ -310,7 +310,7 @@ export function useAppStore() {
   const [selectedDay, setSelectedDay] = useState(toISODate(new Date()));
 
   const [toastMessage, setToastMessage] = useState('');
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -961,7 +961,7 @@ export function useAppStore() {
 
   // 自動同步(二期):內容變更後 30 秒無操作 → 靜默備份;開啟網站也會同步一次
   // (啟動比對完成後起算)。雲端較新待處理或未啟用時暫停,避免舊蓋新。
-  const autoSyncTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoSyncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (
       !BACKEND_ENABLED ||
