@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** 草稿管理測試前種入空 drafts:隔離「全新使用者預設範本」行為,聚焦被測邏輯。 */
 function seedEmptyDrafts(): void {
@@ -19,10 +19,23 @@ vi.mock('../services/gemini/variants', () => ({
   suggestHashtagsFor: vi.fn(),
 }));
 
-// 文庫雲端備份(方案 A):client 傳輸層 mock,加密/payload 走真實模組
+// 文庫雲端備份(方案 A):client 傳輸層 mock,加密/payload 走真實模組;
+// 二期測試需要 BACKEND_ENABLED=true(啟動比對/自動同步閘門),故 mock config,
+// 並 stub 兩個狀態查詢避免 hooks 掛載時真的發請求。
+vi.mock('../services/backend/config', () => ({
+  BACKEND_API_BASE: 'https://worker.test',
+  BACKEND_ENABLED: true,
+}));
+
 vi.mock('../services/backend/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/backend/client')>();
-  return { ...actual, librarySave: vi.fn(), libraryLoad: vi.fn() };
+  return {
+    ...actual,
+    librarySave: vi.fn(),
+    libraryLoad: vi.fn(),
+    checkThreadsStatus: vi.fn(async () => ({ ok: true, data: { connected: false } })),
+    checkFacebookStatus: vi.fn(async () => ({ ok: true, data: { connected: false, pageName: null } })),
+  };
 });
 
 // 測試環境未設 VITE_GMAIL_CLIENT_ID → Gmail 為 disabled(示範模式),不需 mock Google 服務
@@ -34,7 +47,14 @@ function readStore(): Record<string, unknown> {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   localStorage.clear();
+});
+
+// vitest 未開 globals → RTL 不會自動 cleanup:hook 跨測試存活會讓自動同步的
+// 背景計時器洩漏到後續測試(二期實測踩到),逐測試卸載
+afterEach(() => {
+  cleanup();
 });
 
 describe('useAppStore:文管庫範本', () => {
@@ -918,6 +938,8 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     expect(arg.codeId).toMatch(/^[0-9a-f]{64}$/);
     expect(arg.savedAt).toBeGreaterThan(0);
     expect(arg.data.length).toBeGreaterThan(0);
+    // 備份成功會啟用自動同步並掛上 30 秒計時器——測試尾端解除武裝,避免洩漏到後續測試
+    act(() => result.current.disableAutoSync());
   });
 
   it('還原兩段式:prepare(抓取+解密+驗證)→ apply 覆蓋本機並持久化;錯誤同步碼→ bad_code 且本機不動', async () => {
@@ -967,5 +989,100 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     });
     expect(r).toEqual({ ok: false, code: 'bad_code' });
     expect(result.current.draftText).toBe('雲端還原後的內容');
+  });
+});
+
+describe('useAppStore:文庫雲端備份二期(自動同步,2026-10-06)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('啟動比對:雲端較新 → cloudNewer 提示、不自動上傳(防舊蓋新)', async () => {
+    vi.useFakeTimers();
+    localStorage.setItem('text-message:library-code', 'auto-code-2026');
+    vi.mocked(libraryLoad).mockResolvedValue({
+      ok: true,
+      data: { v: 1, data: 'eA==', iv: 'aXY=', savedAt: 1896500000000 },
+    });
+    vi.mocked(librarySave).mockResolvedValue({ ok: true, data: { savedAt: 1 } });
+
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000);
+    });
+    expect(result.current.libraryCloudNewer).toBe(1896500000000);
+    expect(librarySave).not.toHaveBeenCalled();
+  });
+
+  it('自動同步:內容變更後 30 秒靜默備份(成功更新 savedAt);再次編輯重置計時', async () => {
+    vi.useFakeTimers();
+    seedEmptyDrafts();
+    localStorage.setItem('text-message:library-code', 'auto-code-2026');
+    // 啟動比對以受控 promise 停在 libraryLoad:確保 30 秒計時器在 fake timers 下排程後才放行
+    let releaseStartup!: (v: unknown) => void;
+    vi.mocked(libraryLoad).mockImplementation(
+      (() => new Promise((res) => { releaseStartup = res; })) as unknown as typeof libraryLoad,
+    );
+    vi.mocked(librarySave).mockResolvedValue({ ok: true, data: { savedAt: 1 } });
+
+    const { result } = renderHook(() => useAppStore());
+    // 啟動比對前置的 codeId 衍生是真實 WebCrypto——切真實計時器等它走到 await libraryLoad
+    vi.useRealTimers();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    vi.useFakeTimers();
+    // 放行啟動比對(not_found:不設 cloudNewer)→ startupCheckDone 觸發 debounce 排程 30 秒計時器
+    await act(async () => {
+      releaseStartup({ ok: false, code: 'not_found' });
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // 推進虛擬時間觸發計時器;計時器內的加密是真實非同步——再切真實計時器等它完成
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000);
+      vi.useRealTimers();
+      await new Promise((r) => setTimeout(r, 600));
+      vi.useFakeTimers();
+    });
+    expect(librarySave).toHaveBeenCalledTimes(1);
+    const arg = vi.mocked(librarySave).mock.calls[0][0];
+    expect(arg.codeId).toMatch(/^[0-9a-f]{64}$/);
+    expect(result.current.librarySavedAt).toBeGreaterThan(0);
+
+    // 編輯 → 計時重置:29 秒時不備份,30 秒後備份
+    vi.mocked(librarySave).mockClear();
+    act(() => result.current.setDraftText('編輯後內容'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29_000);
+    });
+    expect(librarySave).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+      vi.useRealTimers();
+      await new Promise((r) => setTimeout(r, 600));
+      vi.useFakeTimers();
+    });
+    expect(librarySave).toHaveBeenCalledTimes(1);
+  });
+
+  it('備份成功即落地同步碼(啟用自動同步);disableAutoSync 清除', async () => {
+    vi.useFakeTimers();
+    seedEmptyDrafts();
+    vi.mocked(libraryLoad).mockResolvedValue({ ok: false, code: 'not_found' });
+    vi.mocked(librarySave).mockResolvedValue({ ok: true, data: { savedAt: 1 } });
+    expect(localStorage.getItem('text-message:library-code')).toBeNull();
+
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {
+      await result.current.backupLibraryToCloud('brand-new-code');
+    });
+    expect(localStorage.getItem('text-message:library-code')).toBe('brand-new-code');
+    expect(result.current.librarySyncCode).toBe('brand-new-code');
+
+    act(() => result.current.disableAutoSync());
+    expect(localStorage.getItem('text-message:library-code')).toBeNull();
+    expect(result.current.librarySyncCode).toBe('');
   });
 });

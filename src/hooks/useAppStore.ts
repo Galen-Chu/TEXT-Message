@@ -40,6 +40,7 @@ import {
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
+import { clearStoredSyncCode, loadStoredSyncCode, saveStoredSyncCode } from '../services/library/codeStore';
 import { codeIdOf, decryptLibraryBlob, encryptLibraryBlob } from '../services/library/crypto';
 import {
   buildLibraryPayload,
@@ -256,6 +257,17 @@ export function useAppStore() {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(() =>
     loadPersistedValue('activeTemplateId', null, (v): v is string => typeof v === 'string'),
   );
+  // 文庫雲端備份二期(2026-10-06):上次成功同步時間(0=從未)、自動同步同步碼(記憶體,
+  // 來源 localStorage 另鍵)、啟動比對結果(單一物件原子提交——避免「比對完成但雲端較新
+  // 未標記」的瞬間態讓 debounce 先排程)。
+  const [librarySavedAt, setLibrarySavedAt] = useState<number>(() =>
+    loadPersistedValue('librarySavedAt', 0, (v): v is number => typeof v === 'number' && v > 0),
+  );
+  const [librarySyncCode, setLibrarySyncCode] = useState(() => loadStoredSyncCode());
+  const [libraryStartup, setLibraryStartup] = useState<{ done: boolean; newerAt: number | null }>({
+    done: false,
+    newerAt: null,
+  });
 
   useEffect(() => {
     try {
@@ -277,6 +289,7 @@ export function useAppStore() {
           drafts,
           activeDraftId,
           activeTemplateId,
+          librarySavedAt,
         }),
       );
     } catch {
@@ -797,7 +810,8 @@ export function useAppStore() {
   };
 
   // ---- 文庫雲端備份(方案 A,2026-10-05;僅 BACKEND_ENABLED 時 UI 出現)----
-  // 同步碼只在呼叫當下使用、不落地;金鑰由同步碼在瀏覽器衍生(PBKDF2),worker 僅存密文。
+  // 同步碼在瀏覽器衍生金鑰(PBKDF2),worker 僅存密文;二期(2026-10-06)同步碼落地
+  // localStorage 另鍵(text-message:library-code)啟用自動同步——金鑰仍每次衍生,風險面不變。
   const pendingRestoreRef = useRef<LibraryPayload | null>(null);
 
   const validSyncCode = (code: string): boolean => {
@@ -805,11 +819,12 @@ export function useAppStore() {
     return c.length >= 8 && c.length <= 64 && !/\s/.test(c);
   };
 
-  /** 備份:本機全部使用者內容(emails 與 Gemini key 除外)→ 同步碼加密 → worker。 */
-  const backupLibraryToCloud = async (code: string): Promise<boolean> => {
+  /** 備份:本機全部使用者內容(emails 與 Gemini key 除外)→ 同步碼加密 → worker。
+   *  成功即落地同步碼(啟用自動同步)並更新 librarySavedAt;silent=自動同步路徑不 toast。 */
+  const backupLibraryToCloud = async (code: string, opts?: { silent?: boolean }): Promise<boolean> => {
     const c = code.trim();
     if (!validSyncCode(c)) {
-      showToast(LIBRARY_BACKUP_COPY.emptyCodeToast);
+      if (!opts?.silent) showToast(LIBRARY_BACKUP_COPY.emptyCodeToast);
       return false;
     }
     const payload = buildLibraryPayload({
@@ -841,7 +856,13 @@ export function useAppStore() {
       showToast(LIBRARY_BACKUP_COPY.failToast);
       return false;
     }
-    showToast(LIBRARY_BACKUP_COPY.backedUpToast(new Date(payload.savedAt).toLocaleString('zh-TW')));
+    saveStoredSyncCode(c);
+    setLibrarySyncCode(c);
+    setLibrarySavedAt(payload.savedAt);
+    setLibraryStartup((s) => ({ ...s, newerAt: null }));
+    if (!opts?.silent) {
+      showToast(LIBRARY_BACKUP_COPY.backedUpToast(new Date(payload.savedAt).toLocaleString('zh-TW')));
+    }
     return true;
   };
 
@@ -893,9 +914,75 @@ export function useAppStore() {
     setDriveStyleEnabled(p.driveStyleEnabled);
     setDraftText(p.draftText);
     setDraftPlatforms(p.draftPlatforms);
+    setLibrarySavedAt(p.savedAt);
+    setLibraryStartup((s) => ({ ...s, newerAt: null }));
     showToast(LIBRARY_BACKUP_COPY.restoredToast);
     return true;
   };
+
+  /** 停用自動同步:清除落地同步碼(手動流程不受影響,再備份一次即重新啟用)。 */
+  const disableAutoSync = () => {
+    clearStoredSyncCode();
+    setLibrarySyncCode('');
+    setLibraryStartup((s) => ({ ...s, newerAt: null }));
+    showToast(LIBRARY_BACKUP_COPY.disabledToast);
+  };
+
+  /** 衝突二選一之「保留本機」:清提示並立即以本機覆蓋雲端。 */
+  const keepLocalOverwriteCloud = () => {
+    if (!librarySyncCode) return;
+    setLibraryStartup((s) => ({ ...s, newerAt: null }));
+    void backupLibraryToCloud(librarySyncCode);
+  };
+
+  // 啟動比對(二期):有落地同步碼時,載入雲端 savedAt 與本機比較——雲端較新則提示
+  // (還原/覆蓋由使用者決定,期間暫停自動上傳);其餘情況交給 debounce 自動同步。
+  // 結果以單一物件一次提交:比對完成與雲端較新同時生效,不留可排程的瞬間態。
+  useEffect(() => {
+    if (!BACKEND_ENABLED || !librarySyncCode) {
+      setLibraryStartup({ done: true, newerAt: null });
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const r = await libraryLoad({ base: BACKEND_API_BASE, codeId: await codeIdOf(librarySyncCode) });
+      if (cancelled) return;
+      setLibraryStartup({
+        done: true,
+        newerAt: r.ok && r.data.savedAt > librarySavedAt ? r.data.savedAt : null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // 僅掛載時執行一次;初值取自 state 快照即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 自動同步(二期):內容變更後 30 秒無操作 → 靜默備份;開啟網站也會同步一次
+  // (啟動比對完成後起算)。雲端較新待處理或未啟用時暫停,避免舊蓋新。
+  const autoSyncTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (
+      !BACKEND_ENABLED ||
+      !librarySyncCode ||
+      !libraryStartup.done ||
+      libraryStartup.newerAt !== null
+    ) {
+      return;
+    }
+    clearTimeout(autoSyncTimer.current);
+    autoSyncTimer.current = setTimeout(() => {
+      void backupLibraryToCloud(librarySyncCode, { silent: true });
+    }, 30_000);
+    return () => clearTimeout(autoSyncTimer.current);
+    // 內容欄位與一期持久化 effect 同步集合;backupLibraryToCloud 讀最新 state(閉包經重渲染更新)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms,
+    selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled,
+    drafts, activeDraftId, activeTemplateId, librarySyncCode, libraryStartup,
+  ]);
 
   /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
   const toggleDriveStyleSample = (doc: { id: string; name: string; mimeType: string }) => {
@@ -1184,6 +1271,11 @@ export function useAppStore() {
     backupLibraryToCloud,
     restoreLibraryPrepare,
     restoreLibraryApply,
+    librarySyncCode,
+    librarySavedAt,
+    libraryCloudNewer: libraryStartup.newerAt,
+    disableAutoSync,
+    keepLocalOverwriteCloud,
     gmail,
     youtube,
     threadsProxy,

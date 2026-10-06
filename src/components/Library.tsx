@@ -190,57 +190,157 @@ export default function Library({ store }: { store: AppStore }) {
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
             {LIBRARY_BACKUP_COPY.cardTitle}
+            {store.librarySyncCode ? ` · ${LIBRARY_BACKUP_COPY.autoSyncOn}` : ''}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
-            {LIBRARY_BACKUP_COPY.cardDesc}
+            {store.librarySyncCode ? LIBRARY_BACKUP_COPY.autoSyncHint : LIBRARY_BACKUP_COPY.cardDesc}
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <input
-              className="text-input"
-              type="password"
-              value={syncCode}
-              onChange={(e) => setSyncCode(e.target.value)}
-              placeholder={LIBRARY_BACKUP_COPY.codePlaceholder}
-              aria-label={LIBRARY_BACKUP_COPY.codeLabel}
-              style={{ flex: 1, minWidth: 220, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
-            />
-            <button
-              className="btn btn-outline"
-              style={{ borderRadius: 9 }}
-              disabled={backupBusy}
-              onClick={async () => {
-                setBackupBusy(true);
-                await store.backupLibraryToCloud(syncCode);
-                setBackupBusy(false);
+
+          {store.libraryCloudNewer !== null && (
+            <div
+              style={{
+                border: '1px solid var(--brand)',
+                background: 'var(--pill-purple-bg)',
+                borderRadius: 9,
+                padding: '8px 12px',
+                marginBottom: 12,
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
               }}
             >
-              {backupBusy ? LIBRARY_BACKUP_COPY.backingUpLabel : LIBRARY_BACKUP_COPY.backupButton}
-            </button>
-            <button
-              className="btn btn-outline"
-              style={{ borderRadius: 9 }}
-              disabled={backupBusy}
-              onClick={async () => {
-                setBackupBusy(true);
-                const r = await store.restoreLibraryPrepare(syncCode);
-                setBackupBusy(false);
-                if (r.ok) {
-                  setPendingRestore(r.savedAt);
-                } else {
-                  const copy = {
-                    empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
-                    network: LIBRARY_BACKUP_COPY.failToast,
-                    not_found: LIBRARY_BACKUP_COPY.notFoundToast,
-                    bad_code: LIBRARY_BACKUP_COPY.wrongCodeToast,
-                    bad_payload: LIBRARY_BACKUP_COPY.badPayloadToast,
-                  }[r.code];
-                  store.showToast(copy);
-                }
-              }}
-            >
-              {backupBusy ? LIBRARY_BACKUP_COPY.restoringLabel : LIBRARY_BACKUP_COPY.restoreButton}
-            </button>
-          </div>
+              <span style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 700 }}>
+                {LIBRARY_BACKUP_COPY.cloudNewerHint(
+                  new Date(store.libraryCloudNewer).toLocaleString('zh-TW'),
+                )}
+              </span>
+              <button
+                className="btn btn-outline"
+                style={{ borderRadius: 8, marginLeft: 'auto' }}
+                onClick={async () => {
+                  setBackupBusy(true);
+                  const r = await store.restoreLibraryPrepare(store.librarySyncCode);
+                  setBackupBusy(false);
+                  if (r.ok) setPendingRestore(r.savedAt);
+                }}
+              >
+                {LIBRARY_BACKUP_COPY.restoreButton}
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ borderRadius: 8 }}
+                onClick={store.keepLocalOverwriteCloud}
+              >
+                {LIBRARY_BACKUP_COPY.keepLocalButton}
+              </button>
+            </div>
+          )}
+
+          {store.librarySyncCode ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+                {store.librarySavedAt
+                  ? LIBRARY_BACKUP_COPY.lastSyncedLabel(
+                      new Date(store.librarySavedAt).toLocaleString('zh-TW'),
+                    )
+                  : LIBRARY_BACKUP_COPY.neverSynced}
+              </span>
+              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                <button
+                  className="btn btn-outline"
+                  style={{ borderRadius: 9 }}
+                  disabled={backupBusy}
+                  onClick={async () => {
+                    setBackupBusy(true);
+                    await store.backupLibraryToCloud(store.librarySyncCode);
+                    setBackupBusy(false);
+                  }}
+                >
+                  {backupBusy ? LIBRARY_BACKUP_COPY.backingUpLabel : LIBRARY_BACKUP_COPY.backupNowButton}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  style={{ borderRadius: 9 }}
+                  disabled={backupBusy}
+                  onClick={async () => {
+                    setBackupBusy(true);
+                    const r = await store.restoreLibraryPrepare(store.librarySyncCode);
+                    setBackupBusy(false);
+                    if (r.ok) {
+                      setPendingRestore(r.savedAt);
+                    } else {
+                      const copy = {
+                        empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
+                        network: LIBRARY_BACKUP_COPY.failToast,
+                        not_found: LIBRARY_BACKUP_COPY.notFoundToast,
+                        bad_code: LIBRARY_BACKUP_COPY.wrongCodeToast,
+                        bad_payload: LIBRARY_BACKUP_COPY.badPayloadToast,
+                      }[r.code];
+                      store.showToast(copy);
+                    }
+                  }}
+                >
+                  {backupBusy ? LIBRARY_BACKUP_COPY.restoringLabel : LIBRARY_BACKUP_COPY.restoreButton}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ borderRadius: 9 }}
+                  onClick={store.disableAutoSync}
+                >
+                  {LIBRARY_BACKUP_COPY.disableButton}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                className="text-input"
+                type="password"
+                value={syncCode}
+                onChange={(e) => setSyncCode(e.target.value)}
+                placeholder={LIBRARY_BACKUP_COPY.codePlaceholder}
+                aria-label={LIBRARY_BACKUP_COPY.codeLabel}
+                style={{ flex: 1, minWidth: 220, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
+              />
+              <button
+                className="btn btn-outline"
+                style={{ borderRadius: 9 }}
+                disabled={backupBusy}
+                onClick={async () => {
+                  setBackupBusy(true);
+                  await store.backupLibraryToCloud(syncCode);
+                  setBackupBusy(false);
+                }}
+              >
+                {backupBusy ? LIBRARY_BACKUP_COPY.backingUpLabel : LIBRARY_BACKUP_COPY.backupButton}
+              </button>
+              <button
+                className="btn btn-outline"
+                style={{ borderRadius: 9 }}
+                disabled={backupBusy}
+                onClick={async () => {
+                  setBackupBusy(true);
+                  const r = await store.restoreLibraryPrepare(syncCode);
+                  setBackupBusy(false);
+                  if (r.ok) {
+                    setPendingRestore(r.savedAt);
+                  } else {
+                    const copy = {
+                      empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
+                      network: LIBRARY_BACKUP_COPY.failToast,
+                      not_found: LIBRARY_BACKUP_COPY.notFoundToast,
+                      bad_code: LIBRARY_BACKUP_COPY.wrongCodeToast,
+                      bad_payload: LIBRARY_BACKUP_COPY.badPayloadToast,
+                    }[r.code];
+                    store.showToast(copy);
+                  }
+                }}
+              >
+                {backupBusy ? LIBRARY_BACKUP_COPY.restoringLabel : LIBRARY_BACKUP_COPY.restoreButton}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

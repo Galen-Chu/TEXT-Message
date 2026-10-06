@@ -474,6 +474,15 @@ export const LIBRARY_BACKUP_COPY = {
   wrongCodeToast: '同步碼不正確或備份已損毀,無法解密',
   badPayloadToast: '雲端備份內容格式不符,取消還原',
   failToast: '備份/還原失敗,請稍後再試',
+  autoSyncOn: '已啟用自動同步',
+  autoSyncHint: '內容變更後約 30 秒自動備份;開啟網站時也會自動同步一次',
+  neverSynced: '尚未同步',
+  lastSyncedLabel: (d: string) => `上次同步:${d}`,
+  backupNowButton: '立即備份',
+  disableButton: '停用自動同步',
+  disabledToast: '已停用自動同步(同步碼已清除)',
+  cloudNewerHint: (d: string) => `雲端有較新的備份(${d})——本機內容較舊`,
+  keepLocalButton: '以此機覆蓋雲端',
 };
 
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
