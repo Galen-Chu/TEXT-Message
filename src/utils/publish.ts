@@ -24,5 +24,7 @@ export function buildPublishTarget(platform: PlatformKey, text: string): Publish
       return { url: 'https://line.me/', canPrefill: false };
     case 'yt':
       return { url: 'https://studio.youtube.com/', canPrefill: false };
+    case 'linkedin':
+      return { url: 'https://www.linkedin.com/feed/?shareActive=true', canPrefill: true };
   }
 }

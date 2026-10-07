@@ -120,6 +120,7 @@ describe('useAppStore:草稿持久化', () => {
       threads: true,
       line: false,
       yt: false,
+      linkedin: false,
     });
   });
 
@@ -156,6 +157,7 @@ describe('useAppStore:草稿持久化', () => {
       threads: false,
       line: false,
       yt: false,
+      linkedin: false,
     });
   });
 });
@@ -521,7 +523,7 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
       STORAGE_KEY,
       JSON.stringify({
         draftText: '舊草稿的前十二個字元哦哦哦哦後續內容',
-        draftPlatforms: { fb: true, ig: false, threads: true, line: false, yt: false },
+        draftPlatforms: { fb: true, ig: false, threads: true, line: false, yt: false, linkedin: false },
         draftSourceId: 'mail-1',
       }),
     );
@@ -953,7 +955,7 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
       activeDraftId: null,
       activeTemplateId: null,
       draftText: '雲端還原後的內容',
-      draftPlatforms: { fb: true, ig: false, threads: false, line: false, yt: false },
+      draftPlatforms: { fb: true, ig: false, threads: false, line: false, yt: false, linkedin: false },
       draftSourceId: 'blank',
       draftKind: 'copy',
       aiRole: null,

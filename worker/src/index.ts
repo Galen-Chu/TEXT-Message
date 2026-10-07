@@ -9,8 +9,11 @@
  *   GET  /auth/threads/callback?code&state         → 交換並加密保存 token,302 回前端
  *   GET  /auth/facebook/start?install=<id>         → 302 至 Facebook 授權頁(2026-09-30)
  *   GET  /auth/facebook/callback?code&state        → 換長效 token、取首個粉專 page token 加密保存
+ *   GET  /auth/linkedin/start?install=<id>         → 302 至 LinkedIn 授權頁(2026-10-07)
+ *   GET  /auth/linkedin/callback?code&state        → 交換 60 天 token+member id 加密保存
  *   POST /api/threads/publish   {installId, text}            → 立即代發
  *   POST /api/facebook/publish  {installId, text}            → FB 粉專立即發佈
+ *   POST /api/linkedin/publish  {installId, text}            → LinkedIn 個人檔案立即發佈
  *   POST /api/schedule          {installId, text, publishAt, platform?} → 加入排程佇列(platform 預設 threads)
  *   GET  /api/queue?install=<id>                            → 檢視佇列
  *   POST /api/queue/cancel      {installId, itemId}          → 取消排程
@@ -23,12 +26,22 @@ import { hmacHex } from './store/crypto';
 import {
   listQueueItems,
   loadFacebookToken,
+  loadLinkedInToken,
   loadQueueItem,
   loadThreadsToken,
   saveFacebookToken,
+  saveLinkedInToken,
   saveQueueItem,
   saveThreadsToken,
 } from './store/kv';
+import { publishLinkedInText, validateLinkedInText } from './linkedin/publish';
+import {
+  buildLinkedInAuthorizeUrl,
+  exchangeLinkedInCode,
+  fetchLinkedInMember,
+  needsLinkedInRefresh,
+  refreshLinkedInToken,
+} from './linkedin/oauth';
 import { publishFacebookText, validateFacebookText } from './facebook/publish';
 import { loadLibraryBlob, isValidCodeId, saveLibraryBlob, validateSaveRequest } from './library/store';
 import {
@@ -91,7 +104,7 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
   }
 }
 
-function callbackUrl(request: Request, platform: 'threads' | 'facebook'): string {
+function callbackUrl(request: Request, platform: 'threads' | 'facebook' | 'linkedin'): string {
   return `${new URL(request.url).origin}/auth/${platform}/callback`;
 }
 
@@ -110,6 +123,7 @@ export default {
           facebookConfigured:
             facebookSystemUserMode(env) ||
             (!!env.FACEBOOK_CLIENT_ID && !!env.FACEBOOK_CLIENT_SECRET),
+          linkedinConfigured: !!env.LINKEDIN_CLIENT_ID && !!env.LINKEDIN_CLIENT_SECRET,
         },
         200,
         cors,
@@ -203,6 +217,49 @@ export default {
       }
     }
 
+    // ---- LinkedIn OAuth(瀏覽器頂層導航,不走 CORS 檢查;2026-10-07)----
+    if (url.pathname === '/auth/linkedin/start' && request.method === 'GET') {
+      const installId = url.searchParams.get('install') ?? '';
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      const hmac = await hmacHex(installId, env.TOKEN_ENCRYPTION_KEY);
+      const authorizeUrl = buildLinkedInAuthorizeUrl({
+        clientId: env.LINKEDIN_CLIENT_ID,
+        redirectUri: callbackUrl(request, 'linkedin'),
+        state: serializeState(installId, hmac),
+      });
+      return Response.redirect(authorizeUrl, 302);
+    }
+
+    if (url.pathname === '/auth/linkedin/callback' && request.method === 'GET') {
+      const code = url.searchParams.get('code') ?? '';
+      const state = url.searchParams.get('state') ?? '';
+      const back = (q: string) => Response.redirect(`${env.FRONTEND_URL}?${q}`, 302);
+      const verified = parseState(state, await hmacHex(state.slice(0, state.lastIndexOf('.')), env.TOKEN_ENCRYPTION_KEY));
+      if (!code || !verified.ok) return back('linkedin=error');
+      try {
+        // code → 60 天 access token(+選配 refresh)→ /v2/userinfo 取 member id(發文 author URN 用)
+        const exchanged = await exchangeLinkedInCode({
+          code,
+          clientId: env.LINKEDIN_CLIENT_ID,
+          clientSecret: env.LINKEDIN_CLIENT_SECRET,
+          redirectUri: callbackUrl(request, 'linkedin'),
+        });
+        const member = await fetchLinkedInMember({ accessToken: exchanged.accessToken });
+        await saveLinkedInToken(env.QUEUE, verified.installId, {
+          accessToken: exchanged.accessToken,
+          memberId: member.memberId,
+          memberName: member.memberName,
+          refreshToken: exchanged.refreshToken,
+          expiresAt: exchanged.expiresIn > 0 ? Date.now() + exchanged.expiresIn * 1000 : 0,
+          refreshExpiresAt: exchanged.refreshExpiresIn > 0 ? Date.now() + exchanged.refreshExpiresIn * 1000 : 0,
+        }, env.TOKEN_ENCRYPTION_KEY);
+        return back('linkedin=connected');
+      } catch (err) {
+        console.error('linkedin callback failed:', String(err));
+        return back('linkedin=error');
+      }
+    }
+
     // ---- API(需通過 CORS 檢查)----
     if (!url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404, cors);
     if (!checkCors(request, env)) return json({ error: 'forbidden_origin' }, 403);
@@ -287,10 +344,16 @@ export default {
       const installId = String(body.installId ?? '');
       const text = String(body.text ?? '');
       const publishAt = Number(body.publishAt ?? 0);
-      // platform:'threads'(預設,回溯相容既有前端)| 'facebook'
-      const platform = body.platform === 'facebook' ? 'facebook' : 'threads';
+      // platform:'threads'(預設,回溯相容既有前端)| 'facebook' | 'linkedin'
+      const platform =
+        body.platform === 'facebook' ? 'facebook' : body.platform === 'linkedin' ? 'linkedin' : 'threads';
       if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
-      const valid = platform === 'facebook' ? validateFacebookText(text) : validateThreadsText(text);
+      const valid =
+        platform === 'facebook'
+          ? validateFacebookText(text)
+          : platform === 'linkedin'
+            ? validateLinkedInText(text)
+            : validateThreadsText(text);
       if (!valid.ok) return json({ error: 'invalid_text' }, 400, cors);
       if (!Number.isFinite(publishAt) || publishAt <= Date.now() || publishAt > Date.now() + MAX_SCHEDULE_AHEAD_MS) {
         return json({ error: 'invalid_publish_at' }, 400, cors);
@@ -309,6 +372,34 @@ export default {
     }
 
     // ---- 文庫雲端備份(方案 A,2026-10-05;payload 為瀏覽器加密之密文,worker 不解析)----
+    if (url.pathname === '/api/linkedin/status' && request.method === 'GET') {
+      const installId = url.searchParams.get('install') ?? '';
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      const token = await loadLinkedInToken(env.QUEUE, installId, env.TOKEN_ENCRYPTION_KEY);
+      // 僅回報「是否已連線」與會員名稱,不揭露 token 內容
+      return json({ connected: !!token, memberName: token?.memberName ?? null }, 200, cors);
+    }
+
+    if (url.pathname === '/api/linkedin/publish' && request.method === 'POST') {
+      const body = await readJsonBody(request);
+      const installId = String(body.installId ?? '');
+      const text = String(body.text ?? '');
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      if (!validateLinkedInText(text).ok) return json({ error: 'invalid_text' }, 400, cors);
+      const token = await loadLinkedInToken(env.QUEUE, installId, env.TOKEN_ENCRYPTION_KEY);
+      if (!token) return json({ error: 'not_connected' }, 404, cors);
+      try {
+        const outcome = await publishLinkedInText({
+          memberId: token.memberId,
+          text,
+          accessToken: token.accessToken,
+        });
+        return json(outcome, 200, cors);
+      } catch (err) {
+        return json({ error: 'publish_failed', detail: String(err).slice(0, 200) }, 502, cors);
+      }
+    }
+
     if (url.pathname === '/api/library/save' && request.method === 'POST') {
       const body = await readJsonBody(request) as { codeId?: unknown; data?: unknown; iv?: unknown; savedAt?: unknown };
       const valid = validateSaveRequest(body);
@@ -372,6 +463,40 @@ export default {
             accessToken = token.accessToken;
           }
           const outcome = await publishFacebookText({ pageId, text: item.text, accessToken });
+          await saveQueueItem(env.QUEUE, applySuccess(item, outcome.id));
+          continue;
+        }
+        if (item.platform === 'linkedin') {
+          const token = await loadLinkedInToken(env.QUEUE, item.installId, env.TOKEN_ENCRYPTION_KEY);
+          if (!token) {
+            await saveQueueItem(env.QUEUE, applyFailure(item, 'not_connected', now));
+            continue;
+          }
+          let accessToken = token.accessToken;
+          if (needsLinkedInRefresh(token, now)) {
+            // 盡力刷新:程式化 refresh token 僅部分 App 有——無則沿用舊 token,失敗由退避反映
+            const refreshed = await refreshLinkedInToken({ refreshToken: token.refreshToken });
+            if (refreshed) {
+              accessToken = refreshed.accessToken;
+              await saveLinkedInToken(
+                env.QUEUE,
+                item.installId,
+                {
+                  ...token,
+                  accessToken,
+                  refreshToken: refreshed.refreshToken || token.refreshToken,
+                  expiresAt: refreshed.expiresIn > 0 ? now + refreshed.expiresIn * 1000 : 0,
+                  refreshExpiresAt: refreshed.refreshExpiresIn > 0 ? now + refreshed.refreshExpiresIn * 1000 : 0,
+                },
+                env.TOKEN_ENCRYPTION_KEY,
+              );
+            }
+          }
+          const outcome = await publishLinkedInText({
+            memberId: token.memberId,
+            text: item.text,
+            accessToken,
+          });
           await saveQueueItem(env.QUEUE, applySuccess(item, outcome.id));
           continue;
         }

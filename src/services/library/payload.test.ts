@@ -10,7 +10,7 @@ const base = {
   activeDraftId: null,
   activeTemplateId: null,
   draftText: '草稿',
-  draftPlatforms: { fb: true, ig: true, threads: false, line: false, yt: false },
+  draftPlatforms: { fb: true, ig: true, threads: false, line: false, yt: false, linkedin: false },
   draftSourceId: 'blank',
   draftKind: 'copy' as const,
   aiRole: null,

@@ -1,6 +1,6 @@
 export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'schedule' | 'draft' | 'library';
 
-export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt';
+export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt' | 'linkedin';
 
 export type EmailTag = '電子報' | '合作邀約' | '讀者來信' | '互動通知' | '活動通知';
 

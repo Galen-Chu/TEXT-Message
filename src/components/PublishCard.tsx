@@ -4,6 +4,7 @@ import {
   BACKEND_ERROR_COPY,
   BACKEND_FB_COPY,
   BACKEND_FB_ERROR_COPY,
+  BACKEND_LINKEDIN_COPY,
   PLATFORM_LIST,
   PUBLISH_CARD_COPY,
   SCHEDULE_COPY,
@@ -36,6 +37,7 @@ const DEFAULT_SCHEDULE_AT: Record<PlatformKey, string> = {
   line: 'T10:00',
   ig: 'T10:00',
   fb: 'T10:30',
+  linkedin: 'T11:00',
 };
 
 /**
@@ -344,6 +346,96 @@ export default function PublishCard({ store }: { store: AppStore }) {
       renderSemiAuto('fb')
     );
 
+  const renderLinkedIn = () =>
+    store.linkedinProxy.enabled ? (
+      <div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+            {store.linkedinProxy.status === 'connected'
+              ? BACKEND_LINKEDIN_COPY.connectedHint(store.linkedinProxy.memberName)
+              : BACKEND_LINKEDIN_COPY.cardDesc}
+          </div>
+          <button
+            onClick={() => void store.linkedinProxy.refresh()}
+            style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+          >
+            {BACKEND_LINKEDIN_COPY.refreshStatus}
+          </button>
+        </div>
+
+        {store.linkedinProxy.status !== 'connected' ? (
+          <div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+              <button className="btn btn-outline" onClick={store.linkedinProxy.connect}>
+                {BACKEND_LINKEDIN_COPY.connect}
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+              {store.linkedinProxy.authReturn === 'connected' && BACKEND_LINKEDIN_COPY.connectedBackToast}
+              {store.linkedinProxy.authReturn === 'error' && BACKEND_LINKEDIN_COPY.connectErrorToast}
+              {store.linkedinProxy.authReturn === null && BACKEND_LINKEDIN_COPY.connectHint}
+            </div>
+            {store.linkedinProxy.status === 'unknown' && (
+              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+                {BACKEND_COPY.checking}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <button
+              className="btn btn-accent"
+              onClick={() => void store.publishDraftToLinkedInNow()}
+              disabled={store.linkedinProxy.busy}
+              style={{
+                width: '100%',
+                marginBottom: 12,
+                opacity: store.linkedinProxy.busy ? 0.5 : 1,
+                cursor: store.linkedinProxy.busy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {store.linkedinProxy.busy ? BACKEND_LINKEDIN_COPY.publishingLabel : BACKEND_LINKEDIN_COPY.publishNow}
+            </button>
+            <div className="field-label">{BACKEND_LINKEDIN_COPY.scheduleLabel}</div>
+            <input
+              className="text-input"
+              type="datetime-local"
+              value={scheduleAt.linkedin}
+              onChange={(e) => setSchedule('linkedin', e.target.value)}
+              aria-label={BACKEND_LINKEDIN_COPY.scheduleAtLabel}
+              style={{ marginBottom: 10 }}
+            />
+            <button
+              className="btn btn-outline"
+              onClick={() => void store.scheduleDraftToLinkedIn(scheduleAt.linkedin)}
+              disabled={store.linkedinProxy.busy}
+              style={{
+                width: '100%',
+                opacity: store.linkedinProxy.busy ? 0.5 : 1,
+                cursor: store.linkedinProxy.busy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {store.linkedinProxy.busy ? BACKEND_LINKEDIN_COPY.schedulingLabel : BACKEND_LINKEDIN_COPY.schedulePublish}
+            </button>
+          </div>
+        )}
+        {store.linkedinProxy.status === 'error' && (
+          <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+            {BACKEND_ERROR_COPY.unknown}
+          </div>
+        )}
+      </div>
+    ) : (
+      renderSemiAuto('linkedin')
+    );
+
   const renderYoutube = () =>
     YOUTUBE_ENABLED ? (
       <div>
@@ -496,6 +588,7 @@ export default function PublishCard({ store }: { store: AppStore }) {
         {renderPreview(meta.limit)}
         {key === 'threads' && renderThreads()}
         {key === 'fb' && renderFacebook()}
+        {key === 'linkedin' && renderLinkedIn()}
         {key === 'yt' && renderYoutube()}
         {(key === 'ig' || key === 'line') && renderSemiAuto(key)}
       </div>

@@ -6,11 +6,13 @@
 import type { KvLike } from '../config';
 import { aesDecrypt, aesEncrypt } from './crypto';
 import type { FacebookToken } from '../facebook/oauth';
+import type { LinkedInToken } from '../linkedin/oauth';
 import type { ThreadsToken } from '../threads/oauth';
 import { parseQueueItem, type QueueItem } from '../queue/due';
 
 const TOKEN_PREFIX = 'token:threads:';
 const FB_TOKEN_PREFIX = 'token:facebook:';
+const LI_TOKEN_PREFIX = 'token:linkedin:';
 
 function tokenKey(installId: string): string {
   return `${TOKEN_PREFIX}${installId}`;
@@ -75,6 +77,46 @@ export async function loadFacebookToken(
       return null;
     }
     return { pageId: parsed.pageId, pageName: parsed.pageName, accessToken: parsed.accessToken };
+  } catch {
+    return null;
+  }
+}
+
+/** LinkedIn token(加密落地;access 60 天+選配 refresh token,靠 worker cron 盡力刷新——
+ *  無 refresh token 的 App 到期由使用者重新授權覆寫,故不設 TTL)。 */
+export async function saveLinkedInToken(
+  kv: KvLike,
+  installId: string,
+  token: LinkedInToken,
+  encryptionKey: string,
+): Promise<void> {
+  await kv.put(`${LI_TOKEN_PREFIX}${installId}`, await aesEncrypt(JSON.stringify(token), encryptionKey));
+}
+
+export async function loadLinkedInToken(
+  kv: KvLike,
+  installId: string,
+  encryptionKey: string,
+): Promise<LinkedInToken | null> {
+  const payload = await kv.get(`${LI_TOKEN_PREFIX}${installId}`);
+  if (!payload) return null;
+  try {
+    const parsed = JSON.parse(await aesDecrypt(payload, encryptionKey)) as Partial<LinkedInToken>;
+    if (
+      typeof parsed.accessToken !== 'string' ||
+      typeof parsed.memberId !== 'string' ||
+      typeof parsed.memberName !== 'string'
+    ) {
+      return null;
+    }
+    return {
+      accessToken: parsed.accessToken,
+      memberId: parsed.memberId,
+      memberName: parsed.memberName,
+      refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : '',
+      expiresAt: parsed.expiresAt ?? 0,
+      refreshExpiresAt: parsed.refreshExpiresAt ?? 0,
+    };
   } catch {
     return null;
   }

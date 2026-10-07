@@ -22,6 +22,9 @@ export interface Env {
   /** FB 粉專 OAuth(可與 Threads 同一個 Meta app 的 id/secret;未設=FB 功能停用)。 */
   FACEBOOK_CLIENT_ID: string;
   FACEBOOK_CLIENT_SECRET: string;
+  /** LinkedIn OAuth(未設=LinkedIn 功能停用)。 */
+  LINKEDIN_CLIENT_ID: string;
+  LINKEDIN_CLIENT_SECRET: string;
   /** 商家版組態 id(僅 Facebook Login for Business 的 App 需要;標準版 Facebook Login 可不設,
    *  授權改以 scope 帶權限)。2026-09-30/10-01 實測:本 App 商家版組態型錄無 pages 發文權限。 */
   FACEBOOK_LOGIN_CONFIG_ID?: string;
@@ -36,6 +39,19 @@ export interface Env {
   FRONTEND_URL: string;
   QUEUE: KvLike;
 }
+
+/**
+ * LinkedIn 發文(2026-10-07 串接,個人檔案文字貼文)。
+ * OAuth 標準授權碼流程:https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow
+ * Posts API(版本標頭 YYYYMM):https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
+ */
+export const LINKEDIN_AUTHORIZE_URL = 'https://www.linkedin.com/oauth/v2/authorization';
+export const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
+export const LINKEDIN_API_BASE = 'https://api.linkedin.com';
+/** 全 API 必帶的版本標頭值(YYYYMM);202510 將於 2026-10-15 sunset,釘 202609。 */
+export const LINKEDIN_VERSION = '202609';
+/** LinkedIn 貼文(commentary)字數上限。 */
+export const LINKEDIN_TEXT_LIMIT = 3000;
 
 /** Threads 文字貼文上限(API 限制,以字元計)。 */
 export const THREADS_TEXT_LIMIT = 500;

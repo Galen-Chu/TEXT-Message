@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDrive } from './useDrive';
 import { useFacebookProxy } from './useFacebookProxy';
 import { useGmail } from './useGmail';
+import { useLinkedInProxy } from './useLinkedInProxy';
 import { useThreadsProxy } from './useThreadsProxy';
 import { useYoutube } from './useYoutube';
 import {
@@ -9,6 +10,8 @@ import {
   BACKEND_ERROR_COPY,
   BACKEND_FB_COPY,
   BACKEND_FB_ERROR_COPY,
+  BACKEND_LINKEDIN_COPY,
+  BACKEND_LINKEDIN_ERROR_COPY,
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
@@ -117,6 +120,7 @@ const DEFAULT_DRAFT_PLATFORMS: Record<PlatformKey, boolean> = {
   threads: false,
   line: false,
   yt: false,
+  linkedin: false,
 };
 
 /**
@@ -171,6 +175,7 @@ export function useAppStore() {
   const youtube = useYoutube();
   const threadsProxy = useThreadsProxy();
   const facebookProxy = useFacebookProxy();
+  const linkedinProxy = useLinkedInProxy();
   const drive = useDrive();
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -243,7 +248,7 @@ export function useAppStore() {
       (v): v is Partial<Record<PlatformKey, boolean>> =>
         !!v && typeof v === 'object' && Object.values(v).every((x) => typeof x === 'boolean'),
     );
-    return { fb: true, ig: true, threads: false, line: false, yt: false, ...stored };
+    return { ...DEFAULT_DRAFT_PLATFORMS, ...stored };
   });
 
   // 草稿管理集合(IA Phase 2 D8):多筆可管理文檔;activeDraftId 標示編輯緩衝對應的
@@ -1036,7 +1041,7 @@ export function useAppStore() {
         kind: 'draft',
         title: t,
         text,
-        platforms: { fb: false, ig: false, threads: false, line: false, yt: false },
+        platforms: { ...DEFAULT_DRAFT_PLATFORMS },
         sourceId: null,
         updatedAt: new Date().toISOString(),
       };
@@ -1222,6 +1227,58 @@ export function useAppStore() {
     }
   };
 
+  /** LinkedIn 立即發佈(2026-10-07,鏡像 Threads):成功即寫入發文歷史。 */
+  const publishDraftToLinkedInNow = async () => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_LINKEDIN_COPY.needTextToast);
+      return;
+    }
+    const result = await linkedinProxy.publish(draftText);
+    if (!result) return; // 連點被鎖定忽略
+    if (result.ok) {
+      appendPublishedHistory('linkedin', draftText.split('\n')[0], draftText);
+      showToast(BACKEND_LINKEDIN_COPY.publishedToast);
+    } else {
+      showToast(
+        BACKEND_LINKEDIN_ERROR_COPY[result.code] ??
+          BACKEND_ERROR_COPY[result.code] ??
+          BACKEND_ERROR_COPY.unknown,
+      );
+    }
+  };
+
+  /** LinkedIn 排程發佈:加入雲端佇列(platform='linkedin')並建立本地排程。 */
+  const scheduleDraftToLinkedIn = async (publishAtLocal: string) => {
+    if (!draftText.trim()) {
+      showToast(BACKEND_LINKEDIN_COPY.needTextToast);
+      return;
+    }
+    const dt = new Date(publishAtLocal);
+    if (!publishAtLocal || Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+      showToast(BACKEND_LINKEDIN_COPY.pastTimeToast);
+      return;
+    }
+    const result = await linkedinProxy.schedule(draftText, dt.getTime());
+    if (!result) return; // 連點被鎖定忽略
+    if (result.ok) {
+      addManualSchedule(
+        draftText.split('\n')[0],
+        publishAtLocal.slice(0, 10),
+        publishAtLocal.slice(11, 16),
+        'linkedin',
+        draftText,
+        draftKind,
+      );
+      showToast(BACKEND_LINKEDIN_COPY.scheduledToast);
+    } else {
+      showToast(
+        BACKEND_LINKEDIN_ERROR_COPY[result.code] ??
+          BACKEND_ERROR_COPY[result.code] ??
+          BACKEND_ERROR_COPY.unknown,
+      );
+    }
+  };
+
   /** 發佈輔助:複製排程貼文內容(無全文時退回標題)。 */
   const copyScheduleText = async (item: ScheduleItem) => {
     const text = item.content?.trim() || item.title;
@@ -1280,6 +1337,7 @@ export function useAppStore() {
     youtube,
     threadsProxy,
     facebookProxy,
+    linkedinProxy,
     drive,
     emails,
     templates,
@@ -1367,6 +1425,8 @@ export function useAppStore() {
     scheduleDraftToThreads,
     publishDraftToFacebookNow,
     scheduleDraftToFacebook,
+    publishDraftToLinkedInNow,
+    scheduleDraftToLinkedIn,
     copyScheduleText,
     openSchedulePublish,
     deleteScheduleItem,

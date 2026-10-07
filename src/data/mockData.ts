@@ -43,7 +43,7 @@ export function initialDriveDocs(): Array<{ id: string; name: string; mimeType: 
  */
 export function initialDrafts(): DraftDoc[] {
   const now = new Date().toISOString();
-  const noPlatforms = { fb: false, ig: false, threads: false, line: false, yt: false };
+  const noPlatforms = { fb: false, ig: false, threads: false, line: false, yt: false, linkedin: false };
   const mk = (id: string, title: string, text: string): DraftDoc => ({
     id,
     kind: 'draft',

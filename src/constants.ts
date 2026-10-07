@@ -38,6 +38,7 @@ export const PLATFORM_META: Record<PlatformKey, PlatformMeta> = {
   threads: { key: 'threads', label: 'Threads', color: '#101010', badge: '@', limit: 500 },
   line: { key: 'line', label: 'LINE', color: '#06C755', badge: 'L', limit: 1000 },
   yt: { key: 'yt', label: 'YouTube', color: '#FF0000', badge: '▶', limit: 5000 },
+  linkedin: { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', badge: 'in', limit: 3000 },
 };
 
 export const PLATFORM_LIST: PlatformMeta[] = Object.values(PLATFORM_META);
@@ -442,6 +443,36 @@ export const BACKEND_FB_COPY = {
 export const BACKEND_FB_ERROR_COPY: Record<string, string> = {
   not_connected: '尚未連接 Facebook 粉專,請先完成授權',
   invalid_text: '貼文內容無效(空白或超過 Facebook 上限)',
+};
+
+/** LinkedIn 發佈卡(2026-10-07;鏡像 Threads 卡,個人檔案文字貼文)。 */
+export const BACKEND_LINKEDIN_COPY = {
+  cardDesc: '由你的後端 worker 代為發佈至你的 LinkedIn 個人檔案;只送貼文內容與安裝識別碼,不送其他資料',
+  connect: '連接 LinkedIn',
+  connectHint: '開啟新分頁完成 LinkedIn 授權(需要以你的帳號登入),完成後會自動返回此頁',
+  refreshStatus: '檢查連線',
+  connectedHint: (name: string | null) =>
+    name
+      ? `已連線 · ${name}(worker 保管加密 token,可隨時重新授權取代)`
+      : '已連線(worker 保管加密 token,可隨時重新授權取代)',
+  publishNow: '立即發佈',
+  publishingLabel: '發佈中…',
+  scheduleLabel: '排程發佈(由後端 cron 到點自動發佈)',
+  scheduleAtLabel: '排定時間',
+  schedulePublish: '排程發佈',
+  schedulingLabel: '加入排程中…',
+  needTextToast: '請先撰寫草稿內容',
+  pastTimeToast: '排定時間已過,請選擇未來時間',
+  publishedToast: '已發佈至 LinkedIn ✅(已記錄至社群媒體歷史)',
+  scheduledToast: '已加入雲端佇列,後端會在排定時間自動發佈(本地同步建立排程)',
+  connectedBackToast: 'LinkedIn 連接成功 ✨',
+  connectErrorToast: 'LinkedIn 授權未完成,可重新再試',
+};
+
+/** LinkedIn 卡專屬錯誤文案(覆寫平台相關者,其餘沿用 BACKEND_ERROR_COPY)。 */
+export const BACKEND_LINKEDIN_ERROR_COPY: Record<string, string> = {
+  not_connected: '尚未連接 LinkedIn,請先完成授權',
+  invalid_text: '貼文內容無效(空白或超過 LinkedIn 3000 字上限)',
 };
 
 /** 發佈卡(D14,2026-10-03):單卡+平台頁簽;連接/發佈依平台,半自動平台提供複製+深連結。 */

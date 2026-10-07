@@ -172,6 +172,55 @@ export function scheduleFacebookPost(opts: {
   );
 }
 
+/** LinkedIn(2026-10-07):狀態(connected+memberName)、立即發佈、排程(platform='linkedin')。 */
+export function linkedinAuthStartUrl(base: string, installId: string): string {
+  return `${base}/auth/linkedin/start?install=${encodeURIComponent(installId)}`;
+}
+
+export function checkLinkedInStatus(opts: {
+  base: string;
+  installId: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ connected: boolean; memberName: string | null }>> {
+  return requestJson(
+    `${opts.base}/api/linkedin/status?install=${encodeURIComponent(opts.installId)}`,
+    jsonInit('GET'),
+    opts.fetcher ?? fetch,
+  );
+}
+
+export function publishLinkedInNow(opts: {
+  base: string;
+  installId: string;
+  text: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ id: string }>> {
+  return requestJson(
+    `${opts.base}/api/linkedin/publish`,
+    jsonInit('POST', { installId: opts.installId, text: opts.text }),
+    opts.fetcher ?? fetch,
+  );
+}
+
+export function scheduleLinkedInPost(opts: {
+  base: string;
+  installId: string;
+  text: string;
+  publishAt: number;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ itemId: string }>> {
+  return requestJson(
+    `${opts.base}/api/schedule`,
+    jsonInit('POST', {
+      installId: opts.installId,
+      text: opts.text,
+      publishAt: opts.publishAt,
+      platform: 'linkedin',
+    }),
+    opts.fetcher ?? fetch,
+  );
+}
+
 export function listThreadsQueue(opts: {
   base: string;
   installId: string;
