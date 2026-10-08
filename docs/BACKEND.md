@@ -39,6 +39,7 @@ npx wrangler secret put TOKEN_ENCRYPTION_KEY     # 32 bytes hex:openssl rand -he
 
 # 5) 部署(在 worker/ 目錄下)
 cd worker && npx wrangler deploy
+# 6) 部署後在 docs/DEPLOYS.md 加一列紀錄(日期/內容/commit)——2026-10-08 起慣例
 ```
 
 部署後 `npx wrangler secret list` 應列出三個 secrets;`curl https://<worker-domain>/health` 應回 `{"ok":true,"threadsConfigured":true}`。
