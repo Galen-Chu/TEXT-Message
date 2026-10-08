@@ -13,3 +13,4 @@
 | 5 | 2026-10-02 | FB 粉專串接(OAuth 組態+系統模式+`/api/facebook/diag`) | `366c072` | 當日排查 #100/#200 期間 1–2 次 |
 | 6 | 2026-10-05 | 文庫雲端備份(`/api/library/save|load`) | `33f7bc6` | 部署後探針驗證 `invalid_code_id` 回應 |
 | 7 | 2026-10-08 | LinkedIn 串接(`/auth/linkedin/*`、`/api/linkedin/status|publish`、schedule platform=linkedin) | `711b17c` | secrets:`LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET`;`/health` 回 `linkedinConfigured:true` |
+| 8 | 2026-10-08 | LinkedIn scope 修正(openid+profile+w_member_social——openid 須搭配其他 OIDC scope) | `3cc473f` | 二次 Bummer 後修正,重部署即連接成功、發文驗收通過 |
