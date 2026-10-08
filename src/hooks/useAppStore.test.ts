@@ -9,6 +9,7 @@ function seedEmptyDrafts(): void {
 
 import { useAppStore } from './useAppStore';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
+import { rewriteWithGemini } from '../services/gemini/rewrite';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
@@ -18,6 +19,12 @@ vi.mock('../services/gemini/variants', () => ({
   generatePlatformVariants: vi.fn(),
   suggestHashtagsFor: vi.fn(),
 }));
+
+// 「停止」測試:僅 mock 語氣改寫入口(abort 由 signal 驅動),其餘(key 存取等)走真實模組
+vi.mock('../services/gemini/rewrite', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/gemini/rewrite')>();
+  return { ...actual, rewriteWithGemini: vi.fn() };
+});
 
 // 文庫雲端備份(方案 A):client 傳輸層 mock,加密/payload 走真實模組;
 // 二期測試需要 BACKEND_ENABLED=true(啟動比對/自動同步閘門),故 mock config,
@@ -176,6 +183,43 @@ describe('useAppStore:其他操作', () => {
     });
     expect(result.current.draftText).toContain('早安');
     expect(result.current.draftText).toContain('謝謝你一直以來的陪伴');
+  });
+
+  it('stopAi(2026-10-08):中止進行中的 AI 呼叫——busy 解除、草稿不動、提示已停止', async () => {
+    localStorage.setItem('text-message:gemini-key', 'k');
+    vi.mocked(rewriteWithGemini).mockImplementation(
+      (input: { signal?: AbortSignal }) =>
+        new Promise((resolve) => {
+          // 已中止的 signal 不會補發 abort 事件(applyTone 的第一個 await 可能晚於 stopAi)
+          if (input.signal?.aborted) {
+            resolve({ ok: false, code: 'aborted' as const });
+            return;
+          }
+          input.signal?.addEventListener('abort', () => resolve({ ok: false, code: 'aborted' as const }));
+        }) as unknown as ReturnType<typeof rewriteWithGemini>,
+    );
+    const { result } = renderHook(() => useAppStore());
+    act(() => {
+      result.current.startBlankDraft();
+    });
+    act(() => {
+      result.current.setDraftText('原本內容');
+    });
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.applyTone('親切');
+    });
+    expect(result.current.aiBusy).toBe(true);
+
+    act(() => {
+      result.current.stopAi();
+    });
+    await act(async () => {
+      await pending;
+    });
+    expect(result.current.aiBusy).toBe(false);
+    expect(result.current.draftText).toBe('原本內容');
+    expect(result.current.toastMessage).toContain('已停止');
   });
 
   it('confirmSchedule 依已選平台建立排程(預設 fb+ig 兩筆)並持久化', () => {

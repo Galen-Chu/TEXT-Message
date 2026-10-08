@@ -256,6 +256,22 @@ describe('rewriteWithGemini 模型降級', () => {
     expect(calls.length).toBe(1);
   });
 
+  it('「停止」(2026-10-08):fetch 因 AbortSignal 中止 → 回 aborted(非 network),草稿不動', async () => {
+    localStorage.clear();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        const e = new Error('The operation was aborted');
+        e.name = 'AbortError';
+        throw e;
+      }),
+    );
+    const ac = new AbortController();
+    const r = await rewriteWithGemini({ apiKey: 'k', text: 'x', tone: '親切', signal: ac.signal });
+    vi.unstubAllGlobals();
+    expect(r).toEqual({ ok: false, code: 'aborted' });
+  });
+
   it('summarizeWithGemini 走同一模型降級與回應解析', async () => {
     localStorage.clear();
     calls.length = 0;

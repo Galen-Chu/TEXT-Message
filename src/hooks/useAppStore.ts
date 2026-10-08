@@ -346,14 +346,18 @@ export function useAppStore() {
     showToast('已將郵件轉換為草稿 ✨');
     if (!geminiKey || aiBusy) return;
     setAiBusy(true);
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
     const result = await summarizeWithGemini({
       apiKey: geminiKey,
       subject: mail.subject,
       from: mail.sender,
       body: mail.fullBody,
       limit: strictestSelectedLimit(),
+      signal: ac.signal,
     });
     setAiBusy(false);
+    if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
     if (result.ok) {
       const text = result.text;
       setDraftText((t) => (t === fallback ? text : t));
@@ -385,6 +389,14 @@ export function useAppStore() {
   // Gemini BYOK:key 僅存使用者瀏覽器;未設定 → 規則示範路徑
   const [geminiKey, setGeminiKeyState] = useState(() => loadGeminiKey());
   const [aiBusy, setAiBusy] = useState(false);
+  // 「停止」(2026-10-08):進行中 AI 呼叫的 AbortController——Gemini 卡住時可立即中止,
+  // 草稿不動;服務層把 AbortError 映射為 'aborted' 錯誤碼(顯示「已停止」而非網路錯誤)。
+  const aiAbortRef = useRef<AbortController | undefined>(undefined);
+
+  /** 停止進行中的 AI 呼叫(無進行中呼叫則靜默)。 */
+  const stopAi = () => {
+    aiAbortRef.current?.abort();
+  };
 
   // 第四期:平台變體生成結果(可編輯)與 hashtag 建議(工作階段狀態,不落地)
   const [draftVariants, setDraftVariants] = useState<Partial<Record<PlatformKey, string>> | null>(
@@ -426,6 +438,8 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
     const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
     const result = await rewriteWithGemini({
       apiKey: geminiKey,
@@ -436,8 +450,10 @@ export function useAppStore() {
       styleSamples,
       role: aiRole,
       language: aiLanguage,
+      signal: ac.signal,
     });
     setAiBusy(false);
+    if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
     if (result.ok) {
       setDraftText(result.text);
       showToast(`Gemini 已套用「${tone}」語氣 ✨`);
@@ -463,6 +479,8 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
     const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
     const result = await rewriteWithInstruction({
       apiKey: geminiKey,
@@ -473,8 +491,10 @@ export function useAppStore() {
       styleSamples,
       role: aiRole,
       language: aiLanguage,
+      signal: ac.signal,
     });
     setAiBusy(false);
+    if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
     if (result.ok) {
       setDraftText(result.text);
       showToast(DRAFT_AI_COPY.customInstructionDoneToast);
@@ -500,6 +520,8 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
     const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
     const result = await generatePlatformVariants({
       apiKey: geminiKey,
@@ -508,8 +530,10 @@ export function useAppStore() {
       styleSamples,
       role: aiRole,
       language: aiLanguage,
+      signal: ac.signal,
     });
     setAiBusy(false);
+    if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
     if (result.ok) {
       setDraftVariants(result.variants);
       setHashtagSuggestions([]);
@@ -562,8 +586,11 @@ export function useAppStore() {
       return;
     }
     setAiBusy(true);
-    const result = await suggestHashtagsFor({ apiKey: geminiKey, text: draftText });
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
+    const result = await suggestHashtagsFor({ apiKey: geminiKey, text: draftText, signal: ac.signal });
     setAiBusy(false);
+    if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
     if (result.ok) {
       setHashtagSuggestions(result.hashtags);
       showToast(DRAFT_VARIANTS_COPY.hashtagsDoneToast);
@@ -1404,6 +1431,7 @@ export function useAppStore() {
     geminiKey,
     setGeminiKey,
     aiBusy,
+    stopAi,
     togglePlatform,
     insertTemplateIntoDraft,
     pickSocialPost,

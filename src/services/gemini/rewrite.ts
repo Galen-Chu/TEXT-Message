@@ -31,6 +31,7 @@ export type RewriteErrorCode =
   | 'network'
   | 'no_content'
   | 'model_unavailable'
+  | 'aborted'
   | 'unknown';
 
 /** 模型候選間的換檔等待(讓限流窗口呼吸;免費方案常見 429/503 過載)。 */
@@ -264,7 +265,9 @@ export async function generateContent(
           signal,
         },
       );
-    } catch {
+    } catch (err) {
+      // 使用者按下「停止」:中止不是錯誤,回專屬碼供 UI 顯示「已停止」而非網路錯誤
+      if (err instanceof Error && err.name === 'AbortError') return { ok: false, code: 'aborted' };
       return { ok: false, code: 'network' };
     }
     if (!resp.ok) {

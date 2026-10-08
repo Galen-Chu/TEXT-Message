@@ -132,12 +132,22 @@ export default function Draft({ store }: { store: AppStore }) {
                   marginBottom: 10,
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                  {store.aiBusy
-                    ? GEMINI_MODE_LABEL.busy
-                    : store.geminiKey
-                      ? GEMINI_MODE_LABEL.on
-                      : GEMINI_MODE_LABEL.off}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                    {store.aiBusy
+                      ? GEMINI_MODE_LABEL.busy
+                      : store.geminiKey
+                        ? GEMINI_MODE_LABEL.on
+                        : GEMINI_MODE_LABEL.off}
+                  </div>
+                  {store.aiBusy && (
+                    <button
+                      onClick={store.stopAi}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--error)' }}
+                    >
+                      {GEMINI_MODE_LABEL.stopButton}
+                    </button>
+                  )}
                 </div>
                 {store.driveStyleSamples.length > 0 && (
                   <button

@@ -234,6 +234,7 @@ export const GEMINI_ERROR_COPY: Record<string, string> = {
   network: '網路連線異常,請稍後再試',
   no_content: 'Gemini 沒有回傳改寫內容,請再試一次',
   model_unavailable: '此 key 無法使用任何內建模型候選,請確認 key 已啟用 Generative Language API',
+  aborted: '已停止 AI 處理,草稿維持原狀',
   unknown: '改寫失敗,草稿保持原狀,請再試一次',
 };
 
@@ -258,6 +259,7 @@ export const GEMINI_MODE_LABEL = {
   off: 'AI 語氣輔助改寫(規則示範模式)',
   on: 'AI 語氣改寫(Gemini)',
   busy: 'Gemini 處理中…',
+  stopButton: '⏹ 停止',
 };
 
 /** 草稿頁 AI 相關文案(郵件摘要、自訂指令、超字數提示)。 */
