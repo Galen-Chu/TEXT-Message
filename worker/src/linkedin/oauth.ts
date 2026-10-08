@@ -11,8 +11,10 @@ import type { Fetcher } from '../threads/oauth';
 
 export { serializeState, parseState } from '../threads/oauth';
 
-/** 個人檔案發文所需權限(openid 取 member id;w_member_social 發文)。 */
-export const LINKEDIN_SCOPES = ['openid', 'w_member_social'];
+/** 個人檔案發文所需權限(openid+profile 取 member id/姓名——LinkedIn 要求 openid
+ *  必須搭配至少一個其他 OIDC scope,單獨 openid 或只配 w_member_social 會被授權頁
+ *  拒以「Bummer」頁,2026-10-08 探針實證;w_member_social 發文)。 */
+export const LINKEDIN_SCOPES = ['openid', 'profile', 'w_member_social'];
 
 export interface LinkedInToken {
   accessToken: string;

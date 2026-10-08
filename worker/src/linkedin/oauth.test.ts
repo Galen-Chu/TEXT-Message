@@ -26,8 +26,9 @@ describe('buildLinkedInAuthorizeUrl(2026-10-07 官方文件形狀)', () => {
     expect(url.searchParams.get('response_type')).toBe('code');
     expect(url.searchParams.get('client_id')).toBe('li-app-1');
     expect(url.searchParams.get('redirect_uri')).toBe('https://worker.example.com/auth/linkedin/callback');
-    // 空格分隔(編碼為 + 或 %20 皆為官方規格的 URL 編碼形式)
-    expect(url.searchParams.get('scope')?.split(/[+\s%20]+/)).toEqual(['openid', 'w_member_social']);
+    // 空格分隔(編碼為 + 或 %20 皆為官方規格的 URL 編碼形式);openid 必須搭配
+    // profile/email 之一(LinkedIn 授權頁的隱藏規則,2026-10-08 探針實證)
+    expect(url.searchParams.get('scope')?.split(/[+\s%20]+/)).toEqual(['openid', 'profile', 'w_member_social']);
     expect(url.searchParams.get('state')).toBe('install-1.abc');
   });
 });
