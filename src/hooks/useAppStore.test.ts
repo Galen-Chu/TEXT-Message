@@ -13,6 +13,7 @@ import { rewriteWithGemini } from '../services/gemini/rewrite';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
+import { STORAGE_COPY } from '../constants';
 
 // 第四期(Gemini 產出)僅 mock 服務層;BYOK 分流與 UI 狀態走真實 store 邏輯
 vi.mock('../services/gemini/variants', () => ({
@@ -958,6 +959,44 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     });
     expect(result.current.drafts).toHaveLength(2);
     expect(result.current.drafts[0].sourceId).toBe('mail-9');
+  });
+});
+
+describe('useAppStore:本機儲存配額(O2,2026-10-09)', () => {
+  // Storage.prototype 的 spy 一旦洩漏會讓後續測試全部寫不進 localStorage,逐測試還原
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('QuotaExceededError:提示使用者,且同一 session 只提示一次', () => {
+    vi.useFakeTimers();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+
+    const { result } = renderHook(() => useAppStore());
+    // 持久化 effect 於掛載即寫入 → 立刻失敗 → 提示
+    expect(result.current.toastMessage).toBe(STORAGE_COPY.quotaExceededToast);
+
+    // toast 自清後再次變更內容:寫入仍失敗,但不重複彈(否則每次編輯都會跳)
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(result.current.toastMessage).toBe('');
+    act(() => result.current.setDraftText('配額用盡後仍繼續編輯'));
+    expect(result.current.toastMessage).toBe('');
+  });
+
+  it('非配額錯誤(私密模式/停用 localStorage):維持靜默記憶體模式,不提示', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+
+    const { result } = renderHook(() => useAppStore());
+    expect(result.current.toastMessage).toBe('');
+    act(() => result.current.setDraftText('不可用環境下編輯'));
+    expect(result.current.toastMessage).toBe('');
   });
 });
 
