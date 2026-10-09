@@ -52,6 +52,8 @@ jobs:
             printf 'VITE_DRIVE_CLIENT_ID=%s\n' "$DRIVE_CLIENT_ID" >> .env.production
           fi
       - run: npm test
+      # WCAG AA 對比度(從 src/index.css 解析 token,未達標即失敗)
+      - run: npm run test:contrast
       # build 內含 tsc -b 型別檢查,等同基本 CI 關卡
       - run: npm run build
       # E2E smoke 跑在 preview server;通過才部署(驗收站品質閘門)

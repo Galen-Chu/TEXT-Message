@@ -1113,6 +1113,23 @@ describe('useAppStore:文庫雲端備份二期(自動同步,2026-10-06)', () => 
     expect(librarySave).toHaveBeenCalledTimes(1);
   });
 
+  it('備份後 savedAt 必須一併落地(否則下次啟動會在備份來源機誤判「雲端較新」)', async () => {
+    seedEmptyDrafts();
+    vi.mocked(libraryLoad).mockResolvedValue({ ok: false, code: 'not_found' });
+    vi.mocked(librarySave).mockResolvedValue({ ok: true, data: { savedAt: 1 } });
+
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {
+      await result.current.backupLibraryToCloud('persist-savedat-code');
+    });
+
+    const saved = result.current.librarySavedAt;
+    expect(saved).toBeGreaterThan(0);
+    // 回歸守門:librarySavedAt 曾被序列化進 blob 卻漏在持久化 effect 的依賴陣列,
+    // 導致「備份完成→關掉分頁」後重開仍讀到舊 savedAt,衝突提示誤觸、自動上傳停擺。
+    expect(readStore().librarySavedAt).toBe(saved);
+  });
+
   it('備份成功即落地同步碼(啟用自動同步);disableAutoSync 清除', async () => {
     vi.useFakeTimers();
     seedEmptyDrafts();

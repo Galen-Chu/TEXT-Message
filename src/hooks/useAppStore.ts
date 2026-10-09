@@ -26,6 +26,7 @@ import {
   PLATFORM_META,
   ROLE_OPTIONS,
   SCHEDULE_COPY,
+  STORAGE_COPY,
   TONE_REWRITES,
   type LibraryMainTab,
   type RewriteLanguage,
@@ -274,6 +275,32 @@ export function useAppStore() {
     newerAt: null,
   });
 
+  const [inboxSearch, setInboxSearch] = useState('');
+  const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
+  /** Gmail 使用者標籤篩選(label id;null = 不套用)——僅已連線時生效。 */
+  const [inboxLabelId, setInboxLabelId] = useState<string | null>(null);
+  const [libraryMainTab, setLibraryMainTab] = useState<LibraryMainTab>('message');
+  const [librarySearch, setLibrarySearch] = useState('');
+  const [libraryCategory, setLibraryCategory] = useState('全部');
+  const [copySearch, setCopySearch] = useState('');
+  const [copyCategory, setCopyCategory] = useState('全部');
+  const [socialFilter, setSocialFilter] = useState('全部');
+  const [selectedDay, setSelectedDay] = useState(toISODate(new Date()));
+
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMessage(''), 2200);
+  }, []);
+
+  /** 配額用盡只提示一次(此 effect 每次內容變更都跑,否則會連環彈 toast)。 */
+  const storageQuotaWarned = useRef(false);
+
+  // 一期持久化:整個區塊一次寫入。注意本 effect 必須排在 showToast 之後——dep array
+  // 於 render 期求值,放在 showToast 宣告之前會踩 TDZ。
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -297,31 +324,19 @@ export function useAppStore() {
           librarySavedAt,
         }),
       );
-    } catch {
-      // localStorage 不可用時僅退回記憶體模式,不影響操作
+    } catch (err) {
+      // 配額用盡 = 真實資料沒存進去(publishedHistory 等也在同一區塊),必須說;
+      // 其餘情形(私密模式/停用 localStorage)維持靜默退回記憶體模式,不影響操作。
+      const name = err instanceof DOMException ? err.name : '';
+      if (
+        (name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+        !storageQuotaWarned.current
+      ) {
+        storageQuotaWarned.current = true;
+        showToast(STORAGE_COPY.quotaExceededToast);
+      }
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId]);
-
-  const [inboxSearch, setInboxSearch] = useState('');
-  const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
-  /** Gmail 使用者標籤篩選(label id;null = 不套用)——僅已連線時生效。 */
-  const [inboxLabelId, setInboxLabelId] = useState<string | null>(null);
-  const [libraryMainTab, setLibraryMainTab] = useState<LibraryMainTab>('message');
-  const [librarySearch, setLibrarySearch] = useState('');
-  const [libraryCategory, setLibraryCategory] = useState('全部');
-  const [copySearch, setCopySearch] = useState('');
-  const [copyCategory, setCopyCategory] = useState('全部');
-  const [socialFilter, setSocialFilter] = useState('全部');
-  const [selectedDay, setSelectedDay] = useState(toISODate(new Date()));
-
-  const [toastMessage, setToastMessage] = useState('');
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const showToast = useCallback((msg: string) => {
-    setToastMessage(msg);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMessage(''), 2200);
-  }, []);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId, librarySavedAt, showToast]);
 
   /** 草稿可能發佈到多個平台:字數上限取「已選平台中最嚴格者」。 */
   const strictestSelectedLimit = (): number | undefined => {

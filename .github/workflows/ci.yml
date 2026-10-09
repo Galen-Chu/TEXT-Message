@@ -17,6 +17,8 @@ jobs:
       - run: npm ci
       # 單元測試(純邏輯模組)
       - run: npm test
+      # WCAG AA 對比度(從 src/index.css 解析 token,未達標即失敗)
+      - run: npm run test:contrast
       # 建置(無 secret 環境 = 同時持續驗證「示範模式」建置路徑)
       - run: npm run build
       # E2E smoke 跑在 preview server(示範模式,不觸碰 Google 網路)

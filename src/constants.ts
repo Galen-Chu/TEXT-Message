@@ -487,6 +487,15 @@ export const PUBLISH_CARD_COPY = {
 };
 
 /** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
+/**
+ * 本機儲存狀態提示(2026-10-09)。localStorage 配額用盡時整個 `text-message:v2`
+ * 區塊寫入會失敗——包含 publishedHistory 這類真實記錄,故必須明確告知使用者,
+ * 不可靜默吞掉。每個 session 只提示一次,避免每次變更都彈。
+ */
+export const STORAGE_COPY = {
+  quotaExceededToast: '⚠️ 本機儲存空間已滿,這次變更沒能存進這台裝置——請先備份至雲端,再刪除部分文庫內容',
+};
+
 export const LIBRARY_BACKUP_COPY = {
   cardTitle: '☁️ 雲端備份',
   cardDesc:
