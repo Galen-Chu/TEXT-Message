@@ -486,16 +486,20 @@ export const PUBLISH_CARD_COPY = {
   youtubeDisabledHint: '此版本未設定 YouTube 連線(設定方式見 docs/SETUP.md)',
 };
 
-/** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
 /**
  * 本機儲存狀態提示(2026-10-09)。localStorage 配額用盡時整個 `text-message:v2`
  * 區塊寫入會失敗——包含 publishedHistory 這類真實記錄,故必須明確告知使用者,
  * 不可靜默吞掉。每個 session 只提示一次,避免每次變更都彈。
+ *
+ * 文案不指定佔用方(2026-10-12):文管庫與媒管庫同為 galen-chu.github.io
+ * (origin 只看 scheme+host+port,路徑不計),約 5MB 配額兩庫共吃,佔滿的可能是
+ * 對方的資料——叫使用者刪文庫內容會是錯的指引。兩產品的提示一致不斷言來源。
  */
 export const STORAGE_COPY = {
-  quotaExceededToast: '⚠️ 本機儲存空間已滿,這次變更沒能存進這台裝置——請先備份至雲端,再刪除部分文庫內容',
+  quotaExceededToast: '⚠️ 瀏覽器儲存空間已滿,這次變更沒能存進這台裝置——建議先備份至雲端,再清理本機資料後重試',
 };
 
+/** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
 export const LIBRARY_BACKUP_COPY = {
   cardTitle: '☁️ 雲端備份',
   cardDesc:
