@@ -3,8 +3,11 @@ import {
   buildInstructionPrompt,
   buildRewritePrompt,
   buildSummarizePrompt,
+  clearGeminiKey,
+  loadGeminiKey,
   parseGeminiReply,
   rewriteWithGemini,
+  saveGeminiKey,
   statusToCode,
   summarizeWithGemini,
 } from './rewrite';
@@ -20,6 +23,38 @@ beforeAll(() => {
     length: 0,
     key: () => null,
   } as unknown as Storage;
+});
+
+/**
+ * 跨產品契約守門(L3 / IA-D8,2026-10-12)。媒管庫唯讀 `text-message:gemini-key`
+ * 並假設「值就是純字串金鑰」。這組測試把鍵名與格式釘住——改動會立刻變紅,提醒
+ * 必須先與媒管庫協調(否則對方靜默讀不到 key,只會表現成「AI 沒反應」,極難追)。
+ */
+describe('Gemini key 儲存契約(媒管庫唯讀依賴)', () => {
+  it('鍵名固定為 text-message:gemini-key', () => {
+    saveGeminiKey('AQ.test-key-123');
+    expect(localStorage.getItem('text-message:gemini-key')).toBe('AQ.test-key-123');
+  });
+
+  it('值是純字串,不加 JSON 封裝/前綴/加密', () => {
+    saveGeminiKey('AQ.plain');
+    const raw = localStorage.getItem('text-message:gemini-key')!;
+    expect(raw).toBe('AQ.plain');
+    expect(() => JSON.parse(raw)).toThrow(); // 不是 JSON = 對方直接當字串用即可
+    expect(loadGeminiKey()).toBe(raw);
+  });
+
+  it('清除即整把移除(媒管庫隨之讀不到,不留殘值)', () => {
+    saveGeminiKey('AQ.to-be-cleared');
+    clearGeminiKey();
+    expect(localStorage.getItem('text-message:gemini-key')).toBeNull();
+    expect(loadGeminiKey()).toBe('');
+  });
+
+  it('model 另鍵、不在契約內(媒管庫不讀,可自由變動)', () => {
+    saveGeminiKey('AQ.k');
+    expect(localStorage.getItem('text-message:gemini-model')).not.toBe('AQ.k');
+  });
 });
 
 describe('buildRewritePrompt', () => {

@@ -246,6 +246,15 @@ export const GEMINI_KEY_MODAL = {
   privacy:
     '🔒 key 只儲存在你目前的瀏覽器(localStorage),僅由你的瀏覽器直接呼叫 Google,'
     + '不會傳給本站或其他任何伺服器。清除後即完全移除。',
+  /**
+   * 家族共用的誠實標示(L3 / IA-D8,2026-10-12)。媒管庫與本站同源,會唯讀同一把
+   * key(使用當下才讀、不複製、不寫入也不清除)。金鑰仍只在你的瀏覽器,但兩個
+   * 產品會花到同一份配額——必須說清楚,不能讓使用者在別處才發現。
+   */
+  familyShareNote:
+    '👨‍👩‍👧 這把 key 由文管庫與媒管庫共用(兩站同源,金鑰仍只在你的瀏覽器、不經任何伺服器)。'
+    + '媒管庫只會在你勾選「使用文管庫已設定的金鑰」時唯讀取用,不會寫入或清除它;'
+    + '共用代表兩個產品花的是同一份 Gemini 配額。在這裡清除後,媒管庫也就讀不到了。',
   getKeyTip: '還沒有 key?到 Google AI Studio 免費申請:',
   getKeyUrl: 'https://aistudio.google.com/apikey',
   placeholder: '貼上 API key(AI Studio 提供,新舊格式皆可)',

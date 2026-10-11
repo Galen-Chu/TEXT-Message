@@ -366,6 +366,22 @@ export async function rewriteWithInstruction(input: {
 
 // ---- key 存取(僅使用者自己的瀏覽器;與內容資料的 text-message:v2 分開) ----
 
+/**
+ * **跨產品契約(2026-10-12 兩庫維護者定案,媒管庫 `docs/IA-PLAN.md` IA-D8)。**
+ *
+ * 媒管庫(MEDIA-Message)會**唯讀**這把鍵:使用當下才讀、不複製、永不寫入或清除;
+ * 介面由使用者自行勾選「使用文管庫已設定的金鑰」並標示來源。這是「不互讀對方
+ * 內部鍵」原則(IA-D4)的**唯一明文例外**——金鑰因此仍**不進入** `family:*` 任何契約鍵。
+ *
+ * 文管庫承諾:**未與媒管庫協調前不改鍵名 `text-message:gemini-key`,也不改
+ * 「純字串即金鑰」的格式**(不加 JSON 封裝、不加前綴、不加密)。要改就兩邊同時改。
+ * `text-message:gemini-model` 不在契約內,媒管庫不讀,可自由變動。
+ *
+ * 紅線不變:兩庫同源(`galen-chu.github.io`),金鑰自始至終只在使用者瀏覽器,
+ * 不落地後端、不上傳。但共用意味著**兩個產品會花到同一份 Gemini 配額**——
+ * UI 文案須誠實說明(見 `GEMINI_KEY_MODAL.familyShareNote`)。OAuth token 與
+ * 郵件內容不在此例外範圍:依舊不跨產品流動。
+ */
 const KEY_STORAGE = 'text-message:gemini-key';
 
 export function loadGeminiKey(): string {

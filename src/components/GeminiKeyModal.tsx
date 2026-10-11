@@ -50,8 +50,25 @@ export default function GeminiKeyModal({
         style={{ width: '100%', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}
         autoFocus
       />
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.7, marginBottom: 12 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.7, marginBottom: 8 }}>
         {GEMINI_KEY_MODAL.privacy}
+      </div>
+      {/*
+        L3 家族共用的誠實標示(IA-D8):媒管庫唯讀同一把 key。共用的是配額,
+        不是「金鑰外流」——文案必須讓使用者在這裡就看到,而不是到別處才發現。
+      */}
+      <div
+        style={{
+          fontSize: 11.5,
+          color: 'var(--text-sub)',
+          lineHeight: 1.7,
+          marginBottom: 12,
+          padding: '10px 12px',
+          borderRadius: 10,
+          background: 'var(--surface-soft)',
+        }}
+      >
+        {GEMINI_KEY_MODAL.familyShareNote}
       </div>
       <div style={{ fontSize: 12, marginBottom: 16 }}>
         {GEMINI_KEY_MODAL.getKeyTip}{' '}
