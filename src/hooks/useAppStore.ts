@@ -18,6 +18,7 @@ import {
   DRAFT_SAVE_COPY,
   DRAFT_VARIANTS_COPY,
   DRIVE_COPY,
+  FAMILY_COPY,
   GEMINI_ERROR_COPY,
   LANGUAGE_OPTIONS,
   LIBRARY_BACKUP_COPY,
@@ -44,6 +45,8 @@ import {
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
+import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
+import { pendingToPeerCount, sendCaptionToPeer } from '../services/family/handoff';
 import { clearStoredSyncCode, loadStoredSyncCode, saveStoredSyncCode } from '../services/library/codeStore';
 import { codeIdOf, decryptLibraryBlob, encryptLibraryBlob } from '../services/library/crypto';
 import {
@@ -337,6 +340,48 @@ export function useAppStore() {
       }
     }
   }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId, librarySavedAt, showToast]);
+
+  // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
+  const [familyPendingCount, setFamilyPendingCount] = useState(0);
+  const [familyPeerFeed, setFamilyPeerFeed] = useState<ScheduleFeed | null>(null);
+
+  /** 開站時讀一次:自己送出待取用的筆數、對方發佈的排程摘要(陳舊即 null)。 */
+  useEffect(() => {
+    const now = Date.now();
+    setFamilyPendingCount(pendingToPeerCount({ storage: localStorage, now }));
+    setFamilyPeerFeed(readPeerFeed({ storage: localStorage, now }));
+  }, []);
+
+  /** U4:只寫自己那把鍵。排程變動即更新摘要(對方開站時才會讀,不必即時推送)。 */
+  useEffect(() => {
+    publishOwnFeed(scheduleItems, { storage: localStorage, now: Date.now() });
+  }, [scheduleItems]);
+
+  /**
+   * U3:把文案 append 進交接佇列(不覆蓋——媒庫收件匣可列多筆)。
+   * 交接是使用者明確發起的動作,儲存不可用時必須提示失敗,不得靜默吞掉。
+   */
+  const sendToMediaMessage = useCallback(
+    (text: string) => {
+      const body = text.trim();
+      if (!body) {
+        showToast(FAMILY_COPY.sendEmptyToast);
+        return;
+      }
+      const count = sendCaptionToPeer(body, {
+        storage: localStorage,
+        now: Date.now(),
+        id: crypto.randomUUID(),
+      });
+      if (count === null) {
+        showToast(FAMILY_COPY.sendFailToast);
+        return;
+      }
+      setFamilyPendingCount(count);
+      showToast(FAMILY_COPY.sentToast(count));
+    },
+    [showToast],
+  );
 
   /** 草稿可能發佈到多個平台:字數上限取「已選平台中最嚴格者」。 */
   const strictestSelectedLimit = (): number | undefined => {
@@ -1375,6 +1420,9 @@ export function useAppStore() {
     libraryCloudNewer: libraryStartup.newerAt,
     disableAutoSync,
     keepLocalOverwriteCloud,
+    sendToMediaMessage,
+    familyPendingCount,
+    familyPeerFeed,
     gmail,
     youtube,
     threadsProxy,

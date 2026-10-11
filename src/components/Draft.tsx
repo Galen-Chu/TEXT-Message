@@ -7,6 +7,7 @@ import {
   DRAFT_SAVE_COPY,
   DRAFT_VARIANTS_COPY,
   DRIVE_COPY,
+  FAMILY_COPY,
   GEMINI_KEY_MODAL,
   GEMINI_MODE_LABEL,
   LANGUAGE_OPTIONS,
@@ -534,6 +535,15 @@ export default function Draft({ store }: { store: AppStore }) {
                   onClick={store.saveDraft}
                 >
                   {DRAFT_SAVE_COPY.saveButton}
+                </button>
+                {/* U3 交接:把目前緩衝的文案送到媒管庫媒庫收件匣,當圖片/影片的說明 */}
+                <button
+                  className="btn btn-outline"
+                  style={{ padding: '9px 16px', fontSize: 12.5 }}
+                  onClick={() => store.sendToMediaMessage(store.draftText)}
+                  title={FAMILY_COPY.sendTitle}
+                >
+                  {FAMILY_COPY.sendButton}
                 </button>
               </div>
             </div>

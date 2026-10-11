@@ -1,4 +1,6 @@
+import { FAMILY_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
+import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
 
 // 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
@@ -96,6 +98,34 @@ export default function Sidebar({ store }: { store: AppStore }) {
           <div style={{ fontSize: 11, color: 'var(--text-weak)' }}>社群媒體每日發文工具</div>
         </div>
       </div>
+
+      {/*
+        U2 家族常駐切換(IA-D7 ①):媒管庫側欄有同位置、同樣式的「文管庫 ↗」,兩邊文案一致。
+        刻意放在識別塊**外面**——`.sidebar-footer` 在 ≤720px 整塊 display:none,連結若放在
+        裡面,窄螢幕就沒有入口可按(IA-D7 要的是「任何頁籤都一鍵可達」)。這裡沿用
+        `.nav-label` 收合慣例:窄螢幕只留圖示。深層串接(交接/排程摘要)在文庫 Library。
+      */}
+      <a
+        className="nav-btn sidebar-family-link"
+        href={PEER_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={FAMILY_COPY.switchTitle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 12px',
+          borderRadius: 10,
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: 'var(--brand)',
+          textDecoration: 'none',
+        }}
+      >
+        <span style={{ fontSize: 18 }}>🎬</span>
+        <span className="nav-label">{FAMILY_COPY.switchLink}</span>
+      </a>
     </div>
   );
 }

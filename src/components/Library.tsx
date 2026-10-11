@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   COPY_CATEGORIES,
   DRAFT_LIBRARY_COPY,
+  FAMILY_COPY,
   LIBRARY_BACKUP_COPY,
   LIBRARY_CATEGORIES,
   LIBRARY_COPY,
@@ -14,6 +15,7 @@ import type { DraftDoc, PlatformKey, Template } from '../types';
 import { shortDateLabel } from '../utils/date';
 import { buildTemplateInsertText, templateCopyText } from '../utils/variants';
 import { extractVariables } from '../utils/variables';
+import FamilyCard from './FamilyCard';
 import Modal from './Modal';
 import VariableFillModal from './VariableFillModal';
 
@@ -185,6 +187,8 @@ export default function Library({ store }: { store: AppStore }) {
           </button>
         )}
       </div>
+
+      <FamilyCard store={store} />
 
       {store.backendEnabled && (
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
@@ -508,6 +512,21 @@ export default function Library({ store }: { store: AppStore }) {
                   >
                     複製
                   </button>
+                  {/* U3 交接:送通用版文字(平台變體是本庫概念,對方只要說明文案) */}
+                  <button
+                    onClick={() => store.sendToMediaMessage(tpl.text)}
+                    title={FAMILY_COPY.sendTitle}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--brand)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {FAMILY_COPY.sendButton}
+                  </button>
                   <button
                     onClick={() => store.deleteTemplate(tpl.id)}
                     style={{
@@ -592,6 +611,20 @@ export default function Library({ store }: { store: AppStore }) {
                     }}
                   >
                     {DRAFT_LIBRARY_COPY.copyButton}
+                  </button>
+                  <button
+                    onClick={() => store.sendToMediaMessage(doc.text)}
+                    title={FAMILY_COPY.sendTitle}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      color: 'var(--brand)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {FAMILY_COPY.sendButton}
                   </button>
                   <button
                     onClick={() => store.deleteDraftDoc(doc.id)}

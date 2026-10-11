@@ -13,7 +13,9 @@ import { rewriteWithGemini } from '../services/gemini/rewrite';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
-import { STORAGE_COPY } from '../constants';
+import { FAMILY_COPY, STORAGE_COPY } from '../constants';
+import { HANDOFF_KEY, scheduleFeedKey } from '../services/family/config';
+import { parseHandoff } from '../services/family/handoff';
 
 // 第四期(Gemini 產出)僅 mock 服務層;BYOK 分流與 UI 狀態走真實 store 邏輯
 vi.mock('../services/gemini/variants', () => ({
@@ -959,6 +961,60 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     });
     expect(result.current.drafts).toHaveLength(2);
     expect(result.current.drafts[0].sourceId).toBe('mail-9');
+  });
+});
+
+describe('useAppStore:家族串接(U3/U4,2026-10-12)', () => {
+  it('sendToMediaMessage 寫入交接佇列並提示待取用筆數', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.sendToMediaMessage('  今天的貼文  '));
+    const items = parseHandoff(localStorage.getItem(HANDOFF_KEY));
+    // 前後空白修掉:對方直接把這段帶進說明欄,不該帶著空白進去
+    expect(items.map((i) => i.text)).toEqual(['今天的貼文']);
+    expect(items[0].to).toBe('media-message');
+    expect(result.current.familyPendingCount).toBe(1);
+    expect(result.current.toastMessage).toBe(FAMILY_COPY.sentToast(1));
+  });
+
+  it('連送兩筆是 append,計數累加(不覆蓋前一筆)', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.sendToMediaMessage('第一筆'));
+    act(() => result.current.sendToMediaMessage('第二筆'));
+    expect(parseHandoff(localStorage.getItem(HANDOFF_KEY))).toHaveLength(2);
+    expect(result.current.familyPendingCount).toBe(2);
+  });
+
+  it('空內容不寫入佇列,只提示', () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.sendToMediaMessage('   \n  '));
+    expect(localStorage.getItem(HANDOFF_KEY)).toBeNull();
+    expect(result.current.toastMessage).toBe(FAMILY_COPY.sendEmptyToast);
+  });
+
+  it('掛載時發佈自己的排程摘要,且只寫自己那把鍵', () => {
+    renderHook(() => useAppStore());
+    expect(localStorage.getItem(scheduleFeedKey('text-message'))).not.toBeNull();
+    expect(localStorage.getItem(scheduleFeedKey('media-message'))).toBeNull();
+  });
+
+  it('讀得到媒管庫的摘要;陳舊(超過 7 天)則整區不顯示', () => {
+    const now = Date.now();
+    const feed = (updatedAt: number) =>
+      JSON.stringify({
+        v: 1,
+        product: 'media-message',
+        updatedAt,
+        items: [{ platform: 'ig', when: now + 86_400_000, snippet: '新片預告' }],
+      });
+
+    localStorage.setItem(scheduleFeedKey('media-message'), feed(now));
+    const fresh = renderHook(() => useAppStore());
+    expect(fresh.result.current.familyPeerFeed?.items[0].snippet).toBe('新片預告');
+    cleanup();
+
+    localStorage.setItem(scheduleFeedKey('media-message'), feed(now - 8 * 24 * 60 * 60 * 1000));
+    const stale = renderHook(() => useAppStore());
+    expect(stale.result.current.familyPeerFeed).toBeNull();
   });
 });
 

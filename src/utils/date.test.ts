@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { getWeekDates, shortDateLabel } from './date';
+import { getWeekDates, shortDateLabel, shortDateTimeLabel } from './date';
+
+describe('shortDateTimeLabel', () => {
+  it('epoch ms → M/D HH:mm(時分補零)', () => {
+    expect(shortDateTimeLabel(new Date(2026, 9, 12, 9, 5).getTime())).toBe('10/12 09:05');
+    expect(shortDateTimeLabel(new Date(2026, 9, 12, 23, 59).getTime())).toBe('10/12 23:59');
+  });
+
+  it('午夜顯示 00:00(不是 24:00 也不是 12:00)', () => {
+    expect(shortDateTimeLabel(new Date(2026, 9, 12, 0, 0).getTime())).toBe('10/12 00:00');
+  });
+});
 
 describe('shortDateLabel', () => {
   it('同年顯示 M/D', () => {

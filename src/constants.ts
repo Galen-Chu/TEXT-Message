@@ -499,6 +499,38 @@ export const STORAGE_COPY = {
   quotaExceededToast: '⚠️ 瀏覽器儲存空間已滿,這次變更沒能存進這台裝置——建議先備份至雲端,再清理本機資料後重試',
 };
 
+/**
+ * 家族串接(U2–U4,2026-10-12)。文管庫 ↔ 媒管庫:側欄常駐切換 + 文庫 Library
+ * 深層串接(交接文案、互看近期排程)。契約與分期見 `services/family/config.ts`
+ * 與媒管庫 `docs/IA-PLAN.md` §1 IA-D7/§3.2——兩邊位置與文案須一致。
+ */
+export const FAMILY_COPY = {
+  /** U2:側欄左下識別塊的常駐切換連結(兩產品同位置、同樣式)。 */
+  switchLink: '媒管庫 ↗',
+  switchTitle: '前往媒管庫(圖片/影片發佈)',
+
+  cardTitle: '👨‍👩‍👧 家族串接',
+  cardDesc: '媒管庫負責圖片與影片發佈;這裡可以把文案送過去當說明,也能看到彼此的近期排程',
+  openPeerButton: '開啟媒管庫 ↗',
+
+  /** U3:交接。 */
+  sendButton: '送至媒管庫',
+  sendTitle: '把這段文案送到媒管庫的媒庫收件匣,當作圖片/影片的說明',
+  sentToast: (n: number) => `已送至媒管庫(收件匣待取用 ${n} 筆)✅`,
+  sendEmptyToast: '內容是空的,沒有東西可以送',
+  sendFailToast: '送出失敗:瀏覽器儲存空間不足或不可用',
+  pendingLabel: (n: number) => `已送出、媒管庫尚未取用:${n} 筆`,
+  pendingNone: '目前沒有待取用的交接',
+  pendingHint: '在媒管庫的「媒庫 Library」取用;超過 7 天未取用會自動失效',
+
+  /** U4:對方的排程摘要。 */
+  peerFeedTitle: '媒管庫近期排程',
+  peerFeedAsOf: (d: string) => `資料截至 ${d}`,
+  peerFeedEmpty: '媒管庫目前沒有待發的排程',
+  /** 對方從未發佈摘要、或摘要超過 7 天陳舊時顯示(整區不顯示排程內容)。 */
+  peerFeedUnavailable: '還沒收到媒管庫的排程摘要(開啟過媒管庫後就會出現)',
+};
+
 /** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
 export const LIBRARY_BACKUP_COPY = {
   cardTitle: '☁️ 雲端備份',

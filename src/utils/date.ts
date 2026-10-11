@@ -42,6 +42,14 @@ export function greeting(d: Date = new Date()): string {
   return '晚安';
 }
 
+/** epoch ms → 'M/D HH:mm'(家族排程摘要與「資料截至」顯示用)。 */
+export function shortDateTimeLabel(ms: number): string {
+  const d = new Date(ms);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
+}
+
 /** 字數計算(以 code point 計,避免 emoji 被算成兩字)。 */
 export function charCount(text: string): number {
   return Array.from(text).length;

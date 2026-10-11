@@ -220,6 +220,16 @@ button {
   align-items: center;
   gap: 10px;
 }
+/*
+  家族切換連結(U2)。margin-top 放這裡而非 inline style:≤720px 時 .sidebar-footer
+  整塊隱藏,此連結需接手 margin-top:auto 才會留在側欄底部(inline style 會蓋掉斷點規則)。
+*/
+.sidebar-family-link {
+  margin-top: 8px;
+}
+.sidebar-family-link:hover {
+  background: var(--pill-purple-bg);
+}
 .stat-card {
   flex: 1;
 }
@@ -265,6 +275,9 @@ button {
   .sidebar-footer,
   .nav-label {
     display: none;
+  }
+  .sidebar-family-link {
+    margin-top: auto;
   }
   .nav-btn {
     justify-content: center;
