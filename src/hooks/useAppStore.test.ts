@@ -45,6 +45,11 @@ vi.mock('../services/backend/client', async (importOriginal) => {
     libraryLoad: vi.fn(),
     checkThreadsStatus: vi.fn(async () => ({ ok: true, data: { connected: false } })),
     checkFacebookStatus: vi.fn(async () => ({ ok: true, data: { connected: false, pageName: null } })),
+    // LinkedIn(2026-10-07 新增的第三平台)當初漏了 stub:未 mock 時 useLinkedInProxy
+    // 會真的發請求,回應在 jsdom 環境拆掉之後才 resolve → setState 撞上已不存在的
+    // window,整個 run 以 unhandled rejection 失敗(測試本身全綠,只有 Errors: 1)。
+    // 本機不一定重現、CI 穩定重現——新增平台 hook 時必須同步補這裡。
+    checkLinkedInStatus: vi.fn(async () => ({ ok: true, data: { connected: false, memberName: null } })),
   };
 });
 
