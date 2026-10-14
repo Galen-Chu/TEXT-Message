@@ -14,6 +14,10 @@ export type BackendErrorCode =
   | 'not_pending'
   | 'forbidden_origin'
   | 'publish_failed'
+  /** 代管 token 缺 threads_read_replies 等唯讀權限 → 需重新連接(2026-10-14)。 */
+  | 'scope_required'
+  /** 平台唯讀 API 讀取失敗(非權限問題)。 */
+  | 'read_failed'
   | 'unknown';
 
 export type BackendResult<T> = { ok: true; data: T } | { ok: false; code: BackendErrorCode };
@@ -61,6 +65,9 @@ async function requestJson<T>(
   }
   if (!resp.ok) {
     const code = (body as { error?: string } | null)?.error;
+    // 注意既有行為:5xx 一律壓成 unknown,所以 worker 以 502 回的 publish_failed /
+    // read_failed 實際上到不了 UI(顯示通用錯誤)。scope_required 是 403,會如實傳到 UI
+    // ——這正是它刻意不用 5xx 的原因(使用者需要「去重新連接」這個具體指示)。
     const known: BackendErrorCode[] = [
       'not_connected',
       'invalid_text',
@@ -70,6 +77,8 @@ async function requestJson<T>(
       'not_pending',
       'forbidden_origin',
       'publish_failed',
+      'scope_required',
+      'read_failed',
     ];
     return {
       ok: false,
@@ -108,6 +117,34 @@ export function publishThreadsNow(opts: {
   return requestJson(
     `${opts.base}/api/threads/publish`,
     jsonInit('POST', { installId: opts.installId, text: opts.text }),
+    opts.fetcher ?? fetch,
+  );
+}
+
+/** Threads 互動(唯讀代讀;worker 不儲存,每次都是當下的即時結果)。 */
+export interface ThreadsInteractionView {
+  id: string;
+  username: string;
+  text: string;
+  permalink: string;
+  /** ms epoch;平台給了壞時間戳時為 0。 */
+  timestamp: number;
+  postId: string;
+  postSnippet: string;
+}
+
+/**
+ * 讀取最近互動(2026-10-14)。worker 以代管 token 打 Threads 唯讀 API 後直接轉傳,
+ * 不落地儲存;`scanned` = 本輪掃描的自己貼文篇數(UI 誠實標示範圍)。
+ */
+export function fetchThreadsInteractions(opts: {
+  base: string;
+  installId: string;
+  fetcher?: Fetcher;
+}): Promise<BackendResult<{ items: ThreadsInteractionView[]; scanned: number }>> {
+  return requestJson(
+    `${opts.base}/api/threads/interactions?install=${encodeURIComponent(opts.installId)}`,
+    jsonInit('GET'),
     opts.fetcher ?? fetch,
   );
 }

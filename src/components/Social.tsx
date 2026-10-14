@@ -12,6 +12,7 @@ import { gmailFilterSearchUrl } from '../services/gmail/filterLink';
 import { dateLabel } from '../utils/date';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
+import ThreadsInteractionsCard from './ThreadsInteractionsCard';
 import TrendsPanel from './TrendsPanel';
 
 const SOCIAL_FILTERS = ['全部', ...PLATFORM_LIST.map((p) => p.label)];
@@ -142,6 +143,10 @@ export default function Social({ store }: { store: AppStore }) {
           </div>
         )}
       </div>
+
+      {/* NOTIFY 二期(2026-10-14):Threads 留言唯讀代讀。放在通知信卡之後——
+          通知信覆蓋所有平台(含未串接者),這張只有 Threads 但是直接讀平台、較即時 */}
+      <ThreadsInteractionsCard store={store} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {SOCIAL_FILTERS.map((f) => {

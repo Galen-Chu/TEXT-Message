@@ -61,6 +61,32 @@ export const SOCIAL_NOTIFY_COPY = {
   openMail: '查看信件',
 };
 
+/**
+ * Threads 互動唯讀代讀(2026-10-14,NOTIFY-PLAN 方案 A 改版:即時唯讀代讀、零儲存)。
+ * 文案必須撐住三件誠實標示:①只掃最近幾篇貼文,不是全部;②按下才讀,不是背景同步;
+ * ③互動內容不經儲存(後端不留、本機只留一個「最後查看時間」)。
+ */
+export const THREADS_INTERACTIONS_COPY = {
+  cardTitle: '💬 Threads 留言',
+  desc: '讀取你最近貼文下的留言(按下才讀,內容不經儲存;回覆請到 Threads)',
+  refresh: '重新整理',
+  refreshing: '讀取中…',
+  markSeen: '標記為已讀',
+  unseenLabel: (n: number) => `${n} 筆新留言`,
+  scannedNote: (n: number) => `已掃描最近 ${n} 篇貼文`,
+  notLoaded: '按「重新整理」讀取最近的留言',
+  empty: '最近的貼文下還沒有別人的留言',
+  notConnected: '連接 Threads 後可讀取留言',
+  openReply: '到 Threads 回覆',
+  /** 缺 threads_read_replies:舊 token 沒有這個權限,必須重新授權一次。 */
+  scopeRequired:
+    '需要重新連接 Threads:讀取留言是新增的唯讀權限,先前的授權沒有包含它(重新連接後即可)',
+  reconnect: '重新連接 Threads',
+  readFailed: '讀取失敗,稍後再試',
+  anonymous: '(未知帳號)',
+  noText: '(無文字內容)',
+};
+
 /** 收件匣唯讀輔助(2026-09-03 C+B 決議):Gmail 標籤篩選與「在 Gmail 建立篩選器」。 */
 export const INBOX_GMAIL_COPY = {
   labelRowTitle: 'Gmail 標籤',

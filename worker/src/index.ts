@@ -52,6 +52,7 @@ import {
   listFacebookPages,
 } from './facebook/oauth';
 import { publishThreadsText, validateThreadsText } from './threads/publish';
+import { fetchThreadsInteractions, ThreadsScopeError } from './threads/interactions';
 import {
   buildAuthorizeUrl,
   exchangeCode,
@@ -285,6 +286,28 @@ export default {
         return json(outcome, 200, cors);
       } catch (err) {
         return json({ error: 'publish_failed', detail: String(err).slice(0, 200) }, 502, cors);
+      }
+    }
+
+    // 互動唯讀代讀(2026-10-14):以代管 token 打 Threads 唯讀 API,**回應直接轉傳、不寫 KV**。
+    // 互動內容不經儲存媒介,故另加 no-store 避免任何中間層留快取;「未讀」判定在前端。
+    if (url.pathname === '/api/threads/interactions' && request.method === 'GET') {
+      const installId = url.searchParams.get('install') ?? '';
+      if (!INSTALL_ID_RE.test(installId)) return json({ error: 'invalid_install_id' }, 400, cors);
+      const token = await loadThreadsToken(env.QUEUE, installId, env.TOKEN_ENCRYPTION_KEY);
+      if (!token) return json({ error: 'not_connected' }, 404, cors);
+      const noStore = { ...cors, 'Cache-Control': 'no-store' };
+      try {
+        const outcome = await fetchThreadsInteractions({
+          userId: token.userId,
+          accessToken: token.accessToken,
+        });
+        return json(outcome, 200, noStore);
+      } catch (err) {
+        // 權限不足與一般讀取失敗必須分開:前者要使用者重新連接(補 threads_read_replies),
+        // 混成同一個錯誤會讓使用者對著「讀取失敗」重試到放棄
+        if (err instanceof ThreadsScopeError) return json({ error: 'scope_required' }, 403, noStore);
+        return json({ error: 'read_failed', detail: String(err).slice(0, 200) }, 502, noStore);
       }
     }
 

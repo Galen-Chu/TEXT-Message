@@ -15,7 +15,13 @@ import {
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-export const THREADS_SCOPES = ['threads_basic', 'threads_content_publish'];
+/**
+ * 授權 scope。`threads_read_replies` 為 2026-10-14 互動唯讀代讀新增(唯讀,不含
+ * `threads_manage_replies`——我們不代回覆,回覆一律導回 Threads App)。
+ * **scope 在授權當下就固定**:新增後既有 token 不會自動取得,必須讓使用者重新連接一次;
+ * 舊 token 打 /replies 會是權限錯誤,由 interactions.ts 轉成 scope_required 誠實提示。
+ */
+export const THREADS_SCOPES = ['threads_basic', 'threads_content_publish', 'threads_read_replies'];
 
 export interface ThreadsToken {
   accessToken: string;

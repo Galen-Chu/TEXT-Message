@@ -8,15 +8,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   cancelThreadsQueueItem,
   checkThreadsStatus,
+  fetchThreadsInteractions,
   listThreadsQueue,
   publishThreadsNow,
   scheduleThreadsPost,
   threadsAuthStartUrl,
+  type BackendErrorCode,
   type BackendResult,
+  type ThreadsInteractionView,
   type ThreadsQueueItemView,
 } from '../services/backend/client';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { getInstallId } from '../services/backend/installId';
+import { countUnseen, readSeenAt, writeSeenAt } from '../services/backend/interactionsSeen';
 
 export type ThreadsProxyStatus = 'disabled' | 'unknown' | 'connected' | 'disconnected' | 'error';
 export type AuthReturn = 'connected' | 'error' | null;
@@ -37,6 +41,19 @@ export interface UseThreadsProxyResult {
   queueLoading: boolean;
   loadQueue: () => Promise<void>;
   cancel: (itemId: string) => Promise<BackendResult<{ ok: boolean }>>;
+  /** 互動唯讀代讀(2026-10-14):使用者按下才讀,worker 不儲存、每次都是當下結果。 */
+  interactions: ThreadsInteractionView[];
+  /** 本輪掃描的自己貼文篇數(UI 誠實標示讀取範圍)。 */
+  interactionsScanned: number;
+  interactionsLoading: boolean;
+  /** 最近一次讀取的錯誤碼;scope_required = 需重新連接以補唯讀權限。 */
+  interactionsError: BackendErrorCode | null;
+  /** 已讀取過至少一次(用來區分「沒有互動」與「還沒讀過」)。 */
+  interactionsLoaded: boolean;
+  unseenCount: number;
+  loadInteractions: () => Promise<void>;
+  /** 標記為已讀(以本機時間為基準寫入時間戳;只落地時間戳,不落地互動內容)。 */
+  markInteractionsSeen: () => void;
 }
 
 export function useThreadsProxy(): UseThreadsProxyResult {
@@ -160,6 +177,41 @@ export function useThreadsProxy(): UseThreadsProxyResult {
     [installId, loadQueue],
   );
 
+  // ── 互動唯讀代讀(2026-10-14)──
+  // 刻意不在掛載時自動讀:每次讀都是真的打平台 API,背景自動讀會變成無人看的額度消耗。
+  const [interactions, setInteractions] = useState<ThreadsInteractionView[]>([]);
+  const [interactionsScanned, setInteractionsScanned] = useState(0);
+  const [interactionsLoading, setInteractionsLoading] = useState(false);
+  const [interactionsError, setInteractionsError] = useState<BackendErrorCode | null>(null);
+  const [interactionsLoaded, setInteractionsLoaded] = useState(false);
+  const [seenAt, setSeenAt] = useState(() => (BACKEND_ENABLED ? readSeenAt() : 0));
+  const interactionsReqId = useRef(0);
+
+  const loadInteractions = useCallback(async () => {
+    if (!BACKEND_ENABLED) return;
+    const id = ++interactionsReqId.current;
+    setInteractionsLoading(true);
+    const r = await fetchThreadsInteractions({ base: BACKEND_API_BASE, installId });
+    // 連點兩次只認最後一次的結果(避免舊回應覆蓋新回應)
+    if (id !== interactionsReqId.current) return;
+    setInteractionsLoading(false);
+    setInteractionsLoaded(true);
+    if (r.ok) {
+      setInteractions(r.data.items);
+      setInteractionsScanned(r.data.scanned);
+      setInteractionsError(null);
+    } else {
+      // 讀取失敗時保留上一次成功的內容(清空會讓畫面在暫時性錯誤下閃爛掉)
+      setInteractionsError(r.code);
+    }
+  }, [installId]);
+
+  const markInteractionsSeen = useCallback(() => {
+    const now = Date.now();
+    writeSeenAt(now);
+    setSeenAt(now);
+  }, []);
+
   return {
     enabled: BACKEND_ENABLED,
     status,
@@ -173,5 +225,13 @@ export function useThreadsProxy(): UseThreadsProxyResult {
     queueLoading,
     loadQueue,
     cancel,
+    interactions,
+    interactionsScanned,
+    interactionsLoading,
+    interactionsError,
+    interactionsLoaded,
+    unseenCount: countUnseen(interactions, seenAt),
+    loadInteractions,
+    markInteractionsSeen,
   };
 }

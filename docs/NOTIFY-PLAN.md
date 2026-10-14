@@ -10,7 +10,7 @@
 
 | 平台 | 通知取得方式 | 即時性 | 前置門檻 | 觸及本專案紅線? |
 | --- | --- | --- | --- | --- |
-| **Threads** | Graph API 輪詢(回覆清單、媒體互動數據 insights) | 分鐘級(**無 webhook 推送**) | token 已由 worker 代管(現成) | **是**——worker 目前紅線「只接收貼文內容與 token」,代讀互動資料屬職責擴張,需修訂措辭 |
+| **Threads** | Graph API 讀取(自己的貼文 → 逐篇回覆清單) | 按下即讀(2026-10-14 複查:**webhooks 其實已存在**,見 §4 修訂) | token 已由 worker 代管(現成) | **是**——worker 原紅線「只接收貼文內容與 token」,代讀互動資料屬職責擴張,需修訂措辭(**2026-10-14 已修訂並實作,見 §6**) |
 | **Instagram** | Graph webhook(留言/提及事件推送) | 即時 | **商業帳號**+綁粉專+App Review | 同上;且 IG 為後續平台增量,尚未開工 |
 | **X(Twitter)** | mentions timeline API | 輪詢 | **付費層**(基本存取已不夠) | 同上;量計費,報酬率存疑 |
 | **YouTube** | PubSubHubbub push(頻道活動)、Comments API | 近即時 | 現有 Google OAuth 可擴 scope | 留言 API 配額重;稽核前鎖私人政策增加變數 |
@@ -32,7 +32,8 @@
 
 ## 4. 二期以上候選(需維護者拍板才動工)
 
-- **方案 A——Threads 輪詢(建議下一步)**:worker cron 每分鐘順手拉取各 installId 的未讀回覆(insights/replies API),`/api/threads/interactions` 回傳給前端顯示。**前提**:修訂 `CLAUDE.md`/`BACKEND.md` 後端資料邊界紅線為「worker 得以代管之 token 呼叫該平台**唯讀** API 取得互動資料,回傳不落地儲存」;工作量約 worker 一個端點+前端一張卡,風險低(token 已在)。
+- ~~**方案 A——Threads 輪詢**~~ → **2026-10-14 取代為「讀通代讀」並已實作,見 §6**。原設計(cron 每分鐘拉取未讀回覆存 KV)的三個前提在動工前複查時全部不成立:①cron 早在 2026-09-08 改為**每小時整點**(KV list 額度),「每分鐘」不可行;②Threads **已有 webhooks**(2026-09-07 的「無 webhook 推送」已過時),但需 App Review Advanced Access + 商家驗證,單人自用不划算;③把互動資料寫進 KV 會讓紅線修訂幅度從「唯讀代讀」擴大到「代為儲存平台內容」。定案改為**不儲存、不輪詢、按下才讀**。
+- **方案 A′——Threads 讀通代讀(已實作,2026-10-14)**:見 §6。
 - **方案 B——IG webhook**:即時最好,但商業帳號+審核+IG 代發本身尚未開工,建議與 IG 代發增量一併評估。
 - **方案 C——X**:付費層,報酬率存疑,除非使用者實際有 X 互動需求。
 - **方案 D——YouTube**:PubSub push 免費但留言 API 配額重,且稽核變數,觀望。
@@ -67,3 +68,19 @@
 
 **回歸**
 - [x] Gmail 連線/示範模式切換正常;文庫訊息/文案管理與既有深化功能(變數、平台變體、統計、趨勢)不受影響
+
+## 6. 二期(已實作,2026-10-14):Threads 留言唯讀代讀
+
+**維護者拍板**:四個架構選項中選「**即時唯讀代讀,零儲存**」。
+
+**做法**:`GET /api/threads/interactions` — worker 以既有代管 token 打 Threads 唯讀 API(自己的最近 5 篇貼文 → 逐篇回覆),合併排序後**直接轉傳、不寫 KV**;前端 Social 頁「💬 Threads 留言」卡按下才讀。完整架構、平台事實查證表、錯誤碼與啟用檢查表見 `docs/BACKEND.md` §10。
+
+- **紅線修訂(本批唯一一處)**:後端資料邊界加上「worker 得以代管之 token 呼叫平台**唯讀** API 取得互動資料,**回傳不落地儲存**」。後端實際「存的東西」沒變(仍只有加密 token 與排程佇列);`CLAUDE.md`「重要行為」與 `BACKEND.md` §0 同步修訂。
+- **Gmail 紅線不受影響**:`gmail.readonly` 原封不動;一期的通知信卡與本卡並存(通知信覆蓋所有平台,本卡只有 Threads 但直接讀平台、較即時)。
+- **不代回覆**:scope 不含 `threads_manage_replies`,回覆一律 permalink 導回平台。
+- **未讀狀態只落地一個時間戳**(`text-message:threads-seen-at`);互動內容不進 localStorage、不進文庫雲端備份。
+- **誠實標示(UI 三件)**:只看最近 N 篇貼文、按下才讀不是背景同步、內容不儲存。
+
+**啟用前置**:①Meta App 加 `threads_read_replies`;②`wrangler deploy`(本批改了 `worker/`);③**維護者重新連接 Threads 一次**(scope 在授權當下固定,既有 token 不會自動獲得新權限)——完成前卡片顯示「需要重新連接」狀態。
+
+**限制(誠實清單)**:只掃最近 5 篇貼文、最多 20 筆留言(更早的互動請在 Threads App 查看);無推送、無未讀紅點的背景更新;FB/LinkedIn 尚未比照(FB 粉專留言需 `pages_read_engagement`,未來增量)。

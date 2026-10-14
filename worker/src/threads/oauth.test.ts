@@ -27,7 +27,12 @@ describe('authorize URL 與 state', () => {
     expect(url.origin + url.pathname).toBe('https://threads.net/oauth/authorize');
     expect(url.searchParams.get('client_id')).toBe('cid');
     expect(url.searchParams.get('response_type')).toBe('code');
-    expect(url.searchParams.get('scope')).toBe('threads_basic,threads_content_publish');
+    // scope 刻意釘死:改動即代表「既有 token 失去新權限、使用者必須重新連接」,
+    // 不該在重構中被無聲改掉(threads_read_replies 為 2026-10-14 互動唯讀代讀所加;
+    // 刻意不要 threads_manage_replies——我們不代回覆)
+    expect(url.searchParams.get('scope')).toBe(
+      'threads_basic,threads_content_publish,threads_read_replies',
+    );
     expect(url.searchParams.get('state')).toBe('install-1.abc');
   });
 

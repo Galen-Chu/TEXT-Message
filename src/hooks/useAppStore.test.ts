@@ -50,6 +50,9 @@ vi.mock('../services/backend/client', async (importOriginal) => {
     // window,整個 run 以 unhandled rejection 失敗(測試本身全綠,只有 Errors: 1)。
     // 本機不一定重現、CI 穩定重現——新增平台 hook 時必須同步補這裡。
     checkLinkedInStatus: vi.fn(async () => ({ ok: true, data: { connected: false, memberName: null } })),
+    // 互動唯讀代讀是「按下才讀」,目前不會在掛載時發請求;仍先 stub 住,
+    // 以免日後改成自動讀時重演上面那次只在 CI 現形的紅燈
+    fetchThreadsInteractions: vi.fn(async () => ({ ok: true, data: { items: [], scanned: 0 } })),
   };
 });
 

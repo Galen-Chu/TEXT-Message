@@ -4,11 +4,13 @@
 
 ## 0. 職責與資料邊界(紅線)
 
-後端只做四件事:**OAuth 代管、token 加密保存、代發文、排程 cron**。
+後端只做五件事:**OAuth 代管、token 加密保存、代發文、排程 cron、唯讀代讀**。
 
 - 只接收**排程貼文內容**(文字、預定時間)與平台 token(AES-GCM 加密後存 KV、可隨時 revoke)
 - **絕不接收** emails、Gemini API key 或其他前端資料
 - 排程佇列存在 KV(`queue:<installId>:<itemId>`),token 存 `token:threads:<installId>`(加密、90 天 TTL)
+- **唯讀代讀(2026-10-14 新增,紅線修訂)**:worker 得以代管之 token 呼叫平台的**唯讀** API 取得互動資料(目前僅 Threads 留言,見 §10),**回應直接轉傳前端、不落地儲存**——不寫 KV、不記 log、`Cache-Control: no-store`。所以後端「存的東西」沒有變:仍只有加密 token 與排程佇列
+- 文庫雲端備份另有零知識邊界(§9):worker 只存密文,連同步碼原文都不經手
 
 ## 1. 前置需求
 
@@ -80,6 +82,7 @@ cd worker && npx wrangler dev      # http://localhost:8787
 | GET | `/auth/facebook/callback` | 換長效 user token → `/me/accounts` 取首個粉專 page token、加密存 KV |
 | GET | `/api/threads/status?install=<id>` | 是否已連線(僅回 true/false,不揭露 token) |
 | GET | `/api/facebook/status?install=<id>` | 是否已連線 + 粉專名稱(不揭露 token) |
+| GET | `/api/threads/interactions?install=<id>` | 互動唯讀代讀(2026-10-14):掃最近 5 篇自己的貼文取收到的留言 → `{items, scanned}`;**不寫 KV**、`Cache-Control: no-store`;權限不足回 **403** `scope_required`(見 §10) |
 | GET | `/api/facebook/diag?install=<id>` | 系統工作人員模式限定:token 權限清單+粉專任務(維運排查用,見 §7.3) |
 | POST | `/api/threads/publish` | 立即代發 `{installId, text}` |
 | POST | `/api/facebook/publish` | FB 粉專立即發佈 `{installId, text}` |
@@ -258,3 +261,51 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 - 衝突策略:一律 last-write-wins(備份覆蓋雲端、還原覆蓋本機——還原前有確認 Modal 顯示雲端備份時間);
 - 部署:**無需新增 secrets**——既有 worker 部署即含此功能;前端備份卡僅在 `VITE_API_BASE` 已設時出現;
 - 已知限制(誠實清單):知道 codeId 者可覆寫該 blob(無鑑別;單人自用可接受,codeId 由同步碼單向雜湊而來);無備份版本歷史(僅最新一版)。
+
+## 10. 互動唯讀代讀(NOTIFY 二期,2026-10-14)
+
+**定位**:讓使用者在 Social 頁看到「別人在我的 Threads 貼文下留了什麼」。Threads 不提供任何瀏覽器可直接呼叫的路徑(無 CORS、需 access token),所以必須經 worker——但這是**代讀,不是代管**。
+
+### 10.1 架構:讀通(read-through)、零儲存
+
+```
+前端(按下「重新讀取」)
+  → GET /api/threads/interactions?install=<id>
+      → worker 取出加密 token(既有 token:threads:<installId>)
+      → GET /{threads-user-id}/threads?fields=id,text,permalink,timestamp&limit=5
+      → 每篇 GET /{media-id}/replies?fields=...
+      → 合併、濾掉自己的回覆、依時間排序、截 20 筆
+  ← { items, scanned }   ← 直接轉傳,Cache-Control: no-store
+```
+
+- **不寫 KV**:互動內容在 worker 記憶體中存在的時間就是這個請求的生命週期(KV 寫入額度也因此完全不受影響);
+- **不自動讀**:刻意沒有 cron 輪詢——每次讀都是真的打平台 API,背景輪詢等於無人在看時燒平台額度(也是 §5 的 KV list 教訓的延伸);
+- **未讀狀態在前端**:後端不儲存,所以「未讀」只能由前端判斷。前端只落地**一個時間戳**(`text-message:threads-seen-at`,`services/backend/interactionsSeen.ts`),互動內容與留言者帳號一律不進 localStorage;
+- **不代回覆**:scope 刻意**不含** `threads_manage_replies`;UI 的「在 Threads 回覆」是 permalink 深連結,回覆一律在平台原生介面進行。
+
+### 10.2 平台事實(2026-10-14 依當下官方文件查證,串接紀律)
+
+| 事實 | 說明 |
+| --- | --- |
+| `GET /{threads-user-id}/replies` **不是**「我收到的回覆」 | 它回的是**我自己發出的**回覆。要取「收到的留言」只能:先 `GET /{threads-user-id}/threads` 列自己的貼文,再逐篇 `GET /{media-id}/replies`。這是本次最容易寫錯的地方,已註解在 `worker/src/threads/interactions.ts` 檔頭 |
+| 需要 `threads_read_replies` scope | 唯讀權限。**scope 在授權當下就固定**——既有 token 不會自動獲得新權限,維護者必須**重新連接 Threads 一次**;在那之前端點回 `scope_required` |
+| 回覆物件有 `is_reply_owned_by_me` | 用它濾掉自己的回覆,否則自己的回覆會變成「收到的互動」 |
+| Webhooks 已存在(`replies`/`mentions`/`delete`/`publish`) | 但需 App Review Advanced Access + 商家驗證,且要一個常駐可接收 POST 的公開端點。對單人自用的成本遠高於收益 → **本次不採用**(NOTIFY-PLAN §4 原「方案 A:cron 輪詢 + KV」亦因此被取代) |
+| Base URL | `https://graph.threads.net/v1.0`(與 FB Graph 不同網域) |
+
+### 10.3 錯誤碼對應
+
+| 情形 | HTTP | body |
+| --- | --- | --- |
+| 未連線(KV 無 token) | 404 | `{error:'not_connected'}` |
+| 權限不足(scope 未授權/token 過期) | **403** | `{error:'scope_required'}` |
+| 平台回錯或非 JSON | 502 | `{error:'read_failed', detail}` |
+
+> 403 是刻意的:前端 `services/backend/client.ts` 會把**所有 5xx 收斂成 `unknown`**,用 5xx 會讓「需要重新連接」這個**可行動**的狀態消失在通用錯誤裡。新增錯誤碼時先確認 client 的收斂規則。
+
+### 10.4 啟用檢查表(維護者)
+
+1. Meta App 後台 → Threads 產品的權限加入 **`threads_read_replies`**(唯讀,開發模式自用無需審核);
+2. `cd worker && npx wrangler deploy`(**無新增 secrets**;本批有改 `worker/`,部署後在 `docs/DEPLOYS.md` 加一列);
+3. 前端 Social 頁 →「💬 Threads 留言」卡 → 若顯示「需要重新連接」即點該鈕**重新授權一次**(補 scope);
+4. 驗收:在自己的 Threads 貼文下用另一個帳號留言 → 按「重新讀取」應出現該留言,且顯示「已掃描最近 N 篇貼文」。
