@@ -44,6 +44,8 @@ import {
   summarizeWithGemini,
 } from '../services/gemini/rewrite';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
+import { generateJournalPost } from '../services/gemini/rewrite';
+import { parseJournal, pickJournalEntries } from '../services/gemini/journal';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
@@ -992,6 +994,94 @@ export function useAppStore() {
           ? copyTemplates.filter((t) => t.category === autoPipeline.sourceCategory)
           : copyTemplates
       ).filter((t) => t.text.trim());
+
+      // P2(D2 主體):source='journal-ai' 時以 Drive 日誌條目 + Gemini 生成;
+      // 任一前置不符(Drive 未連/無 Gemini key/日誌未選)→ 誠實提示,不退回範本偷跑
+      if (autoPipeline.source === 'journal-ai') {
+        if (!driveStyleSamples.length && !driveStyleEnabled) {
+          // 風格參照非必要(使用者可關),僅日誌來源是硬前置
+        }
+        if (!geminiKey) {
+          showToast(PIPELINE_COPY.needKeyToast);
+          return -3;
+        }
+        if (!autoPipeline.journalFileId) {
+          showToast(PIPELINE_COPY.needJournalToast);
+          return -3;
+        }
+        const journalDoc = drive.docs.find((d) => d.id === autoPipeline.journalFileId);
+        if (!journalDoc) {
+          showToast(PIPELINE_COPY.needJournalToast);
+          return -3;
+        }
+        let journalRaw: string;
+        try {
+          journalRaw = await drive.previewText(journalDoc); // 純文字匯出,用完即棄(§3.4:絕不落地)
+        } catch {
+          showToast(PIPELINE_COPY.driveReadFailedToast);
+          return -3;
+        }
+        const entries = parseJournal(journalRaw);
+        if (!entries.length) {
+          showToast(PIPELINE_COPY.journalFormatToast);
+          return -3;
+        }
+        const picked = pickJournalEntries(entries, {
+          today: toISODate(new Date()),
+          usedDates: autoPipeline.usedJournalDates,
+          count: plan.length,
+        });
+        if (!picked.length) {
+          showToast(PIPELINE_COPY.journalEmptyToast);
+          return 0; // 素材用盡=誠實停止(不湊數);游標照推進
+        }
+        const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
+        const limit = PLATFORM_META.threads.limit;
+        let scheduled = 0;
+        const usedDates = [...autoPipeline.usedJournalDates];
+        for (let i = 0; i < picked.length; i++) {
+          const entry = picked[i];
+          const target = plan[i];
+          const r = await generateJournalPost({
+            apiKey: geminiKey,
+            entryTitle: entry.title,
+            entryBody: entry.body,
+            styleSamples,
+            limit,
+          });
+          if (!r.ok) {
+            if (r.code === 'quota') {
+              showToast(GEMINI_ERROR_COPY.quota);
+            } else {
+              showToast(GEMINI_ERROR_COPY[r.code] ?? GEMINI_ERROR_COPY.unknown);
+            }
+            break; // 半成品照排(風險5):已成功的留下,失敗之後的不試
+          }
+          if (charCount(r.text) > limit) {
+            r.text = `${Array.from(r.text).slice(0, limit).join('')}`;
+          }
+          const q = await threadsProxy.schedule(r.text, target.publishAt);
+          if (q?.ok) {
+            scheduled += 1;
+            usedDates.push(entry.date); // 只有成功排程才標記已用
+          }
+        }
+        if (scheduled > 0) {
+          const done = maxDate(plan.slice(0, scheduled).map((p) => p.date));
+          setAutoPipeline((p) => ({
+            ...p,
+            queuedThrough: done,
+            lastFilledAt: Date.now(),
+            usedJournalDates: usedDates,
+          }));
+          showToast(`自動管線已排 ${scheduled} 天(至 ${done})`);
+        } else {
+          showToast(PIPELINE_COPY.fillFailedToast);
+        }
+        await threadsProxy.loadQueue();
+        return scheduled;
+      }
+
       if (!pool.length) return -2; // 無可用範本(誠實提示,不排)
       const { picked, nextUsedIds } = pickRotated(
         pool,

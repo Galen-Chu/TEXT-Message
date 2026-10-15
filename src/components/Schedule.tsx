@@ -408,6 +408,102 @@ export default function Schedule({ store }: { store: AppStore }) {
             })}
           </div>
 
+          {/* P2(D2 主體):內容來源切換 + 日誌 Doc 選擇 + 日期工具 + 誠實三標示 */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+              {PIPELINE_COPY.sourceLabel}
+            </label>
+            {(
+              [
+                ['templates', PIPELINE_COPY.sourceTemplates],
+                ['journal-ai', PIPELINE_COPY.sourceJournal],
+              ] as const
+            ).map(([value, label]) => {
+              const active = store.autoPipeline.source === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => store.updateAutoPipeline({ source: value })}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    color: active ? 'var(--brand)' : 'var(--text-faint)',
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {store.autoPipeline.source === 'journal-ai' && (
+            <div
+              style={{
+                border: '1px solid var(--border-2)',
+                borderRadius: 10,
+                padding: 12,
+                marginBottom: 12,
+                background: 'var(--surface-soft)',
+              }}
+            >
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 8 }}>
+                {PIPELINE_COPY.journalPickerLabel}
+              </div>
+              {store.drive.status !== 'connected' ? (
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{PIPELINE_COPY.journalDriveOff}</div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select
+                    className="text-input"
+                    value={store.autoPipeline.journalFileId}
+                    onChange={(e) => {
+                      const doc = store.drive.docs.find((d) => d.id === e.target.value);
+                      store.updateAutoPipeline({
+                        journalFileId: e.target.value,
+                        journalFileName: doc?.name ?? '',
+                      });
+                    }}
+                    style={{ flex: 1, minWidth: 180, padding: '6px 8px', fontSize: 12 }}
+                  >
+                    <option value="">{PIPELINE_COPY.journalPickerButton}</option>
+                    {store.drive.docs.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+                    {store.autoPipeline.journalFileName || PIPELINE_COPY.journalNone}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const y = today.getFullYear();
+                      const m = String(today.getMonth() + 1).padStart(2, '0');
+                      const d = String(today.getDate()).padStart(2, '0');
+                      void navigator.clipboard.writeText(`${y}-${m}-${d}`);
+                      store.showToast(PIPELINE_COPY.todayDateToast);
+                    }}
+                    style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)' }}
+                  >
+                    {PIPELINE_COPY.todayDateButton}
+                  </button>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6, marginTop: 10 }}>
+                {PIPELINE_COPY.honesty1}
+                <br />
+                {PIPELINE_COPY.honesty2}
+                <br />
+                {PIPELINE_COPY.honesty3}
+              </div>
+            </div>
+          )}
+
           {store.autoPipeline.enabled && (
             <div
               style={{

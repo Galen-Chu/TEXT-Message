@@ -200,6 +200,30 @@ export function buildInstructionPrompt(
   return [...lines, ...styleSampleBlock(styleSamples ?? []), '', `使用者指令:${instruction}`, '', '原始草稿:', text].join('\n');
 }
 
+/**
+ * 管線日誌生成 prompt(PIPELINE-PLAN D2/P2,2026-10-15):把一則夢境日誌條目
+ * 轉成一篇 Threads 貼文——靈感素材 + 風格樣本雙輸入,輸出長度受平台上限約束。
+ * 誠實規則內建:不得照抄日誌原文(那是私人素材),靈感提煉為意象與氛圍。
+ */
+export function buildJournalPostPrompt(opts: {
+  entryTitle?: string;
+  entryBody: string;
+  styleSamples?: string[];
+  limit?: number;
+}): string {
+  const lines = [
+    '你是社群媒體文案編輯。請把「靈感素材」提煉成一篇適合 Threads 的繁體中文貼文。',
+    '規則:',
+    '- 靈感素材是私人的日記內容:只取其意象、情緒與氛圍做發想,**不得照抄原文或出現可辨識的私人細節**',
+    '- 貼文要能獨立成篇,不提「日記」「夢到」等來源',
+    '- 語氣自然、有畫面感,適合一般追蹤者閱讀',
+    '- 只輸出貼文全文,不要任何前言、說明或引號',
+  ];
+  if (opts.limit && opts.limit > 0) lines.push(`- 總長度不得超過 ${opts.limit} 字(含空白與 emoji)`);
+  const head = opts.entryTitle ? `【${opts.entryTitle}】\n${opts.entryBody}` : opts.entryBody;
+  return [...lines, ...styleSampleBlock(opts.styleSamples ?? []), '', '靈感素材:', head].join('\n');
+}
+
 /** 從 generateContent 回應 JSON 取出文字;結構不符回 null。 */
 export function parseGeminiReply(json: unknown): string | null {
   const candidates = (json as { candidates?: unknown[] })?.candidates;
@@ -360,6 +384,27 @@ export async function rewriteWithInstruction(input: {
       input.styleSamples,
       { role: input.role, language: input.language },
     ),
+    input.signal,
+  );
+}
+
+/** 管線日誌生成(BYOK):一則日誌條目 → 一篇 Threads 貼文(P2 補糧使用)。 */
+export async function generateJournalPost(input: {
+  apiKey: string;
+  entryTitle?: string;
+  entryBody: string;
+  styleSamples?: string[];
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<RewriteResult> {
+  return generateContent(
+    input.apiKey,
+    buildJournalPostPrompt({
+      entryTitle: input.entryTitle,
+      entryBody: input.entryBody,
+      styleSamples: input.styleSamples,
+      limit: input.limit,
+    }),
     input.signal,
   );
 }
