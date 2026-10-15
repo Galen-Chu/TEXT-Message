@@ -23,6 +23,7 @@ import {
   LANGUAGE_OPTIONS,
   LIBRARY_BACKUP_COPY,
   LIBRARY_COPY,
+  PIPELINE_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
   ROLE_OPTIONS,
@@ -64,6 +65,7 @@ import {
   initialTemplates,
 } from '../data/mockData';
 import type {
+  AutoPipeline,
   DocKind,
   DraftDoc,
   Email,
@@ -75,6 +77,15 @@ import type {
   Template,
 } from '../types';
 import { charCount, getWeekDates, toISODate } from '../utils/date';
+import {
+  buildDailyPlan,
+  maxDate,
+  needsTopUp,
+  pickRotated,
+  queuedLocalDates,
+  remainingDays,
+  tomorrowISO,
+} from '../utils/pipeline';
 import { buildPublishTarget } from '../utils/publish';
 import { buildTemplateInsertText, templateCopyText } from '../utils/variants';
 
@@ -106,12 +117,6 @@ function loadPersistedValue<T>(field: string, fallback: T, isValid: (v: unknown)
   }
 }
 
-function tomorrowISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return toISODate(d);
-}
-
 /** 新資料 id:crypto.randomUUID(防快速連續操作碰撞),不支援時退回時間戳+隨機。 */
 function newId(prefix: string): string {
   const uuid = typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined;
@@ -126,6 +131,42 @@ const DEFAULT_DRAFT_PLATFORMS: Record<PlatformKey, boolean> = {
   yt: false,
   linkedin: false,
 };
+
+/** 管線預設值(P1):關閉、Threads、每天 09:00、範本輪替、預排 7 天。 */
+export const DEFAULT_AUTO_PIPELINE: AutoPipeline = {
+  enabled: false,
+  platform: 'threads',
+  time: '09:00',
+  daysOfWeek: [],
+  source: 'templates',
+  horizonDays: 7,
+  queuedThrough: '',
+  lastFilledAt: 0,
+  journalFileId: '',
+  journalFileName: '',
+  usedJournalDates: [],
+  usedTemplateIds: [],
+};
+
+/** 舊資料欄位容錯(P2 欄位未存=預設;形狀壞=整組退回預設、管線停在關閉)。 */
+function isValidAutoPipeline(v: unknown): v is AutoPipeline {
+  if (!v || typeof v !== 'object') return false;
+  const p = v as Partial<AutoPipeline>;
+  return (
+    typeof p.enabled === 'boolean' &&
+    typeof p.platform === 'string' &&
+    typeof p.time === 'string' &&
+    Array.isArray(p.daysOfWeek) &&
+    (p.source === 'journal-ai' || p.source === 'templates' || p.source === 'manual') &&
+    typeof p.horizonDays === 'number' &&
+    typeof p.queuedThrough === 'string' &&
+    typeof p.lastFilledAt === 'number' &&
+    typeof p.journalFileId === 'string' &&
+    typeof p.journalFileName === 'string' &&
+    Array.isArray(p.usedJournalDates) &&
+    Array.isArray(p.usedTemplateIds)
+  );
+}
 
 /**
  * 草稿集合載入(IA Phase 2 D8;2026-09-07 增預設範本):
@@ -277,6 +318,13 @@ export function useAppStore() {
     done: false,
     newerAt: null,
   });
+  // 自動發文管線 P1(PIPELINE-PLAN 架構 1,2026-10-15):併入 v2 持久化;預設關閉(D1 人審窗口)。
+  // 此物件只有設定與游標(§3.4 紅線分界)——日誌原文/emails/token 絕不進入。
+  const [autoPipeline, setAutoPipeline] = useState<AutoPipeline>(() =>
+    loadPersistedValue<AutoPipeline>('autoPipeline', DEFAULT_AUTO_PIPELINE, isValidAutoPipeline),
+  );
+  /** 補糧進行中防連點;掛起時掛載不重跑。 */
+  const pipelineBusyRef = useRef(false);
 
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
@@ -325,6 +373,7 @@ export function useAppStore() {
           activeDraftId,
           activeTemplateId,
           librarySavedAt,
+          autoPipeline,
         }),
       );
     } catch (err) {
@@ -339,7 +388,7 @@ export function useAppStore() {
         showToast(STORAGE_COPY.quotaExceededToast);
       }
     }
-  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId, librarySavedAt, showToast]);
+  }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId, librarySavedAt, autoPipeline, showToast]);
 
   // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
   const [familyPendingCount, setFamilyPendingCount] = useState(0);
@@ -901,8 +950,92 @@ export function useAppStore() {
     showToast(DRAFT_LIBRARY_COPY.deletedToast);
   };
 
-  // ---- 文庫雲端備份(方案 A,2026-10-05;僅 BACKEND_ENABLED 時 UI 出現)----
-  // 同步碼在瀏覽器衍生金鑰(PBKDF2),worker 僅存密文;二期(2026-10-06)同步碼落地
+  // ---- 自動發文管線 P1(PIPELINE-PLAN 架構 1,2026-10-15;前端批次預排)----
+  // 冪等鐵則(PIPELINE-PLAN §7 風險表):補糧前必先 GET /api/queue 比對 pending 日期,
+  // 略過已排——否則每次開站都補會同一天排到多筆。時間一律本機時區(見 utils/pipeline)。
+  const updateAutoPipeline = (patch: Partial<AutoPipeline>) => {
+    setAutoPipeline((p) => ({ ...p, ...patch }));
+  };
+
+  /**
+   * 補糧:明天起排 horizonDays 天(略過佇列已排與 queuedThrough 內日期),
+   * P1 內容=文庫範本輪替(source='templates';D2 的日誌+AI 生成屬 P2)。
+   * 回傳排了幾天(-1=前置不符未執行),供 UI toast 與測試斷言。
+   */
+  const topUpPipeline = async (): Promise<number> => {
+    if (pipelineBusyRef.current) return -1;
+    if (!autoPipeline.enabled || !BACKEND_ENABLED) return -1;
+    if (threadsProxy.status !== 'connected') return -1;
+    pipelineBusyRef.current = true;
+    try {
+      await threadsProxy.loadQueue();
+      const queued = queuedLocalDates(
+        threadsProxy.queue.filter((i) => i.status === 'pending'),
+      );
+      // skipDates=雲端已排 ∪ queuedThrough(含)以前——兩道保險:佇列讀取失敗至少擋住游標內
+      const through = maxDate([autoPipeline.queuedThrough, ...queued]);
+      const skipBefore = (date: string) => date <= through;
+      const plan = buildDailyPlan({
+        from: tomorrowISO(),
+        horizonDays: autoPipeline.horizonDays,
+        time: autoPipeline.time,
+      }).filter((p) => !skipBefore(p.date) && !queued.includes(p.date));
+      if (!plan.length) {
+        // 冪等/備糧足:游標仍要推進到實際存量,否則低水位提醒永遠跳
+        if (through > autoPipeline.queuedThrough) {
+          setAutoPipeline((p) => ({ ...p, queuedThrough: through }));
+        }
+        return 0;
+      }
+      const pool = (
+        autoPipeline.sourceCategory && autoPipeline.sourceCategory !== '全部'
+          ? copyTemplates.filter((t) => t.category === autoPipeline.sourceCategory)
+          : copyTemplates
+      ).filter((t) => t.text.trim());
+      if (!pool.length) return -2; // 無可用範本(誠實提示,不排)
+      const { picked, nextUsedIds } = pickRotated(
+        pool,
+        autoPipeline.usedTemplateIds,
+        plan.length,
+      );
+      let scheduled = 0;
+      for (let i = 0; i < picked.length; i++) {
+        const r = await threadsProxy.schedule(picked[i].text, plan[i].publishAt);
+        if (r?.ok) scheduled += 1;
+      }
+      if (scheduled > 0) {
+        // 游標推進到「實際排到的最後一天」(失敗的日期不標記為已排,下次補糧重試)
+        const done = maxDate(plan.slice(0, scheduled).map((p) => p.date));
+        setAutoPipeline((p) => ({
+          ...p,
+          queuedThrough: done,
+          lastFilledAt: Date.now(),
+          usedTemplateIds: nextUsedIds,
+        }));
+        showToast(`自動管線已排 ${scheduled} 天(至 ${done})`);
+      } else {
+        showToast(PIPELINE_COPY.fillFailedToast);
+      }
+      await threadsProxy.loadQueue();
+      return scheduled;
+    } finally {
+      pipelineBusyRef.current = false;
+    }
+  };
+
+  // 開站補糧(架構 1 的「週期性」):管線開啟且後端/Threads 就緒時掛載即補一次;
+  // 未就緒(未連 Threads)不報錯——Settings 卡會誠實顯示前置狀態。
+  const pipelineBootRef = useRef(false);
+  useEffect(() => {
+    if (pipelineBootRef.current) return;
+    pipelineBootRef.current = true;
+    if (!autoPipeline.enabled || !BACKEND_ENABLED) return;
+    if (threadsProxy.status === 'connected') {
+      void topUpPipeline();
+    }
+    // 僅掛載一次;topUp 內部閉包讀掛載當下的設定(補糧後的變更下次掛載/手動補糧生效)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // localStorage 另鍵(text-message:library-code)啟用自動同步——金鑰仍每次衍生,風險面不變。
   const pendingRestoreRef = useRef<LibraryPayload | null>(null);
 
@@ -1419,6 +1552,24 @@ export function useAppStore() {
     librarySavedAt,
     libraryCloudNewer: libraryStartup.newerAt,
     disableAutoSync,
+    autoPipeline,
+    updateAutoPipeline,
+    topUpPipeline,
+    /** 明天(本機)的雲端管線預排預覽(無=未排);Dashboard「明天要發什麼」用。 */
+    pipelineTomorrowPreview: (() => {
+      const tomorrow = tomorrowISO();
+      const item = threadsProxy.queue.find(
+        (i) => i.status === 'pending' && toISODate(new Date(i.publishAt)) === tomorrow,
+      );
+      return item ? { text: item.text } : null;
+    })(),
+    /** 管線存量天數(queuedThrough 距今天;0=未排)。 */
+    pipelineRemainingDays: remainingDays(autoPipeline.queuedThrough, toISODate(new Date())),
+    /** 低水位(存量 ≤3 天)。 */
+    pipelineLowWater: needsTopUp({
+      queuedThrough: autoPipeline.queuedThrough,
+      today: toISODate(new Date()),
+    }),
     keepLocalOverwriteCloud,
     sendToMediaMessage,
     familyPendingCount,

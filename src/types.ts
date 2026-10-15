@@ -79,6 +79,28 @@ export interface SocialPost {
   time: string; // HH:mm
 }
 
+/**
+ * 自動發文管線設定(PIPELINE-PLAN 架構 1,P1 骨架 2026-10-15):
+ * 併入 `text-message:v2` 持久化(可進文庫雲端備份)。
+ * 紅線分界(§3.4):此物件**只有設定與游標**——日誌原文/emails/token 絕不進入;
+ * 日誌來源僅存 Doc id/檔名與已用日期(journalFileId/journalFileName/usedJournalDates)。
+ */
+export interface AutoPipeline {
+  enabled: boolean; // 一期預設 false(D1:保留人審窗口)
+  platform: PlatformKey; // 一期固定 threads;FB/LinkedIn 同機制可擴(D4)
+  time: string; // 'HH:mm',本機時區
+  daysOfWeek: number[]; // 一期固定每日,欄位先留
+  source: 'journal-ai' | 'templates' | 'manual'; // D2 定案 journal-ai;P1 先以 templates 輪替驗骨架
+  horizonDays: number; // 一次預排幾天(7/14/30)
+  queuedThrough: string; // 'YYYY-MM-DD' 已排到哪天(低水位判斷)
+  lastFilledAt: number; // 上次補糧時間(epoch ms)
+  journalFileId: string; // Drive Doc id(內容絕不落地)
+  journalFileName: string; // 顯示用(改名只是顯示舊名,不影響讀取)
+  usedJournalDates: string[]; // 'YYYY-MM-DD'[],選料游標;只有日期(P2 使用)
+  sourceCategory?: string; // templates 來源的分類篩選
+  usedTemplateIds: string[]; // 範本輪替游標
+}
+
 export interface PlatformMeta {
   key: PlatformKey;
   label: string;

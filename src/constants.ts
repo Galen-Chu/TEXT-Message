@@ -131,6 +131,31 @@ export const DRAFT_LIBRARY_COPY = {
 /** 定排程類別篩選(IA Phase 4 D10)。「全部」+ 三大類。 */
 export const SCHEDULE_KIND_FILTERS: Array<'全部' | DocKind> = ['全部', 'draft', 'copy', 'message'];
 
+/** 自動發文管線 P1 骨架(PIPELINE-PLAN 架構 1,2026-10-15)。 */
+export const PIPELINE_COPY = {
+  cardTitle: '⚙️ 自動發文管線',
+  desc: '每天固定時間自動排程發文——從明天起預排數天,內容先以文庫範本輪替(P2 將改為 Drive 日誌+AI 生成)',
+  enable: '啟用管線',
+  enableHint: '啟用後每次開站自動補糧(冪等:已排的日期不重排)',
+  timeLabel: '每天發佈時間(本機時區)',
+  horizonLabel: '一次預排天數',
+  horizonUnit: '天',
+  statusQueued: (d: string) => `已排到 ${d || '(未排)'}`,
+  statusRemaining: (n: number) => `存量 ${n} 天`,
+  lowWater: '⚠ 管線存量不足 3 天——開站會自動補糧,或按「立即補糧」',
+  notConnected: '需先連接 Threads(排程走雲端佇列)',
+  backendOff: '後端未設定,管線不作用(僅設定可改)',
+  fillNow: '立即補糧',
+  filling: '補糧中…',
+  fillDoneToast: (n: number, d: string) => `自動管線已排 ${n} 天(至 ${d})`,
+  fillSkippedToast: '管線存量充足,無須補糧',
+  fillFailedToast: '補糧失敗(佇列寫入未成功),稍後再試',
+  fillNoPoolToast: '文庫沒有可用範本——先在文庫新增內容或換分類',
+  dashboardTitle: '📅 明天要發什麼',
+  dashboardNone: '明天沒有自動排程(管線未啟用或尚未補糧)',
+  dashboardPreview: 'Threads · 自動排程',
+};
+
 /** 雲端列 Drive(docs/DRIVE-PLAN)的使用者文案。 */
 export const DRIVE_COPY = {
   title: '雲端列 Drive',

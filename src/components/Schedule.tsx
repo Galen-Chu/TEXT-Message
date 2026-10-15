@@ -5,6 +5,7 @@ import {
   DRAFT_KIND_META,
   PLATFORM_LIST,
   SCHEDULE_COPY,
+  PIPELINE_COPY,
   SCHEDULE_KIND_FILTERS,
   SCHEDULE_STATUS_META,
   WEEKDAY_LABELS,
@@ -48,7 +49,7 @@ export default function Schedule({ store }: { store: AppStore }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [manualTitle, setManualTitle] = useState('');
   const [manualContent, setManualContent] = useState('');
-  const [manualDate, setManualDate] = useState(store.tomorrowISO);
+  const [manualDate, setManualDate] = useState(() => store.tomorrowISO());
   const [manualTime, setManualTime] = useState('09:00');
   const [manualPlatform, setManualPlatform] = useState<PlatformKey>('fb');
   const [manualKind, setManualKind] = useState<DocKind>('copy');
@@ -71,7 +72,7 @@ export default function Schedule({ store }: { store: AppStore }) {
     setEditingId(null);
     setManualTitle('');
     setManualContent('');
-    setManualDate(store.tomorrowISO);
+    setManualDate(store.tomorrowISO());
     setManualTime('09:00');
     setManualPlatform('fb');
     setManualKind('copy');
@@ -338,6 +339,106 @@ export default function Schedule({ store }: { store: AppStore }) {
           );
         })}
       </div>
+
+      {store.backendEnabled && (
+        <div className="card" style={{ padding: 18, marginTop: 20 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
+              {PIPELINE_COPY.cardTitle}
+            </div>
+            <button
+              onClick={() => store.updateAutoPipeline({ enabled: !store.autoPipeline.enabled })}
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                padding: '5px 12px',
+                borderRadius: 8,
+                background: store.autoPipeline.enabled ? 'var(--brand-fill)' : 'var(--bg)',
+                color: store.autoPipeline.enabled ? '#fff' : 'var(--text-faint)',
+              }}
+            >
+              {store.autoPipeline.enabled ? '✓ ' : ''}
+              {PIPELINE_COPY.enable}
+            </button>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12, lineHeight: 1.6 }}>
+            {PIPELINE_COPY.desc}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+              {PIPELINE_COPY.timeLabel}
+            </label>
+            <input
+              className="text-input"
+              type="time"
+              value={store.autoPipeline.time}
+              onChange={(e) => store.updateAutoPipeline({ time: e.target.value })}
+              style={{ width: 100, padding: '6px 8px', fontSize: 12.5 }}
+            />
+            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)', marginLeft: 8 }}>
+              {PIPELINE_COPY.horizonLabel}
+            </label>
+            {[7, 14, 30].map((h) => {
+              const active = store.autoPipeline.horizonDays === h;
+              return (
+                <button
+                  key={h}
+                  onClick={() => store.updateAutoPipeline({ horizonDays: h })}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    color: active ? 'var(--brand)' : 'var(--text-faint)',
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                  }}
+                >
+                  {h}
+                </button>
+              );
+            })}
+          </div>
+
+          {store.autoPipeline.enabled && (
+            <div
+              style={{
+                fontSize: 12,
+                color: store.pipelineLowWater ? 'var(--accent)' : 'var(--text-sub)',
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              {PIPELINE_COPY.statusQueued(store.autoPipeline.queuedThrough)}
+              {' · '}
+              {PIPELINE_COPY.statusRemaining(store.pipelineRemainingDays)}
+            </div>
+          )}
+          {store.autoPipeline.enabled && store.pipelineLowWater && (
+            <div style={{ fontSize: 11.5, color: 'var(--accent)', marginBottom: 8 }}>{PIPELINE_COPY.lowWater}</div>
+          )}
+          {store.autoPipeline.enabled && store.threadsProxy.status !== 'connected' && (
+            <div style={{ fontSize: 11.5, color: 'var(--error)', marginBottom: 8 }}>{PIPELINE_COPY.notConnected}</div>
+          )}
+
+          <button
+            className="btn btn-outline"
+            style={{ borderRadius: 9 }}
+            disabled={!store.autoPipeline.enabled || store.threadsProxy.status !== 'connected'}
+            onClick={() => void store.topUpPipeline()}
+          >
+            {PIPELINE_COPY.fillNow}
+          </button>
+        </div>
+      )}
 
       {proxy.enabled && (
         <div className="card" style={{ padding: 18, marginTop: 20 }}>

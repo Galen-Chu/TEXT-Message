@@ -1,4 +1,4 @@
-import { SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
+import { PIPELINE_COPY, SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { dateLabel, fullDateLabel, toISODate } from '../utils/date';
 import { effectiveStatus, overdueItems } from '../utils/schedule';
@@ -116,6 +116,33 @@ export default function Dashboard({ store }: { store: AppStore }) {
               查看全部 →
             </button>
           </div>
+          {store.backendEnabled && store.autoPipeline.enabled && (
+            <div
+              style={{
+                border: '1px solid var(--border-2)',
+                borderRadius: 12,
+                padding: 12,
+                marginBottom: 12,
+                background: 'var(--surface-soft)',
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 6 }}>
+                {PIPELINE_COPY.dashboardTitle}
+                <span style={{ fontWeight: 500, color: 'var(--text-faint)', marginLeft: 8 }}>
+                  {PIPELINE_COPY.dashboardPreview}
+                </span>
+              </div>
+              {store.pipelineTomorrowPreview ? (
+                <div
+                  style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.6, whiteSpace: 'pre-line' }}
+                >
+                  {store.pipelineTomorrowPreview.text.split('\n')[0]}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{PIPELINE_COPY.dashboardNone}</div>
+              )}
+            </div>
+          )}
           {upcoming.map((item) => (
             <div
               key={item.id}

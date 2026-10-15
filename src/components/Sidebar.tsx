@@ -1,4 +1,4 @@
-import { FAMILY_COPY } from '../constants';
+import { FAMILY_COPY, PIPELINE_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
@@ -126,6 +126,34 @@ export default function Sidebar({ store }: { store: AppStore }) {
         <span style={{ fontSize: 18 }}>🎬</span>
         <span className="nav-label">{FAMILY_COPY.switchLink}</span>
       </a>
+
+      {/*
+        管線低水位提示(PIPELINE-PLAN P1):存量 ≤3 天且管線開啟才出現,點了去排程頁補糧。
+        與家族連結同放在 .sidebar-footer 外面——窄螢幕仍可見。只留圖示時靠 title 提示。
+      */}
+      {store.pipelineLowWater && store.autoPipeline.enabled && (
+        <button
+          onClick={() => store.setActiveTab('schedule')}
+          className="sidebar-family-link"
+          title={PIPELINE_COPY.lowWater}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 12px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--accent)',
+            width: '100%',
+          }}
+        >
+          <span style={{ fontSize: 16 }}>⚠</span>
+          <span className="nav-label">
+            {PIPELINE_COPY.statusRemaining(store.pipelineRemainingDays)} · 按此補糧
+          </span>
+        </button>
+      )}
     </div>
   );
 }
