@@ -89,7 +89,7 @@ const CASES = [
   ['accent', 'pill-orange-bg', '強調色文字 / 橘膠囊'],
   ['error', 'card', '錯誤色 / 卡片'],
   ['#ffffff', 'brand-fill', '白字 / brand-fill(btn-primary)'],
-  ['#38130a', 'accent-fill', '深棕字 / accent-fill(btn-accent)'],
+  ['#362e00', 'accent-fill', '深字 / accent-fill(btn-accent,黃 900)'],
 ];
 
 let fail = 0;

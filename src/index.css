@@ -1,51 +1,54 @@
 :root {
   /* 文字對比以 WCAG 2.1 AA(≥4.5:1)驗證,全組合數值見 scripts/contrast-audit.mjs */
+  /* 色彩與字型=個人品牌設計系統 Uniconsign(綠 167839/青 007687/黃 D9C125+暖灰;
+     原始定義見 Uniconsign repo tokens/,此處為本產品的語意映射) */
   color-scheme: light;
   /* brand/accent=文字用色調(淺底深、深底淺);brand-fill/accent-fill=底色填充(白/深字搭配) */
-  --brand: #5849d2;
-  --brand-fill: #6c5ce7;
-  --accent: #b03d1d;
-  --accent-fill: #ff7a59;
-  --bg: #f6f5fb;
+  --brand: #167839;
+  --brand-fill: #167839;
+  --accent: #796900;
+  --accent-fill: #d9c125;
+  --bg: #f7f7f5;
   --card: #ffffff;
-  --surface-soft: #f8f7fd;
-  --border-1: #eceaf7;
-  --border-2: #f1effa;
-  --border-3: #e4e1f5;
-  --text-main: #1f2333;
-  --text-sub: #5b5773;
-  --text-weak: #66627e;
-  --text-faint: #736e92;
-  --pill-purple-bg: #f1edff;
-  --pill-purple-bg-2: #edeafb;
-  --pill-orange-bg: #fff1ec;
-  --error: #d62f1c;
-  --shadow-card: 0 2px 10px rgba(108, 92, 231, 0.06);
+  --surface-soft: #eeedea;
+  --border-1: #e9e8e4;
+  --border-2: #f2f1ed;
+  --border-3: #dedcd7;
+  --text-main: #1a1917;
+  --text-sub: #5a574f;
+  --text-weak: #6b675f;
+  --text-faint: #726e66;
+  --pill-purple-bg: #eef8f0;
+  --pill-purple-bg-2: #dbf2de;
+  --pill-orange-bg: #fefbe4;
+  --error: #c8423b;
+  --shadow-card: 0 2px 10px rgba(26, 25, 23, 0.07);
+  --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
 /* 深色模式:僅覆寫語意變數(元件皆走變數);brand 文字調亮、fill 維持識別 */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --brand: #a79aff;
-    --brand-fill: #6c5ce7;
-    --accent: #ff9d7d;
-    --accent-fill: #ff7a59;
-    --bg: #15152a;
-    --card: #22223a;
-    --surface-soft: #2a2a44;
-    --border-1: #2b2b45;
-    --border-2: #2e2e49;
-    --border-3: #3a3a5c;
-    --text-main: #eceaf7;
-    --text-sub: #c6c3dd;
-    --text-weak: #9b97b8;
-    --text-faint: #8d89ae;
-    --pill-purple-bg: #2f2a4e;
-    --pill-purple-bg-2: #342f57;
-    --pill-orange-bg: #45312a;
-    --error: #ff6b5e;
-    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --brand: #6cbd7f;
+    --brand-fill: #167839;
+    --accent: #e7d24e;
+    --accent-fill: #d9c125;
+    --bg: #1a1917;
+    --card: #2a2925;
+    --surface-soft: #232220;
+    --border-1: #33322e;
+    --border-2: #3a3934;
+    --border-3: #4a4842;
+    --text-main: #f7f7f5;
+    --text-sub: #c4c1ba;
+    --text-weak: #9c9890;
+    --text-faint: #9c9890;
+    --pill-purple-bg: #123b24;
+    --pill-purple-bg-2: #16452b;
+    --pill-orange-bg: #3b3512;
+    --error: #ee7a72;
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -55,7 +58,7 @@
 
 body {
   margin: 0;
-  font-family: 'Noto Sans TC', 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text-main);
 }
@@ -121,7 +124,7 @@ button {
 }
 .btn-accent {
   background: var(--accent-fill);
-  color: #38130a;
+  color: #362e00;
 }
 .btn-ghost {
   background: var(--bg);

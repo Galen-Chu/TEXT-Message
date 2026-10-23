@@ -2,39 +2,26 @@ import { FAMILY_COPY, PIPELINE_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
+import { BrandMark, IconBook } from './BrandIcons';
+import type { ReactNode } from 'react';
 
 // 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
-// 編發器在定排程之前。
-const NAV_ITEMS: Array<{ key: Tab; icon: string; label: string }> = [
+// 編發器在定排程之前。icon=品牌 icon 與 Emoji 混用(Uniconsign 符號「書」用於文庫)。
+const NAV_ITEMS: Array<{ key: Tab; icon: ReactNode; label: string }> = [
   { key: 'dashboard', icon: '🏠', label: '文管 Dashboard' },
   { key: 'inbox', icon: '📥', label: '郵件匣 Gmail' },
   { key: 'social', icon: '📣', label: '自媒體 Social' },
   { key: 'drive', icon: '☁️', label: '雲端列 Drive' },
   { key: 'draft', icon: '✍️', label: '編發器 Text' },
   { key: 'schedule', icon: '📅', label: '定排程 Task' },
-  { key: 'library', icon: '🗂️', label: '文庫 Library' },
+  { key: 'library', icon: <IconBook />, label: '文庫 Library' },
 ];
 
 export default function Sidebar({ store }: { store: AppStore }) {
   return (
     <div className="app-sidebar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 24px 8px' }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'linear-gradient(135deg,#6C5CE7,#FF7A59)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-        >
-          文
-        </div>
+        <BrandMark size={36} />
         <div className="sidebar-brand-text" style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
           TEXT-Message
         </div>
@@ -77,22 +64,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
           borderRadius: 12,
         }}
       >
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            background: 'linear-gradient(135deg,#6C5CE7,#FF7A59)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-        >
-          文
-        </div>
+        <BrandMark size={34} />
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>文管庫</div>
           <div style={{ fontSize: 11, color: 'var(--text-weak)' }}>社群媒體每日發文工具</div>
