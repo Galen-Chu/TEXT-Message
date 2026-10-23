@@ -91,7 +91,7 @@ export default function Social({ store }: { store: AppStore }) {
                   width: 30,
                   height: 30,
                   borderRadius: '50%',
-                  background: 'var(--pill-purple-bg)',
+                  background: 'var(--pill-brand-bg)',
                   color: 'var(--brand)',
                   display: 'flex',
                   alignItems: 'center',
@@ -160,8 +160,8 @@ export default function Social({ store }: { store: AppStore }) {
                 borderRadius: 9,
                 fontSize: 12.5,
                 fontWeight: 600,
-                background: active ? 'var(--brand)' : 'var(--card)',
-                color: active ? '#fff' : 'var(--text-sub)',
+                background: active ? 'var(--brand-fill)' : 'var(--card)',
+                color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
             >

@@ -513,9 +513,9 @@ export default function PublishCard({ store }: { store: AppStore }) {
                       borderRadius: 9,
                       fontSize: 12.5,
                       fontWeight: 600,
-                      background: on ? 'var(--pill-purple-bg)' : 'var(--card)',
+                      background: on ? 'var(--pill-brand-bg)' : 'var(--card)',
                       color: on ? 'var(--brand)' : 'var(--text-faint)',
-                      border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                      border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                     }}
                   >
                     {label}
@@ -621,9 +621,9 @@ export default function PublishCard({ store }: { store: AppStore }) {
                     borderRadius: 9,
                     fontSize: 12.5,
                     fontWeight: 600,
-                    background: on ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: on ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: on ? 'var(--brand)' : 'var(--text-faint)',
-                    border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                    border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                   }}
                 >
                   <span

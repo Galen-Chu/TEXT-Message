@@ -3,9 +3,11 @@
   /* 色彩與字型=個人品牌設計系統 Uniconsign(綠 167839/青 007687/黃 D9C125+暖灰;
      原始定義見 Uniconsign repo tokens/,此處為本產品的語意映射) */
   color-scheme: light;
-  /* brand/accent=文字用色調(淺底深、深底淺);brand-fill/accent-fill=底色填充(白/深字搭配) */
+  /* brand/accent=文字用色調(淺底深、深底淺);brand-fill/accent-fill=底色填充;
+     on-brand-fill=實心品牌底上的文字(淺色白/深色近黑——Uniconsign 深色規範:實心底用 brand-400 配深字) */
   --brand: #167839;
   --brand-fill: #167839;
+  --on-brand-fill: #ffffff;
   --accent: #796900;
   --accent-fill: #d9c125;
   --bg: #f7f7f5;
@@ -18,20 +20,22 @@
   --text-sub: #5a574f;
   --text-weak: #6b675f;
   --text-faint: #726e66;
-  --pill-purple-bg: #eef8f0;
-  --pill-purple-bg-2: #dbf2de;
-  --pill-orange-bg: #fefbe4;
+  --pill-brand-bg: #eef8f0;
+  --pill-brand-bg-2: #dbf2de;
+  --pill-accent-bg: #fefbe4;
   --error: #c8423b;
   --shadow-card: 0 2px 10px rgba(26, 25, 23, 0.07);
   --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
 }
 
-/* 深色模式:僅覆寫語意變數(元件皆走變數);brand 文字調亮、fill 維持識別 */
+/* 深色模式:僅覆寫語意變數(元件皆走變數);brand/brand-fill 皆調亮為 brand-400
+   (Uniconsign 深色規範),on-brand-fill 翻為近黑保對比 */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
     --brand: #6cbd7f;
-    --brand-fill: #167839;
+    --brand-fill: #6cbd7f;
+    --on-brand-fill: #1a1917;
     --accent: #e7d24e;
     --accent-fill: #d9c125;
     --bg: #1a1917;
@@ -44,9 +48,9 @@
     --text-sub: #c4c1ba;
     --text-weak: #9c9890;
     --text-faint: #9c9890;
-    --pill-purple-bg: #123b24;
-    --pill-purple-bg-2: #16452b;
-    --pill-orange-bg: #3b3512;
+    --pill-brand-bg: #123b24;
+    --pill-brand-bg-2: #16452b;
+    --pill-accent-bg: #3b3512;
     --error: #ee7a72;
     --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
@@ -89,7 +93,7 @@ input:focus,
 select:focus {
   outline: none;
   border-color: var(--brand-fill);
-  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.18);
+  box-shadow: 0 0 0 3px rgba(22, 120, 57, 0.18);
 }
 
 button {
@@ -115,7 +119,7 @@ button {
 }
 .btn-primary {
   background: var(--brand-fill);
-  color: #fff;
+  color: var(--on-brand-fill);
 }
 .btn-outline {
   background: var(--card);
@@ -149,12 +153,12 @@ button {
   white-space: nowrap;
   height: fit-content;
 }
-.pill-purple {
-  background: var(--pill-purple-bg);
+.pill-brand {
+  background: var(--pill-brand-bg);
   color: var(--brand);
 }
-.pill-orange {
-  background: var(--pill-orange-bg);
+.pill-accent {
+  background: var(--pill-accent-bg);
   color: var(--accent);
 }
 
@@ -168,7 +172,7 @@ button {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(31, 35, 51, 0.45);
+  background: rgba(26, 25, 23, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +198,7 @@ button {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: #1f2333;
+  background: #2a2925;
   color: #fff;
   padding: 12px 20px;
   border-radius: 10px;
@@ -231,7 +235,7 @@ button {
   margin-top: 8px;
 }
 .sidebar-family-link:hover {
-  background: var(--pill-purple-bg);
+  background: var(--pill-brand-bg);
 }
 .stat-card {
   flex: 1;

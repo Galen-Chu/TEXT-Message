@@ -144,7 +144,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                 borderRadius: 8,
                 fontSize: 11.5,
                 fontWeight: 600,
-                background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                 color: active ? 'var(--brand)' : 'var(--text-faint)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
@@ -195,8 +195,8 @@ export default function Schedule({ store }: { store: AppStore }) {
                 textAlign: 'center',
                 padding: '10px 4px',
                 borderRadius: 12,
-                background: active ? 'var(--brand)' : 'var(--card)',
-                color: active ? '#fff' : 'var(--text-sub)',
+                background: active ? 'var(--brand-fill)' : 'var(--card)',
+                color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 boxShadow: '0 2px 8px rgba(108,92,231,0.06)',
               }}
             >
@@ -247,7 +247,7 @@ export default function Schedule({ store }: { store: AppStore }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
                   {item.title}{' '}
-                  <span className="pill pill-purple" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                  <span className="pill pill-brand" style={{ fontSize: 10.5, marginLeft: 4 }}>
                     {DOC_KIND_LABELS[scheduleKindOf(item)]}
                   </span>
                 </div>
@@ -330,7 +330,7 @@ export default function Schedule({ store }: { store: AppStore }) {
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600, flex: 1 }}>
                 {item.title}{' '}
-                <span className="pill pill-purple" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                <span className="pill pill-brand" style={{ fontSize: 10.5, marginLeft: 4 }}>
                   {DOC_KIND_LABELS[scheduleKindOf(item)]}
                 </span>
               </div>
@@ -361,7 +361,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                 padding: '5px 12px',
                 borderRadius: 8,
                 background: store.autoPipeline.enabled ? 'var(--brand-fill)' : 'var(--bg)',
-                color: store.autoPipeline.enabled ? '#fff' : 'var(--text-faint)',
+                color: store.autoPipeline.enabled ? 'var(--on-brand-fill)' : 'var(--text-faint)',
               }}
             >
               {store.autoPipeline.enabled ? '✓ ' : ''}
@@ -397,9 +397,9 @@ export default function Schedule({ store }: { store: AppStore }) {
                     borderRadius: 8,
                     fontSize: 12,
                     fontWeight: 700,
-                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
-                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                   }}
                 >
                   {h}
@@ -429,9 +429,9 @@ export default function Schedule({ store }: { store: AppStore }) {
                     borderRadius: 8,
                     fontSize: 12,
                     fontWeight: 700,
-                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
-                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                   }}
                 >
                   {label}
@@ -674,9 +674,9 @@ export default function Schedule({ store }: { store: AppStore }) {
                     borderRadius: 9,
                     fontSize: 12.5,
                     fontWeight: 600,
-                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
-                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                    border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                   }}
                 >
                   {k.label}
@@ -699,7 +699,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                     fontWeight: 600,
                     background: active ? p.color : 'var(--card)',
                     color: active ? '#fff' : 'var(--text-sub)',
-                    border: `1px solid ${active ? p.color : 'var(--pill-purple-bg-2)'}`,
+                    border: `1px solid ${active ? p.color : 'var(--pill-brand-bg-2)'}`,
                   }}
                 >
                   {p.label}

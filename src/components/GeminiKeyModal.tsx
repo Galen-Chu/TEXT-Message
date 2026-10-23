@@ -32,7 +32,7 @@ export default function GeminiKeyModal({
             fontSize: 12,
             color: 'var(--brand)',
             fontWeight: 700,
-            background: 'var(--pill-purple-bg)',
+            background: 'var(--pill-brand-bg)',
             borderRadius: 8,
             padding: '6px 10px',
             marginBottom: 10,

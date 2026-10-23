@@ -83,12 +83,12 @@ const CASES = [
   ['text-main', 'bg', '主文字 / 底色'],
   ['brand', 'card', '品牌色文字 / 卡片'],
   ['brand', 'surface-soft', '品牌色文字 / 淺層面'],
-  ['brand', 'pill-purple-bg', '品牌色文字 / 紫膠囊'],
-  ['brand', 'pill-purple-bg-2', '品牌色文字 / 紫膠囊 2'],
+  ['brand', 'pill-brand-bg', '品牌色文字 / 品牌膠囊'],
+  ['brand', 'pill-brand-bg-2', '品牌色文字 / 品牌膠囊 2'],
   ['accent', 'card', '強調色文字 / 卡片'],
-  ['accent', 'pill-orange-bg', '強調色文字 / 橘膠囊'],
+  ['accent', 'pill-accent-bg', '強調色文字 / 強調膠囊'],
   ['error', 'card', '錯誤色 / 卡片'],
-  ['#ffffff', 'brand-fill', '白字 / brand-fill(btn-primary)'],
+  ['on-brand-fill', 'brand-fill', '實心品牌底文字(btn-primary/側欄徽章/active chip;淺白深黑)'],
   ['#362e00', 'accent-fill', '深字 / accent-fill(btn-accent,黃 900)'],
 ];
 

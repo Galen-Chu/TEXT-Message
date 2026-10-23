@@ -153,7 +153,7 @@ export default function TrendsPanel({
                   borderRadius: 8,
                   fontSize: 11.5,
                   fontWeight: 600,
-                  background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                  background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                   color: active ? 'var(--brand)' : 'var(--text-faint)',
                   border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
                 }}

@@ -161,7 +161,7 @@ export default function Draft({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       fontSize: 11.5,
                       fontWeight: 700,
-                      background: store.driveStyleEnabled ? 'var(--pill-purple-bg)' : 'var(--card)',
+                      background: store.driveStyleEnabled ? 'var(--pill-brand-bg)' : 'var(--card)',
                       color: store.driveStyleEnabled ? 'var(--brand)' : 'var(--text-faint)',
                       border: `1px solid ${store.driveStyleEnabled ? 'var(--brand)' : 'var(--border-3)'}`,
                     }}
@@ -216,7 +216,7 @@ export default function Draft({ store }: { store: AppStore }) {
                       fontWeight: 600,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      border: '1px solid var(--pill-purple-bg-2)',
+                      border: '1px solid var(--pill-brand-bg-2)',
                       opacity: store.aiBusy ? 0.5 : 1,
                       cursor: store.aiBusy ? 'wait' : 'pointer',
                     }}
@@ -249,9 +249,9 @@ export default function Draft({ store }: { store: AppStore }) {
                         borderRadius: 9,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: active ? 'var(--pill-purple-bg)' : 'var(--bg)',
+                        background: active ? 'var(--pill-brand-bg)' : 'var(--bg)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                         opacity: store.aiBusy ? 0.5 : 1,
                         cursor: store.aiBusy ? 'wait' : 'pointer',
                       }}
@@ -285,9 +285,9 @@ export default function Draft({ store }: { store: AppStore }) {
                         borderRadius: 9,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: active ? 'var(--pill-purple-bg)' : 'var(--bg)',
+                        background: active ? 'var(--pill-brand-bg)' : 'var(--bg)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                         opacity: store.aiBusy ? 0.5 : 1,
                         cursor: store.aiBusy ? 'wait' : 'pointer',
                       }}
@@ -317,7 +317,7 @@ export default function Draft({ store }: { store: AppStore }) {
                     borderRadius: 9,
                     fontSize: 12.5,
                     fontWeight: 700,
-                    background: 'var(--pill-purple-bg)',
+                    background: 'var(--pill-brand-bg)',
                     color: 'var(--brand)',
                     opacity: store.aiBusy ? 0.5 : 1,
                     cursor: store.aiBusy ? 'wait' : 'pointer',
@@ -349,9 +349,9 @@ export default function Draft({ store }: { store: AppStore }) {
                       borderRadius: 9,
                       fontSize: 12,
                       fontWeight: 600,
-                      background: 'var(--pill-purple-bg)',
+                      background: 'var(--pill-brand-bg)',
                       color: 'var(--brand)',
-                      border: '1px solid var(--pill-purple-bg-2)',
+                      border: '1px solid var(--pill-brand-bg-2)',
                     }}
                   >
                     {tag}
@@ -505,9 +505,9 @@ export default function Draft({ store }: { store: AppStore }) {
                         borderRadius: 9,
                         fontSize: 12.5,
                         fontWeight: 600,
-                        background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                        background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                       }}
                     >
                       {k.label}
@@ -567,9 +567,9 @@ export default function Draft({ store }: { store: AppStore }) {
                         borderRadius: 9,
                         fontSize: 12.5,
                         fontWeight: 600,
-                        background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                        background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-purple-bg-2)'}`,
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
                       }}
                     >
                       <span

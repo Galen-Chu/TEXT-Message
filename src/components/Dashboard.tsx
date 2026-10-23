@@ -206,7 +206,7 @@ export default function Dashboard({ store }: { store: AppStore }) {
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
                   {mail.subject}
                 </div>
-                <div className="pill pill-purple">{mail.tag}</div>
+                <div className="pill pill-brand">{mail.tag}</div>
               </div>
               <div
                 style={{

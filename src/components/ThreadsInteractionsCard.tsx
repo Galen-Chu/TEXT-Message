@@ -27,7 +27,7 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
               fontSize: 11,
               fontWeight: 700,
               color: 'var(--brand)',
-              background: 'var(--pill-purple-bg)',
+              background: 'var(--pill-brand-bg)',
               borderRadius: 999,
               padding: '2px 8px',
             }}

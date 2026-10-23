@@ -204,7 +204,7 @@ export default function Library({ store }: { store: AppStore }) {
             <div
               style={{
                 border: '1px solid var(--brand)',
-                background: 'var(--pill-purple-bg)',
+                background: 'var(--pill-brand-bg)',
                 borderRadius: 9,
                 padding: '8px 12px',
                 marginBottom: 12,
@@ -360,8 +360,8 @@ export default function Library({ store }: { store: AppStore }) {
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 700,
-                background: active ? 'var(--brand)' : 'var(--card)',
-                color: active ? '#fff' : 'var(--text-sub)',
+                background: active ? 'var(--brand-fill)' : 'var(--card)',
+                color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
             >
@@ -387,7 +387,7 @@ export default function Library({ store }: { store: AppStore }) {
                   fontSize: 13,
                   fontWeight: active ? 700 : 500,
                   color: active ? 'var(--brand)' : 'var(--text-sub)',
-                  background: active ? 'var(--pill-purple-bg)' : 'transparent',
+                  background: active ? 'var(--pill-brand-bg)' : 'transparent',
                 }}
               >
                 {cat}
@@ -423,7 +423,7 @@ export default function Library({ store }: { store: AppStore }) {
                     borderRadius: 8,
                     fontSize: 11.5,
                     fontWeight: 600,
-                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
                   }}
@@ -438,9 +438,9 @@ export default function Library({ store }: { store: AppStore }) {
             {filtered.map((tpl) => (
               <div key={tpl.id} className="card" style={{ borderRadius: 14, padding: 16 }}>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-                  <span className="pill pill-purple">{tpl.category}</span>
+                  <span className="pill pill-brand">{tpl.category}</span>
                   {variantKeys(tpl).length > 0 && (
-                    <span className="pill pill-purple" title={variantKeys(tpl)
+                    <span className="pill pill-brand" title={variantKeys(tpl)
                       .map((k) => PLATFORM_META[k].label)
                       .join('、')}>
                       {LIBRARY_COPY.hasVariantBadge}
@@ -479,7 +479,7 @@ export default function Library({ store }: { store: AppStore }) {
                       padding: 8,
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
-                      color: '#fff',
+                      color: 'var(--on-brand-fill)',
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -564,7 +564,7 @@ export default function Library({ store }: { store: AppStore }) {
             {sortedDrafts.map((doc) => (
               <div key={doc.id} className="card" style={{ borderRadius: 14, padding: 16 }}>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-                  <span className="pill pill-purple">{DRAFT_LIBRARY_COPY.kindBadge[doc.kind]}</span>
+                  <span className="pill pill-brand">{DRAFT_LIBRARY_COPY.kindBadge[doc.kind]}</span>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
                   {doc.title || '未命名草稿'}
@@ -592,7 +592,7 @@ export default function Library({ store }: { store: AppStore }) {
                       padding: 8,
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
-                      color: '#fff',
+                      color: 'var(--on-brand-fill)',
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -700,7 +700,7 @@ export default function Library({ store }: { store: AppStore }) {
                     borderRadius: 8,
                     fontSize: 11.5,
                     fontWeight: 600,
-                    background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                    background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
                   }}

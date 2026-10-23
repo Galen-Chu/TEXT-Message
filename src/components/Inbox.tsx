@@ -85,7 +85,7 @@ export default function Inbox({ store }: { store: AppStore }) {
             marginBottom: 16,
             fontSize: 13,
             color: 'var(--error)',
-            background: 'var(--pill-orange-bg)',
+            background: 'var(--pill-accent-bg)',
           }}
         >
           {GMAIL_ERROR_COPY[g.error.code]}
@@ -111,8 +111,8 @@ export default function Inbox({ store }: { store: AppStore }) {
                 borderRadius: 9,
                 fontSize: 12.5,
                 fontWeight: 600,
-                background: active ? 'var(--brand)' : 'var(--card)',
-                color: active ? '#fff' : 'var(--text-sub)',
+                background: active ? 'var(--brand-fill)' : 'var(--card)',
+                color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
               }}
             >
@@ -134,7 +134,7 @@ export default function Inbox({ store }: { store: AppStore }) {
               borderRadius: 8,
               fontSize: 11.5,
               fontWeight: 600,
-              background: !store.inboxLabelId ? 'var(--pill-purple-bg)' : 'var(--card)',
+              background: !store.inboxLabelId ? 'var(--pill-brand-bg)' : 'var(--card)',
               color: !store.inboxLabelId ? 'var(--brand)' : 'var(--text-faint)',
               border: `1px solid ${!store.inboxLabelId ? 'var(--brand)' : 'var(--border-3)'}`,
             }}
@@ -152,7 +152,7 @@ export default function Inbox({ store }: { store: AppStore }) {
                   borderRadius: 8,
                   fontSize: 11.5,
                   fontWeight: 600,
-                  background: active ? 'var(--pill-purple-bg)' : 'var(--card)',
+                  background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                   color: active ? 'var(--brand)' : 'var(--text-faint)',
                   border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
                 }}
@@ -188,7 +188,7 @@ export default function Inbox({ store }: { store: AppStore }) {
                 width: 38,
                 height: 38,
                 borderRadius: '50%',
-                background: 'var(--pill-purple-bg-2)',
+                background: 'var(--pill-brand-bg-2)',
                 color: 'var(--brand)',
                 fontWeight: 700,
                 fontSize: 14,
@@ -226,8 +226,8 @@ export default function Inbox({ store }: { store: AppStore }) {
                 {mail.snippet}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <div className="pill pill-purple">{mail.tag}</div>
-                {mail.suitable && <div className="pill pill-orange">✨ AI 建議可發文</div>}
+                <div className="pill pill-brand">{mail.tag}</div>
+                {mail.suitable && <div className="pill pill-accent">✨ AI 建議可發文</div>}
               </div>
             </div>
             <div
@@ -245,7 +245,7 @@ export default function Inbox({ store }: { store: AppStore }) {
                   padding: '8px 14px',
                   borderRadius: 9,
                   background: 'var(--brand-fill)',
-                  color: '#fff',
+                  color: 'var(--on-brand-fill)',
                   fontSize: 12.5,
                   fontWeight: 700,
                 }}
