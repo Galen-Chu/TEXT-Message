@@ -349,6 +349,10 @@ export function useAppStore() {
     toastTimer.current = setTimeout(() => setToastMessage(''), 2200);
   }, []);
 
+  // unmount 時清掉待發的 toast 計時器——否則測試拆除 jsdom 後計時器仍觸發
+  // (setTimeout 回呼裡的 setState 撞上已不存在的 window),成為偶發 Errors: 1。
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
   /** 配額用盡只提示一次(此 effect 每次內容變更都跑,否則會連環彈 toast)。 */
   const storageQuotaWarned = useRef(false);
 
