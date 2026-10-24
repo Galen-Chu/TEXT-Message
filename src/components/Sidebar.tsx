@@ -2,19 +2,18 @@ import { FAMILY_COPY, PIPELINE_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
-import { BrandMark, IconBook, IconCloud, IconEar, IconHourglass, IconMouth, IconSun, IconWen } from './BrandIcons';
+import { BrandMark, IconBook, IconCloud, IconDashboard, IconEnvelope, IconLedger, IconSocialMedia, IconTypewriter } from './BrandIcons';
 import type { ReactNode } from 'react';
 
 // 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
 // 編發器在定排程之前。icon=Uniconsign 符號系統(對應關係見 BrandIcons.tsx 檔頭);
-// 郵件匣=耳:收信=聽見訊息,與口(自媒體=對外表達)對仗。
 const NAV_ITEMS: Array<{ key: Tab; icon: ReactNode; label: string }> = [
-  { key: 'dashboard', icon: <IconSun />, label: '文管 Dashboard' },
-  { key: 'inbox', icon: <IconEar />, label: '郵件匣 Gmail' },
-  { key: 'social', icon: <IconMouth />, label: '自媒體 Social' },
+  { key: 'dashboard', icon: <IconDashboard />, label: '文管 Dashboard' },
+  { key: 'inbox', icon: <IconEnvelope />, label: '郵件匣 Gmail' },
+  { key: 'social', icon: <IconSocialMedia />, label: '自媒體 Social' },
   { key: 'drive', icon: <IconCloud />, label: '雲端列 Drive' },
-  { key: 'draft', icon: <IconWen />, label: '編發器 Text' },
-  { key: 'schedule', icon: <IconHourglass />, label: '定排程 Task' },
+  { key: 'draft', icon: <IconTypewriter />, label: '編發器 Text' },
+  { key: 'schedule', icon: <IconLedger />, label: '定排程 Task' },
   { key: 'library', icon: <IconBook />, label: '文庫 Library' },
 ];
 
