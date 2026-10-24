@@ -5,6 +5,7 @@ import Inbox from './components/Inbox';
 import Social from './components/Social';
 import Drive from './components/Drive';
 import Draft from './components/Draft';
+import Diary from './components/Diary';
 import Library from './components/Library';
 import Schedule from './components/Schedule';
 
@@ -20,6 +21,7 @@ export default function App() {
         {store.activeTab === 'social' && <Social store={store} />}
         {store.activeTab === 'drive' && <Drive store={store} />}
         {store.activeTab === 'draft' && <Draft store={store} />}
+        {store.activeTab === 'diary' && <Diary store={store} />}
         {store.activeTab === 'library' && <Library store={store} />}
         {store.activeTab === 'schedule' && <Schedule store={store} />}
       </main>

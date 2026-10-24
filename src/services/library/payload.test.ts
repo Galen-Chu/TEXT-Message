@@ -39,4 +39,10 @@ describe('文庫雲端備份:payload(方案 A)', () => {
     expect(isValidLibraryPayload(null)).toBe(false);
     expect(isValidLibraryPayload('x')).toBe(false);
   });
+
+  it('diary 欄位(D2,2026-10-24):選用——舊備份無此欄仍通過;有帶則須為陣列', () => {
+    expect(isValidLibraryPayload(buildLibraryPayload(base))).toBe(true); // 舊備份形狀(無 diary)
+    expect(isValidLibraryPayload(buildLibraryPayload({ ...base, diary: [] }))).toBe(true);
+    expect(isValidLibraryPayload({ ...buildLibraryPayload(base), diary: 'nope' })).toBe(false);
+  });
 });

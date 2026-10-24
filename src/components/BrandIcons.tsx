@@ -7,7 +7,7 @@
  * 分享節點(science/social-media)=自媒體、雲(dao/cloud)=雲端列、
  * 打字機(science/typewriter)=編發器、帳本(science/ledger)=定排程、
  * 書(science/book,原 law/book 遷入)=文庫。
- * 日誌本(science/diary)保留予後續日記功能,暫不啟用。
+ * 日誌本(science/diary)=寫日記。
  * (產生方式:scripts 外臨時產生器,幾何逐字取自 git 追蹤的 icons/ 原始 SVG。)
  */
 import { useId, type ReactNode } from 'react';
@@ -126,6 +126,17 @@ export function IconLedger({ size = 18 }: { size?: number }): ReactNode {
       <path d="M6 4H18Q20 4 20 6V18Q20 20 18 20H6Q4 20 4 18V6Q4 4 6 4Z M6 6V18H18V6Z" fill="currentColor"/>
       <rect x="7.5" y="8" width="9" height="2" rx="1" fill="currentColor"/>
       <rect x="10.5" y="8" width="2" height="8" rx="1" fill="currentColor"/>
+    </NavIcon>
+  );
+}
+/** 科學「日誌本」——寫日記 Diary。 */
+export function IconDiary({ size = 18 }: { size?: number }): ReactNode {
+  return (
+    <NavIcon size={size}>
+      <path d="M6 4H18Q20 4 20 6V18Q20 20 18 20H6Q4 20 4 18V6Q4 4 6 4Z M6 6V18H18V6Z" fill="currentColor"/>
+      <rect x="14" y="2.5" width="2.5" height="6" rx="1.25" fill="currentColor"/>
+      <rect x="8" y="9" width="8" height="1.8" rx="0.9" fill="currentColor"/>
+      <rect x="8" y="13" width="8" height="1.8" rx="0.9" fill="currentColor"/>
     </NavIcon>
   );
 }

@@ -1,4 +1,4 @@
-export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'schedule' | 'draft' | 'library';
+export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'schedule' | 'draft' | 'diary' | 'library';
 
 export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt' | 'linkedin';
 
@@ -49,6 +49,22 @@ export interface DraftDoc {
   /** 來源:郵件 id、'blank'(空白開始)或 null(未知/舊資料)。 */
   sourceId: string | null;
   updatedAt: string; // ISO
+}
+
+/**
+ * 日記條目(DIARY-PLAN D4,2026-10-24):私密的第一方內容,純前端、零後端——
+ * localStorage 獨立鍵 `text-message:diary:v1`,不進 `text-message:v2`、不進 `family:*`、
+ * 絕不進 worker/KV。date=管線取材單位(P2 與 usedJournalDates 對齊);
+ * 同日多筆生成時合併(沿用 parseJournal 慣例)。
+ */
+export interface DiaryEntry {
+  id: string;
+  date: string; // 'YYYY-MM-DD' 條目日期
+  title: string; // 選用;空字串=無標題
+  body: string;
+  mood?: string; // 選用(2026-10-24 追加);UI 限定 DIARY_MOODS,儲存層只驗型別與長度
+  createdAt: number; // epoch ms
+  updatedAt: number; // epoch ms
 }
 
 /**

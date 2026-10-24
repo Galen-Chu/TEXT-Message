@@ -1109,6 +1109,7 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
       aiLanguage: '繁體中文',
       driveStyleSamples: [],
       driveStyleEnabled: true,
+      diary: [{ id: 'diary-cloud', date: '2026-10-23', title: '', body: '雲端日記', createdAt: 1, updatedAt: 1 }],
     });
     const enc = await encryptLibraryBlob('restore-code-1', JSON.stringify(payload));
     vi.mocked(libraryLoad).mockResolvedValue({
@@ -1119,25 +1120,63 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     const { result } = renderHook(() => useAppStore());
     act(() => result.current.startBlankDraft());
     act(() => result.current.setDraftText('本機舊內容'));
+    // D2:本機先有一篇日記——apply 後應被雲端備份內容覆蓋
+    act(() => result.current.addDiaryEntry({ date: '2026-10-24', title: '', body: '本機日記' }));
 
-    let r: { ok: boolean; savedAt?: number; code?: string } | undefined;
+    let r: { ok: boolean; savedAt?: number; diaryCount?: number | null; code?: string } | undefined;
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('restore-code-1');
     });
     expect(r?.ok).toBe(true);
     expect(r?.savedAt).toBe(payload.savedAt);
+    expect(r?.diaryCount).toBe(1);
     act(() => {
       expect(result.current.restoreLibraryApply()).toBe(true);
     });
     expect(result.current.draftText).toBe('雲端還原後的內容');
     expect(result.current.draftPlatforms.fb).toBe(true);
+    expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
     expect(readStore().draftText).toBe('雲端還原後的內容');
+
+    // D2:舊備份(無 diary 欄)還原——日記保持本機現狀,不被舊快照清空
+    const oldPayload = buildLibraryPayload({
+      templates: [],
+      copyTemplates: [],
+      scheduleItems: [],
+      publishedHistory: [],
+      drafts: [],
+      activeDraftId: null,
+      activeTemplateId: null,
+      draftText: '舊備份的內容',
+      draftPlatforms: { fb: false, ig: false, threads: false, line: false, yt: false, linkedin: false },
+      draftSourceId: 'blank',
+      draftKind: 'copy',
+      aiRole: null,
+      aiLanguage: '繁體中文',
+      driveStyleSamples: [],
+      driveStyleEnabled: true,
+    });
+    const oldEnc = await encryptLibraryBlob('restore-code-1', JSON.stringify(oldPayload));
+    vi.mocked(libraryLoad).mockResolvedValue({
+      ok: true,
+      data: { v: 1, data: oldEnc.data, iv: oldEnc.iv, savedAt: oldPayload.savedAt },
+    });
+    await act(async () => {
+      r = await result.current.restoreLibraryPrepare('restore-code-1');
+    });
+    expect(r?.ok).toBe(true);
+    expect(r?.diaryCount).toBe(null);
+    act(() => {
+      expect(result.current.restoreLibraryApply()).toBe(true);
+    });
+    expect(result.current.draftText).toBe('舊備份的內容');
+    expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
 
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('wrong-code-x');
     });
     expect(r).toEqual({ ok: false, code: 'bad_code' });
-    expect(result.current.draftText).toBe('雲端還原後的內容');
+    expect(result.current.draftText).toBe('舊備份的內容');
   });
 });
 

@@ -12,6 +12,7 @@ import {
   BACKEND_FB_ERROR_COPY,
   BACKEND_LINKEDIN_COPY,
   BACKEND_LINKEDIN_ERROR_COPY,
+  DIARY_COPY,
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
@@ -48,6 +49,7 @@ import { generateJournalPost } from '../services/gemini/rewrite';
 import { parseJournal, pickJournalEntries } from '../services/gemini/journal';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
+import { isDiaryEntry, loadDiaryEntries, saveDiaryEntries } from '../services/diary/storage';
 import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
 import { pendingToPeerCount, sendCaptionToPeer } from '../services/family/handoff';
 import { clearStoredSyncCode, loadStoredSyncCode, saveStoredSyncCode } from '../services/library/codeStore';
@@ -68,6 +70,7 @@ import {
 } from '../data/mockData';
 import type {
   AutoPipeline,
+  DiaryEntry,
   DocKind,
   DraftDoc,
   Email,
@@ -328,6 +331,12 @@ export function useAppStore() {
   /** 補糧進行中防連點;掛起時掛載不重跑。 */
   const pipelineBusyRef = useRef(false);
 
+  // 日記(DIARY-PLAN P1,2026-10-24):私密的第一方內容——純前端、零後端,
+  // 獨立鍵 text-message:diary:v1 持久化(D1),不進 text-message:v2、不進 family:*。
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>(() =>
+    loadDiaryEntries(localStorage),
+  );
+
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
   /** Gmail 使用者標籤篩選(label id;null = 不套用)——僅已連線時生效。 */
@@ -395,6 +404,16 @@ export function useAppStore() {
       }
     }
   }, [templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms, selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled, drafts, activeDraftId, activeTemplateId, librarySavedAt, autoPipeline, showToast]);
+
+  // 日記獨立持久化(D1):寫日記是高頻操作,獨立鍵+獨立 effect,不觸發主 v2 區塊
+  // 整包重新序列化;配額提示與主 effect 共用 storageQuotaWarned(每 session 一次)。
+  useEffect(() => {
+    const r = saveDiaryEntries(diaryEntries, localStorage);
+    if (!r.ok && r.quota && !storageQuotaWarned.current) {
+      storageQuotaWarned.current = true;
+      showToast(STORAGE_COPY.quotaExceededToast);
+    }
+  }, [diaryEntries, showToast]);
 
   // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
   const [familyPendingCount, setFamilyPendingCount] = useState(0);
@@ -956,6 +975,36 @@ export function useAppStore() {
     showToast(DRAFT_LIBRARY_COPY.deletedToast);
   };
 
+  // ---- 日記 CRUD(DIARY-PLAN P1,2026-10-24)----
+  /** 新增日記:前插(列表新→舊);title 空字串=無標題、mood 選填(UI 限定 DIARY_MOODS);id 與時間戳統一在此發。 */
+  const addDiaryEntry = useCallback(
+    (input: { date: string; title: string; body: string; mood?: string }) => {
+      const now = Date.now();
+      const e: DiaryEntry = { id: newId('diary-'), createdAt: now, updatedAt: now, ...input };
+      setDiaryEntries((list) => [e, ...list]);
+      showToast(DIARY_COPY.savedToast);
+    },
+    [showToast],
+  );
+
+  const updateDiaryEntry = useCallback(
+    (id: string, patch: { date: string; title: string; body: string; mood?: string }) => {
+      setDiaryEntries((list) =>
+        list.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: Date.now() } : e)),
+      );
+      showToast(DIARY_COPY.updatedToast);
+    },
+    [showToast],
+  );
+
+  const deleteDiaryEntry = useCallback(
+    (id: string) => {
+      setDiaryEntries((list) => list.filter((e) => e.id !== id));
+      showToast(DIARY_COPY.deletedToast);
+    },
+    [showToast],
+  );
+
   // ---- 自動發文管線 P1(PIPELINE-PLAN 架構 1,2026-10-15;前端批次預排)----
   // 冪等鐵則(PIPELINE-PLAN §7 風險表):補糧前必先 GET /api/queue 比對 pending 日期,
   // 略過已排——否則每次開站都補會同一天排到多筆。時間一律本機時區(見 utils/pipeline)。
@@ -1162,6 +1211,7 @@ export function useAppStore() {
       aiLanguage,
       driveStyleSamples,
       driveStyleEnabled,
+      diary: diaryEntries, // D2(2026-10-24):日記隨文庫備份(獨立鍵的內容,進同一加密 blob)
     });
     const enc = await encryptLibraryBlob(c, JSON.stringify(payload));
     const r = await librarySave({
@@ -1189,7 +1239,8 @@ export function useAppStore() {
   const restoreLibraryPrepare = async (
     code: string,
   ): Promise<
-    { ok: true; savedAt: number } | { ok: false; code: 'empty' | 'network' | 'not_found' | 'bad_code' | 'bad_payload' }
+    | { ok: true; savedAt: number; diaryCount: number | null }
+    | { ok: false; code: 'empty' | 'network' | 'not_found' | 'bad_code' | 'bad_payload' }
   > => {
     const c = code.trim();
     if (!validSyncCode(c)) return { ok: false, code: 'empty' };
@@ -1210,7 +1261,8 @@ export function useAppStore() {
     }
     if (!isValidLibraryPayload(parsed)) return { ok: false, code: 'bad_payload' };
     pendingRestoreRef.current = parsed;
-    return { ok: true, savedAt: r.data.savedAt };
+    // diaryCount=null 代表舊備份不含日記欄(還原時不動本機日記),供還原確認 Modal 誠實標示
+    return { ok: true, savedAt: r.data.savedAt, diaryCount: parsed.diary ? parsed.diary.length : null };
   };
 
   /** 還原第二步(使用者確認後):以雲端內容覆蓋本機全部文庫資料。 */
@@ -1231,6 +1283,8 @@ export function useAppStore() {
     setAiLanguage(p.aiLanguage);
     setDriveStyleSamples(p.driveStyleSamples);
     setDriveStyleEnabled(p.driveStyleEnabled);
+    // D2:diary 為選用欄位——舊備份無此欄=不動本機日記(防舊快照清掉現存日記);有帶則逐筆過濾
+    if (p.diary !== undefined) setDiaryEntries(p.diary.filter(isDiaryEntry));
     setDraftText(p.draftText);
     setDraftPlatforms(p.draftPlatforms);
     setLibrarySavedAt(p.savedAt);
@@ -1295,12 +1349,13 @@ export function useAppStore() {
       void backupLibraryToCloud(librarySyncCode, { silent: true });
     }, 30_000);
     return () => clearTimeout(autoSyncTimer.current);
-    // 內容欄位與一期持久化 effect 同步集合;backupLibraryToCloud 讀最新 state(閉包經重渲染更新)
+    // 內容欄位與一期持久化 effect 同步集合,加 diaryEntries(D2:日記也在備份內容裡);
+    // backupLibraryToCloud 讀最新 state(閉包經重渲染更新)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms,
     selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled,
-    drafts, activeDraftId, activeTemplateId, librarySyncCode, libraryStartup,
+    drafts, activeDraftId, activeTemplateId, diaryEntries, librarySyncCode, libraryStartup,
   ]);
 
   /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
@@ -1695,6 +1750,10 @@ export function useAppStore() {
     activeDraftId,
     openDraftDoc,
     deleteDraftDoc,
+    diaryEntries,
+    addDiaryEntry,
+    updateDiaryEntry,
+    deleteDiaryEntry,
     driveStyleSamples,
     driveStyleEnabled,
     setDriveStyleEnabled,

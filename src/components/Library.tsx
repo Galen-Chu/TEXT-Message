@@ -76,7 +76,9 @@ export default function Library({ store }: { store: AppStore }) {
   // 雲端備份(方案 A):同步碼僅存在此元件狀態,不落地
   const [syncCode, setSyncCode] = useState('');
   const [backupBusy, setBackupBusy] = useState(false);
-  const [pendingRestore, setPendingRestore] = useState<number | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<{ savedAt: number; diaryCount: number | null } | null>(
+    null,
+  );
 
   const isMessageTab = store.libraryMainTab === 'message';
   const isDraftTab = store.libraryMainTab === 'draft';
@@ -226,7 +228,7 @@ export default function Library({ store }: { store: AppStore }) {
                   setBackupBusy(true);
                   const r = await store.restoreLibraryPrepare(store.librarySyncCode);
                   setBackupBusy(false);
-                  if (r.ok) setPendingRestore(r.savedAt);
+                  if (r.ok) setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
                 }}
               >
                 {LIBRARY_BACKUP_COPY.restoreButton}
@@ -272,7 +274,7 @@ export default function Library({ store }: { store: AppStore }) {
                     const r = await store.restoreLibraryPrepare(store.librarySyncCode);
                     setBackupBusy(false);
                     if (r.ok) {
-                      setPendingRestore(r.savedAt);
+                      setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
                     } else {
                       const copy = {
                         empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
@@ -328,7 +330,7 @@ export default function Library({ store }: { store: AppStore }) {
                   const r = await store.restoreLibraryPrepare(syncCode);
                   setBackupBusy(false);
                   if (r.ok) {
-                    setPendingRestore(r.savedAt);
+                    setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
                   } else {
                     const copy = {
                       empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
@@ -837,7 +839,10 @@ export default function Library({ store }: { store: AppStore }) {
             {LIBRARY_BACKUP_COPY.confirmTitle}
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 18 }}>
-            {LIBRARY_BACKUP_COPY.confirmDesc(new Date(pendingRestore).toLocaleString('zh-TW'))}
+            {LIBRARY_BACKUP_COPY.confirmDesc(
+              new Date(pendingRestore.savedAt).toLocaleString('zh-TW'),
+              pendingRestore.diaryCount,
+            )}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button

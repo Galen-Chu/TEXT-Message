@@ -7,10 +7,10 @@ async function gotoTab(page: import('@playwright/test').Page, name: string) {
   await page.locator('nav').getByText(name, { exact: true }).click();
 }
 
-test('載入:標題與側邊欄七個分頁', async ({ page }) => {
+test('載入:標題與側邊欄八個分頁', async ({ page }) => {
   await page.goto(PATH);
   await expect(page).toHaveTitle('TEXT-Message');
-  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
     await expect(page.locator('nav').getByText(nav, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('近期排程')).toBeVisible();
@@ -18,7 +18,7 @@ test('載入:標題與側邊欄七個分頁', async ({ page }) => {
 
 test('分頁切換:各頁主標題正確', async ({ page }) => {
   await page.goto(PATH);
-  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
     await gotoTab(page, nav);
     await expect(page.locator('main').getByText(nav, { exact: true }).first()).toBeVisible();
   }
@@ -188,4 +188,43 @@ test('文庫:編輯與刪除範本', async ({ page }) => {
   const editedCard = page.getByText('E2E已編輯').first().locator('..');
   await editedCard.getByRole('button', { name: '刪除' }).click();
   await expect(page.getByText('E2E已編輯')).toHaveCount(0);
+});
+
+test('寫日記:新增、持久化、編輯、刪除', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '寫日記 Diary');
+
+  // 長度門檻(DIARY-PLAN 2026-10-24 追加):不足 100 字不得儲存
+  await page.getByPlaceholder('今天想記下什麼?').fill('太短的內容');
+  await page.getByRole('button', { name: '儲存日記' }).click();
+  await expect(page.getByText('還沒有日記')).toBeVisible();
+
+  const longBody = 'E2E日記內容'.repeat(20); // 120 字,介於 100–500
+  await page.getByPlaceholder('今天想記下什麼?').fill(longBody);
+  await page.getByRole('button', { name: '😊 開心', exact: true }).click();
+  await page.getByRole('button', { name: '儲存日記' }).click();
+  await expect(page.getByText(longBody).first()).toBeVisible();
+  await expect(page.locator('.pill-accent', { hasText: '😊 開心' })).toBeVisible();
+
+  // 持久化(獨立鍵 text-message:diary:v1,DIARY-PLAN D1)
+  await page.reload();
+  await gotoTab(page, '寫日記 Diary');
+  await expect(page.getByText(longBody).first()).toBeVisible();
+  await expect(page.locator('.pill-accent', { hasText: '😊 開心' })).toBeVisible();
+
+  // 編輯:modal 內 textarea 與撰寫區同 placeholder,以 .modal-card 限定避免撞 strict mode
+  const card = page.getByText(longBody).first().locator('..');
+  await card.getByRole('button', { name: '編輯', exact: true }).click();
+  const editedBody = 'E2E日記已編輯'.repeat(20);
+  await page.locator('.modal-card textarea').fill(editedBody);
+  await page.locator('.modal-card').getByRole('button', { name: '😌 平靜', exact: true }).click();
+  await page.getByRole('button', { name: '儲存變更' }).click();
+  await expect(page.getByText(editedBody).first()).toBeVisible();
+  await expect(page.locator('.pill-accent', { hasText: '😌 平靜' })).toBeVisible();
+
+  // 刪除:確認 Modal(DIARY-PLAN 拍板——不可再生的長文內容)
+  await page.getByRole('button', { name: '刪除', exact: true }).first().click();
+  await page.getByRole('button', { name: '刪除日記' }).click();
+  await expect(page.getByText(editedBody)).toHaveCount(0);
+  await expect(page.getByText('還沒有日記')).toBeVisible();
 });

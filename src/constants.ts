@@ -615,7 +615,7 @@ export const FAMILY_COPY = {
 export const LIBRARY_BACKUP_COPY = {
   cardTitle: '☁️ 雲端備份',
   cardDesc:
-    '以同步碼加密文庫內容後存至你的後端 worker——金鑰由同步碼在你瀏覽器衍生,後端只保管密文;換瀏覽器/清資料後可用同一組同步碼還原',
+    '以同步碼加密文庫與日記內容後存至你的後端 worker——金鑰由同步碼在你瀏覽器衍生,後端只保管密文;換瀏覽器/清資料後可用同一組同步碼還原',
   codeLabel: '同步碼',
   codePlaceholder: '自訂 8–64 字(遺失即無法還原,請妥善保管)',
   backupButton: '備份至雲端',
@@ -624,7 +624,10 @@ export const LIBRARY_BACKUP_COPY = {
   restoreButton: '從雲端還原',
   restoringLabel: '還原中…',
   confirmTitle: '從雲端還原',
-  confirmDesc: (d: string) => `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿),確認嗎?`,
+  confirmDesc: (d: string, diaryCount: number | null) =>
+    `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿)${
+      diaryCount === null ? ';此備份較舊、不含日記,本機日記保持不變' : `與日記(${diaryCount} 篇)`
+    },確認嗎?`,
   confirmApply: '覆蓋本機並還原',
   restoredToast: '已從雲端還原文庫 ✅',
   emptyCodeToast: '請先輸入同步碼(8–64 字)',
@@ -705,4 +708,49 @@ export const YOUTUBE_ERROR_COPY: Record<string, string> = {
   server: 'YouTube 服務暫時無法使用,請稍後再試',
   parse: 'YouTube 回應解析失敗',
   unknown: '發生未預期的錯誤,請重試',
+};
+
+/** 寫日記(DIARY-PLAN P1,2026-10-24):私密的第一方內容,純前端、零後端。
+ * 2026-10-24 追加(維護者指示):心情(選填,固定選項)+內容長度 100–500 字。 */
+export const DIARY_MOODS = [
+  '😊 開心',
+  '😌 平靜',
+  '🤩 興奮',
+  '🥹 感動',
+  '😔 低落',
+  '😤 煩躁',
+  '😰 焦慮',
+  '😣 疲憊',
+];
+
+export const DIARY_BODY_MIN = 100;
+export const DIARY_BODY_MAX = 500;
+
+export const DIARY_COPY = {
+  pageTitle: '寫日記 Diary',
+  pageDesc: '每天的心情與觀察寫在這裡——日記只存在這台裝置,不經後端',
+  composeTitle: '新增日記',
+  dateLabel: '日期',
+  titleLabel: '標題(選填)',
+  moodLabel: '心情(選填)',
+  bodyLabel: '內容',
+  bodyPlaceholder: '今天想記下什麼?',
+  bodyCountLabel: (n: number) => `字數 ${n}/${DIARY_BODY_MAX}`,
+  saveButton: '儲存日記',
+  searchPlaceholder: '搜尋日記(標題、內容或心情)',
+  countLabel: (n: number) => `共 ${n} 篇`,
+  emptyTitle: '還沒有日記',
+  emptyDesc: '從今天的一件小事開始,寫下第一篇吧',
+  editButton: '編輯',
+  deleteButton: '刪除',
+  saveChangesButton: '儲存變更',
+  cancelButton: '取消',
+  deleteModalTitle: '刪除這篇日記?',
+  deleteModalDesc: '刪除後無法復原。',
+  deleteConfirmButton: '刪除日記',
+  savedToast: '日記已儲存 ✍️',
+  updatedToast: '日記已更新',
+  deletedToast: '日記已刪除',
+  emptyBodyToast: '內容是空的,寫點什麼再儲存吧',
+  bodyLengthToast: (n: number) => `內容需 ${DIARY_BODY_MIN}–${DIARY_BODY_MAX} 字(目前 ${n} 字)`,
 };
