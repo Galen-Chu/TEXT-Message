@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useFacebookProxy } from './useFacebookProxy';
 import {
   checkFacebookStatus,
@@ -24,6 +24,12 @@ vi.mock('../services/backend/client', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   window.history.replaceState(null, '', '/');
+});
+
+// vitest 未開 globals → RTL 不自動 cleanup:hook 跨測試存活(掛著 message/focus
+// 監聽)會放大「jsdom 拆除後才執行」的風險(2026-10-24 CI 紅燈即此模式)。
+afterEach(() => {
+  cleanup();
 });
 
 describe('useFacebookProxy(2026-09-30,鏡像 useThreadsProxy)', () => {
@@ -119,13 +125,19 @@ describe('useFacebookProxy(2026-09-30,鏡像 useThreadsProxy)', () => {
     const first = result.current.publish('文字');
     const second = result.current.publish('文字'); // 第一次仍在進行中
     await expect(second).resolves.toBeNull();
-    release({ ok: true, data: { id: 'p9' } });
-    await expect(first).resolves.toEqual({ ok: true, data: { id: 'p9' } });
+    // promise 鏡像(含 finally 的 setBusy)必須在 act 內走完:否則 setState 排程
+    // 可能在 jsdom 環境拆除後才執行,react-dom 撈 window 炸 ReferenceError(2026-10-24 CI)。
+    await act(async () => {
+      release({ ok: true, data: { id: 'p9' } });
+      await expect(first).resolves.toEqual({ ok: true, data: { id: 'p9' } });
+    });
 
     vi.mocked(scheduleFacebookPost).mockResolvedValue({ ok: true, data: { itemId: 'q1' } });
-    await expect(result.current.schedule('文字', 1893456000000)).resolves.toEqual({
-      ok: true,
-      data: { itemId: 'q1' },
+    await act(async () => {
+      await expect(result.current.schedule('文字', 1893456000000)).resolves.toEqual({
+        ok: true,
+        data: { itemId: 'q1' },
+      });
     });
   });
 });

@@ -108,11 +108,17 @@ describe('useThreadsProxy', () => {
     const first = result.current.publish('文字');
     const second = result.current.publish('文字'); // 第一次仍在進行中
     await expect(second).resolves.toBeNull();
-    release({ ok: true, data: { id: 'p9' } });
-    await expect(first).resolves.toEqual({ ok: true, data: { id: 'p9' } });
+    // promise 鏡像(含 finally 的 setBusy)必須在 act 內走完:否則 setState 排程
+    // 可能在 jsdom 環境拆除後才執行(2026-10-24 Facebook 同款尾段在 CI 炸 ReferenceError)。
+    await act(async () => {
+      release({ ok: true, data: { id: 'p9' } });
+      await expect(first).resolves.toEqual({ ok: true, data: { id: 'p9' } });
+    });
 
     vi.mocked(publishThreadsNow).mockResolvedValue({ ok: true, data: { id: 'p10' } });
-    await expect(result.current.publish('再來')).resolves.toEqual({ ok: true, data: { id: 'p10' } });
+    await act(async () => {
+      await expect(result.current.publish('再來')).resolves.toEqual({ ok: true, data: { id: 'p10' } });
+    });
   });
 
   it('publish / schedule / loadQueue / cancel 流經 client', async () => {
