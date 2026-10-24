@@ -35,12 +35,15 @@
 
 - **D1 儲存鍵**:獨立鍵 `text-message:diary:v1`(建議)vs 併入 `text-message:v2`。獨立鍵=日記 schema 演進不動主 store 遷移、備份範圍好切(D2);併入=少一個鍵,但主 store 持久化 effect 會因高頻寫日記而頻繁序列化整包 v2。
 - **D2 雲端備份範圍(2026-10-24 實作,隨 P1 同批)**:日記納入文庫雲端備份(方案 A)——`payload.ts` 新增**選用**欄位 `diary`(schema 維持 v1),備份/自動同步/還原全走既有零知識管線;自動同步觸發集合加 `diaryEntries`(寫日記也會 30 秒 debounce 備份)。**舊備份無此欄=還原時不動本機日記**(原規劃寫「=空日記」,修正理由:日記是不可再生內容,舊快照不得清掉現存日記);還原確認 Modal 誠實標示日記篇數或「不含日記」。512KB blob 上限對純文字日記很寬裕。
-- **D3 管線來源整合(二期主體)**:`topUpPipeline` 的 journal-ai 分流增「本機日記」來源。建議來源 chips 改「範本/日記」,日記=本機條目直接讀(**免 Drive 重連**,消除摩擦②);Drive 日誌路徑保留為後援。`usedJournalDates` 兩來源共用同一份日期戳記,避免重複取材。
+- **D3 管線來源整合(二期主體;2026-10-24 串接評估定案——可行性高,機件九成已在)**:兩條路徑——
+  - **A. 管線第三源「本機日記」(主,接 Threads 每日排程)**:`autoPipeline.source` 增 `'diary-ai'`,`topUpPipeline` 增 diary 分流:本機條目先**依日期分組合併**成 `{ date, title?, body }`(**與 `parseJournal` 產出同構**——同日多筆 append 沿用 D5 合併慣例)→ 直接餵既有 `pickJournalEntries`(**D6 選料零改動**:跳過 `usedJournalDates`、新→舊、取不滿就少排、全用過停止)→ `generateJournalPost` 生成(**mood 可注入 prompt 作語氣提示**,選用)→ 既有 `POST /api/schedule`(platform=threads)→ 每小時 cron 代發。**免 Drive 重連**(消除摩擦②——Drive token 僅記憶體的紅線必然結果),素材即時可得且已隨 D2 雲端備份跨裝置;Drive 日誌路徑保留為後援,`usedJournalDates` 兩來源共用同一份日期戳記防重複取材。來源 chips=「文庫範本輪替 / Drive 日誌 + AI 生成 / 本機日記 + AI 生成」。
+  - **B. 條目卡「✨ 生成貼文」(輔)**:單筆日記 → `generateJournalPost` → 帶入編發器草稿,人審後經 PublishCard **任平台**發佈/排程(不限 Threads)。
+  - **明確不做**:日記原文**逐字排程/發佈**(私密內容直上社群=隱私事故——一律經 AI 改寫,且保留既有兩道人審窗口:預排從明天起算、Dashboard「明天要發什麼」);不做背景自動取材(沿用管線「按下補糧才動」節奏)。**紅線零修訂**:日記不進 worker(進佇列的只有生成後的貼文成品)、Gemini 僅生成當下、worker 零改動。
 - **D4 條目 schema(一期;2026-10-24 追加 mood)**:`{ id, date: 'YYYY-MM-DD', title?, body, mood?, createdAt, updatedAt }`;日期=管線取材單位(與現行 D6 對齊),同日多筆生成時合併(沿用 `parseJournal` 慣例)。心情=選填 8 選項(`DIARY_MOODS`,同日追加——原「一期不加」由維護者指示翻案);內容長度 100–500 字屬 UI 層驗證,儲存層只驗結構;圖片不加。
 - **D5 匯入既有 Google Doc(三期候選)**:一次貼入/匯入,解析沿用 `journal.ts` 的 D5 文字慣例(整行只有日期=新條目),把既有日誌無痛搬家。
 
 ## 分期
 
 - **P1(2026-10-24 完成)**:撰寫/編輯/刪除(確認 Modal)+ 列表新→舊 + 搜尋;獨立儲存鍵 `text-message:diary:v1`(`services/diary/storage.ts`,storage 可注入測試);store 走獨立持久化 effect(quota 提示與主 effect 共用一次性 ref);E2E 八分頁+日記 CRUD。同日追加:心情(選填 8 選項,條目 pill+納入搜尋)與內容長度 100–500 字(下限門檻+`maxLength`+即時字數)。
-- **P2**:管線來源=本機日記(D3);「從今日日記生成貼文」直通編發器(候選)。
+- **P2**:管線來源=本機日記(D3 兩路徑:**A 管線 diary 分流先做**——分組合併純函式+測試、`topUpPipeline` 分流、管線卡 chips+文案+誠實標示;**B 條目卡生成貼文後做**——按鈕+store 動作)。各約一小批,worker 零改動。
 - **P3(候選)**:Google Doc 匯入(D5)、條目內 AI 潤稿。
