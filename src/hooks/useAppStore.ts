@@ -13,6 +13,7 @@ import {
   BACKEND_LINKEDIN_COPY,
   BACKEND_LINKEDIN_ERROR_COPY,
   DIARY_COPY,
+  DIARY_EXPORT_COPY,
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
@@ -50,7 +51,33 @@ import { generateJournalPost } from '../services/gemini/rewrite';
 import { parseJournal, pickJournalEntries } from '../services/gemini/journal';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
+import {
+  loadDiaryExportState,
+  saveDiaryExportState,
+  type DiaryExportState,
+} from '../services/diary/exportStore';
 import { isDiaryEntry, loadDiaryEntries, saveDiaryEntries } from '../services/diary/storage';
+import {
+  downloadMarkdown,
+  ensureLifeDirectory,
+  isVaultExportSupported,
+  pickVaultDirectory,
+  readNote,
+  VaultError,
+  writeNote,
+} from '../services/diary/vaultFs';
+import {
+  buildCombinedMarkdown,
+  buildDiaryBlock,
+  buildNewVaultNote,
+  dateVersion,
+  datesNeedingExport,
+  exportDates,
+  rangeBounds,
+  spliceDiaryBlock,
+  vaultNoteName,
+  type ExportStamps,
+} from '../services/diary/vaultMarkdown';
 import { isNote, loadNotes, noteInsertText, saveNotes } from '../services/notes/storage';
 import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
 import { pendingToPeerCount, sendCaptionToPeer } from '../services/family/handoff';
@@ -340,6 +367,17 @@ export function useAppStore() {
     loadDiaryEntries(localStorage),
   );
 
+  // 日記匯出戳記(DIARY-PLAN D7,2026-11-01):機器本地狀態、獨立鍵、**不進雲端備份**
+  // (每台機器的 vault 資料夾不同,同步過去只會讓另一台誤判「已寫過」而跳過)。
+  const [diaryExport, setDiaryExport] = useState<DiaryExportState>(() =>
+    loadDiaryExportState(localStorage),
+  );
+  /** vault 資料夾 handle 只存記憶體(刻意不落地):重開網頁要再挑一次=D7 的半自動。 */
+  const vaultDirRef = useRef<FileSystemDirectoryHandle | null>(null);
+  /** handle 在 ref 裡不觸發 render,所以另以此 state 當 UI 的「本 session 已選好」訊號。 */
+  const [vaultFolder, setVaultFolder] = useState<string | null>(null);
+  const [diaryExporting, setDiaryExporting] = useState(false);
+
   // 便條(POST-PLAN,2026-11-01):小筆記/好文章/靈感——同日記的儲存形態,
   // 獨立鍵 text-message:notes:v1(D1),不進 text-message:v2、不進 family:*;
   // 內容隨文庫雲端備份(D2,加密 blob 的選用欄位)。
@@ -432,6 +470,12 @@ export function useAppStore() {
       showToast(STORAGE_COPY.quotaExceededToast);
     }
   }, [notes, showToast]);
+
+  // 匯出戳記持久化(D7):寫入失敗靜默——戳記遺失只會讓下次多寫幾個檔案(splice 冪等),
+  // 不值得佔用那個「每 session 一次」的配額提示。
+  useEffect(() => {
+    saveDiaryExportState(diaryExport, localStorage);
+  }, [diaryExport]);
 
   // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
   const [familyPendingCount, setFamilyPendingCount] = useState(0);
@@ -1021,6 +1065,101 @@ export function useAppStore() {
       showToast(DIARY_COPY.deletedToast);
     },
     [showToast],
+  );
+
+  // ---- 日記匯出到 Obsidian vault(DIARY-PLAN D6/D7,2026-11-01)----
+  /** 挑 vault 根目錄並預先走到 daily/life/(權限問題當場就報,不要等按下匯出才炸)。 */
+  const pickDiaryVault = useCallback(async () => {
+    try {
+      const root = await pickVaultDirectory();
+      if (!root) {
+        showToast(DIARY_EXPORT_COPY.cancelledToast);
+        return;
+      }
+      await ensureLifeDirectory(root); // 先驗一次權限與路徑可建立
+      vaultDirRef.current = root;
+      setVaultFolder(root.name);
+      setDiaryExport((s) => ({ ...s, folderName: root.name }));
+      showToast(DIARY_EXPORT_COPY.pickedToast(root.name));
+    } catch (err) {
+      const code = err instanceof VaultError ? err.code : 'permission';
+      showToast(DIARY_EXPORT_COPY.errorToast[code] ?? DIARY_EXPORT_COPY.errorToast.permission);
+    }
+  }, [showToast]);
+
+  /**
+   * 逐日寫入:只處理「上次匯出後有變更」的天(增量,冪等)。
+   * 每天獨立 try——**單天失敗不連坐**(某個檔案被 Obsidian 鎖住時其他天照樣寫完),
+   * 且只有寫成功的天才記戳記,失敗的下次會再試。
+   */
+  const exportDiaryToVault = useCallback(
+    async (range: 'all' | 'year' | 'month') => {
+      const bounds = rangeBounds(range, toISODate(new Date()));
+      const dates = datesNeedingExport(diaryEntries, diaryExport.stamps, bounds);
+
+      // 不支援目錄寫入(Firefox/Safari)→ 退回下載彙整檔(冷備份)。
+      // 此路徑不看戳記也不寫戳記:下載的是範圍內全部日期,與「活體副本」是兩回事。
+      if (!isVaultExportSupported()) {
+        const all = exportDates(diaryEntries).filter(
+          (d) => (!bounds.from || d >= bounds.from) && (!bounds.to || d <= bounds.to),
+        );
+        if (all.length === 0) {
+          showToast(DIARY_EXPORT_COPY.nothingToast);
+          return;
+        }
+        downloadMarkdown(buildCombinedMarkdown(diaryEntries, all), `diary-${toISODate(new Date())}.md`);
+        showToast(DIARY_EXPORT_COPY.downloadedToast);
+        return;
+      }
+
+      if (!vaultDirRef.current) {
+        await pickDiaryVault();
+        if (!vaultDirRef.current) return; // 取消或失敗(toast 已由 pick 發)
+      }
+      if (dates.length === 0) {
+        showToast(DIARY_EXPORT_COPY.nothingToast);
+        return;
+      }
+
+      setDiaryExporting(true);
+      try {
+        const dir = await ensureLifeDirectory(vaultDirRef.current);
+        const stamps: ExportStamps = {};
+        let failed = 0;
+        for (const date of dates) {
+          try {
+            const existing = await readNote(dir, vaultNoteName(date));
+            const block = buildDiaryBlock(diaryEntries, date);
+            const content =
+              existing === null
+                ? buildNewVaultNote(diaryEntries, date)
+                : spliceDiaryBlock(existing, block);
+            await writeNote(dir, vaultNoteName(date), content);
+            stamps[date] = dateVersion(diaryEntries, date);
+          } catch {
+            failed += 1;
+          }
+        }
+        const okCount = dates.length - failed;
+        setDiaryExport((s) => ({
+          ...s,
+          stamps: { ...s.stamps, ...stamps },
+          lastExportAt: okCount > 0 ? Date.now() : s.lastExportAt,
+          folderName: vaultDirRef.current?.name ?? s.folderName,
+        }));
+        showToast(
+          failed === 0
+            ? DIARY_EXPORT_COPY.doneToast(okCount)
+            : DIARY_EXPORT_COPY.partialToast(okCount, failed),
+        );
+      } catch (err) {
+        const code = err instanceof VaultError ? err.code : 'write_failed';
+        showToast(DIARY_EXPORT_COPY.errorToast[code] ?? DIARY_EXPORT_COPY.errorToast.write_failed);
+      } finally {
+        setDiaryExporting(false);
+      }
+    },
+    [diaryEntries, diaryExport.stamps, pickDiaryVault, showToast],
   );
 
   // ---- 便條 CRUD(POST-PLAN,2026-11-01)----
@@ -1821,6 +1960,11 @@ export function useAppStore() {
     addDiaryEntry,
     updateDiaryEntry,
     deleteDiaryEntry,
+    diaryExport,
+    vaultFolder,
+    diaryExporting,
+    pickDiaryVault,
+    exportDiaryToVault,
     notes,
     addNote,
     updateNote,

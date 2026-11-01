@@ -3,11 +3,15 @@ import {
   DIARY_BODY_MAX,
   DIARY_BODY_MIN,
   DIARY_COPY,
+  DIARY_EXPORT_COPY,
+  DIARY_EXPORT_RANGES,
   DIARY_MOODS,
   DIARY_PAGE_SIZE,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { searchDiaryEntries, sortDiaryEntries } from '../services/diary/storage';
+import { isVaultExportSupported } from '../services/diary/vaultFs';
+import { datesNeedingExport, rangeBounds } from '../services/diary/vaultMarkdown';
 import type { DiaryEntry } from '../types';
 import { shortDateTimeLabel, toISODate } from '../utils/date';
 import Modal from './Modal';
@@ -32,11 +36,21 @@ export default function Diary({ store }: { store: AppStore }) {
   const [editMood, setEditMood] = useState('');
   const [deleting, setDeleting] = useState<DiaryEntry | null>(null);
   const [shown, setShown] = useState(DIARY_PAGE_SIZE);
+  /** 匯出範圍是頁面本地狀態(每次進頁面重設為「全部」——增量寫入讓它幾乎沒代價)。 */
+  const [range, setRange] = useState<'all' | 'year' | 'month'>('all');
 
   const entries = searchDiaryEntries(sortDiaryEntries(store.diaryEntries), search);
   // 分頁(2026-11-01 補缺口):累積數百篇後整頁全文渲染會過長;換關鍵字時縮回第一頁。
   const visible = entries.slice(0, shown);
   const more = entries.length - visible.length;
+
+  // 匯出:支援度決定顯示流程還是下載退路;待寫天數=增量判定的結果(戳記比對)。
+  const supported = isVaultExportSupported();
+  const pending = datesNeedingExport(
+    store.diaryEntries,
+    store.diaryExport.stamps,
+    rangeBounds(range, toISODate(new Date())),
+  ).length;
 
   /** 心情 chips(撰寫卡與編輯 Modal 共用;點已選的再取消)。樣式沿 Inbox 標籤 chips 慣例。 */
   const moodChips = (value: string, onPick: (m: string) => void) => (
@@ -185,6 +199,95 @@ export default function Diary({ store }: { store: AppStore }) {
           </button>
         </div>
       </div>
+
+      {store.diaryEntries.length > 0 && (
+        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
+            {DIARY_EXPORT_COPY.cardTitle}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-weak)', marginBottom: 12 }}>
+            {DIARY_EXPORT_COPY.cardDesc}
+          </div>
+
+          {!supported ? (
+            <>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                {DIARY_EXPORT_COPY.unsupportedTitle}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-weak)', margin: '4px 0 12px' }}>
+                {DIARY_EXPORT_COPY.unsupportedDesc}
+              </div>
+              <button className="btn btn-outline" onClick={() => store.exportDiaryToVault(range)}>
+                {DIARY_EXPORT_COPY.downloadButton}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="field-label">{DIARY_EXPORT_COPY.rangeLabel}</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                {DIARY_EXPORT_RANGES.map((r) => {
+                  const active = range === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      onClick={() => setRange(r.value)}
+                      style={{
+                        padding: '5px 14px',
+                        borderRadius: 8,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
+                        color: active ? 'var(--brand)' : 'var(--text-faint)',
+                        border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                      }}
+                    >
+                      {r.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={store.diaryExporting}
+                  onClick={() => store.exportDiaryToVault(range)}
+                >
+                  {store.diaryExporting
+                    ? DIARY_EXPORT_COPY.exportingButton
+                    : DIARY_EXPORT_COPY.exportButton}
+                </button>
+                <button className="btn btn-ghost" onClick={store.pickDiaryVault}>
+                  {store.vaultFolder
+                    ? DIARY_EXPORT_COPY.repickButton
+                    : DIARY_EXPORT_COPY.pickButton}
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--text-weak)' }}>
+                  {DIARY_EXPORT_COPY.pendingLabel(pending)}
+                </span>
+              </div>
+
+              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 10, lineHeight: 1.7 }}>
+                {store.vaultFolder ? (
+                  <div>{DIARY_EXPORT_COPY.folderLabel(store.vaultFolder)}</div>
+                ) : (
+                  <div>{DIARY_EXPORT_COPY.needPickHint}</div>
+                )}
+                <div>
+                  {store.diaryExport.lastExportAt
+                    ? DIARY_EXPORT_COPY.lastExportLabel(
+                        shortDateTimeLabel(store.diaryExport.lastExportAt),
+                      )
+                    : DIARY_EXPORT_COPY.neverExported}
+                </div>
+                {DIARY_EXPORT_COPY.notes.map((n) => (
+                  <div key={n}>· {n}</div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <input

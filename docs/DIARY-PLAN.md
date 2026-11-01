@@ -44,16 +44,22 @@
 - **D4 條目 schema(一期;2026-10-24 追加 mood)**:`{ id, date: 'YYYY-MM-DD', title?, body, mood?, createdAt, updatedAt }`;日期=管線取材單位(與現行 D6 對齊),同日多筆生成時合併(沿用 `parseJournal` 慣例)。心情=選填 8 選項(`DIARY_MOODS`,同日追加——原「一期不加」由維護者指示翻案);內容長度 100–500 字屬 UI 層驗證,儲存層只驗結構;圖片不加。
 - **D5 匯入既有 Google Doc(三期候選)**:一次貼入/匯入,解析沿用 `journal.ts` 的 D5 文字慣例(整行只有日期=新條目),把既有日誌無痛搬家。
 - **D6 匯出功能(2026-10-30 討論定案方向,未開工)**:應開發——補現有儲存架構三個縫。①雲端備份為**單一最新快照、無版本歷程**(誤刪 30 秒後自動備份即覆蓋雲端副本;本機與雲端同時出事=日記消失),匯出檔是唯一「凍結於時間點、不被後續操作覆蓋」的保存形式;②**512KB blob 上限**(與文庫全部內容共用,每日一篇約 200–400 篇逼近)——匯出使「年度封存」工作流可行(年底匯出該年→自 app 刪除舊年份→localStorage 與 blob 同時減壓),**不換資料庫即撐長期**(維護者前提:無需雲端/本地資料庫);③資料自主權——日記是不可再生內容,使用者手上應有一份自己掌控的檔案。兩種出口互補:**活體副本**(D7 Obsidian:人讀、可搜尋、長期累積)與**冷備份**(月/年彙整檔下載,選配——vault 自有備份/同步時可降為次要)。
-- **D7 Obsidian 匯出落點(2026-10-30 維護者提議,方向拍板、細節實作批定)**:
-  - **技術路徑**:File System Access API(`showDirectoryPicker` 挑 vault 專屬資料夾一次→瀏覽器直接寫 `.md`);Chrome/Edge 支援,**Firefox/Safari 不支援目錄寫入→退回一般檔案下載**;GitHub Pages HTTPS 滿足 secure context。**零後端、紅線零修訂**(資料不出機器,較雲端備份更保守)。
-  - **vault 架構**(對齊維護者 Obsidian 慣例:每日筆記 `YYYY-MM-DD.md`、檔名不加描述文字、frontmatter 冒號後空格、標籤小寫連字號):專屬資料夾隔離(如 `Journal/`,可選年份子資料夾);**一天一檔**,同日多筆以 `## 標題` 分節(與 D4 同日合併慣例一致、避免撞檔名);frontmatter:`created`/`tags: [journal]`(心情階層標籤如 `journal/開心`,去 emoji)/`aliases`/`source: text-message-diary`/條目時間戳。
-  - **覆寫政策(關鍵設計)**:**單向 app→vault+增量寫入**——app 落地每日期的匯出戳記,只重寫「上次匯出後有變更」的天,按幾次都只補差異(冪等)。誠實代價:Obsidian 端手改內文後、app 端再編輯同一天→重匯**以 app 為準覆蓋**;規則=改內容回 app 改,vault 端做加連結/標籤/延伸筆記(UI 誠實標示)。
-  - **自動匯出的真實語意=半自動**:非安裝式網頁重啟後首次匯出需再點一次授權(瀏覽器限制);session 內可比照雲端備份 30 秒 debounce 自動。二期選配「本月尚未匯出」淡提示。
-  - **與 D5 連動**:匯出走 markdown 每日檔後,匯入器 round-trip 對象=**自己匯出的格式**(frontmatter+每日檔,自產自收、格式自己釘得住);D5 的 Google Doc 純文字慣例不變,兩種格式並存。
+- **D7 Obsidian 匯出落點(2026-10-30 維護者提議;2026-11-01 開工前查實際 vault 後兩問拍板並完成一期)**:
+  - **技術路徑**:File System Access API(`showDirectoryPicker` 挑 vault 資料夾→瀏覽器直接寫 `.md`);Chrome/Edge 支援,**Firefox/Safari 不支援目錄寫入→退回彙整 markdown 下載**;GitHub Pages HTTPS 滿足 secure context。**零後端、紅線零修訂**(資料不出機器,較雲端備份更保守)。
+  - **落點拍板=併入 vault 既有的 life 條目 `daily/life/YYYY-MM-DD.md`**(否決原案的專屬 `Journal/` 資料夾)。**動工前查實際 vault(`~/Github-Projects/Obsidian_Journal`)才看到的事實**:vault 已有 `daily/work|life|dreams` 結構、`templates/life-daily.md` 範本、以及吃 `daily/life` 的 `scripts/review.py` 與 `weekly_digest.py`——獨立資料夾會讓匯出的日記**不被既有統計腳本看到**,等於在同一個 vault 裡養出第二套日記。新建檔案比照範本形狀(frontmatter `type/date/tags/mood/energy` + `# 🌱 Life · <date>` + 四個固定小節 + 尾段分隔線 + `*[[weekly-YYYY-Www]]*` 反向連結)。
+  - **寫入方式拍板=標記區塊 splice**(`<!-- text-message:diary -->` … `<!-- /text-message:diary -->`),**原案「整檔覆蓋、以 app 為準」已否決**。否決理由是查 vault 自己的 `CLAUDE.md` 時撞上的硬規則:多 session 寫入紀律第一條「**只 append,不改寫**」,腳本只更新自己帶標記的區段、手寫內容視為唯讀(vault 的 digest 腳本就是這個作法,標記慣例直接沿用)。因此不再有「Obsidian 端手改會被覆蓋」的代價——app 只擁有自己標記之間那一段,其餘(含 frontmatter 與手寫小節)原封不動;冪等。
+  - **心情與標籤**:mood 寫成**區塊內**的 `**心情**:<值>` 一行;frontmatter 的 `mood:` **只有 app 新建該檔時**才填,既有檔案的 frontmatter 一律不碰。**不自創標籤**(原案的 `journal/<心情>` 階層標籤已放棄)——vault 標籤慣例是收斂不發散、新標籤要先進清單,新建檔沿用範本的 `tags: [life]` 即可。
+  - **增量**:匯出戳記 `date → 當時該天的最大 updatedAt`,只重寫「上次匯出後有變更」的天。戳記放**自己的鍵** `text-message:diary-export:v1`(`services/diary/exportStore.ts`)且**刻意不進雲端備份**——它回答的是「這台機器的那個資料夾收到哪一版了」,同步到別台只會讓另一台誤判已寫過而跳過該寫的天。遺失戳記不壞資料(splice 冪等,最壞只是多寫幾個檔)。
+  - **在 app 刪掉的日記不會從 vault 移除**:匯出檔的意義就是 D6 ① 的「凍結於時間點、不被後續操作覆蓋」,刪除不同步過去(UI 已標示)。
+  - **自動匯出的真實語意=半自動**:handle 只存記憶體(刻意不用 IndexedDB 保存),非安裝式網頁重啟後首次匯出需再挑一次資料夾。二期選配 session 內 debounce 與「本月尚未匯出」淡提示。
+  - **與 D5 連動**:匯入器 round-trip 對象=**自己匯出的格式**;D5 的 Google Doc 純文字慣例不變,兩種格式並存。
+  - **vault 安全邊界**:本模組從頭到尾只開 `daily/life/` 這一個子樹、只讀寫 `YYYY-MM-DD.md`;vault 的禁止事項(不動 `.obsidian/`、不刪 `archive/`、不改既有 `scripts/`)自然滿足。日記內容本來就不含 token/密碼(紅線:token 絕不落地),符合 vault「嚴禁把帳密寫進日誌」的規則。
 
 ## 分期
 
 - **P1(2026-10-24 完成)**:撰寫/編輯/刪除(確認 Modal)+ 列表新→舊 + 搜尋;獨立儲存鍵 `text-message:diary:v1`(`services/diary/storage.ts`,storage 可注入測試);store 走獨立持久化 effect(quota 提示與主 effect 共用一次性 ref);E2E 八分頁+日記 CRUD。同日追加:心情(選填 8 選項,條目 pill+納入搜尋)與內容長度 100–500 字(下限門檻+`maxLength`+即時字數)。
 - **P2**:管線來源=本機日記(D3 兩路徑:**A 管線 diary 分流先做**——分組合併純函式+測試、`topUpPipeline` 分流、管線卡 chips+文案+誠實標示;**B 條目卡生成貼文後做**——按鈕+store 動作)。各約一小批,worker 零改動。
 - **P3(候選)**:Google Doc 匯入(D5)、條目內 AI 潤稿。
-- **P4(候選,2026-10-30 匯出討論)**:匯出(D6/D7)——一期手動(File System Access API 挑資料夾一次+按鈕增量寫入+範圍全部/年/月;markdown 組裝與匯出戳記純函式+測試);二期選配(30 秒 debounce 半自動、「本月尚未匯出」提示、冷備份月/年彙整檔下載)。排程:日記 P2 之後或提前皆可(量級小批,worker 零改動)。
+- **P4 匯出(D6/D7)——一期 2026-11-01 完成**:`vaultMarkdown.ts` 純邏輯(檔名/ISO 週標籤/區塊組裝/新建筆記/splice/增量判定/範圍界線/彙整檔)22 測、`exportStore.ts` 戳記獨立鍵 8 測、`vaultFs.ts` 檔案系統層(唯一碰 DOM 的一支,自備 `showDirectoryPicker` ambient 型別)、store `pickDiaryVault`/`exportDiaryToVault`(逐日獨立 try,**單天失敗不連坐**、只有寫成功的天記戳記)配 2 個 hook 測(假 handle 跑完整流程,已以 mutation 驗證守得住 splice 與增量)、日記頁匯出卡(範圍 chips/選資料夾/待寫天數/上次匯出/三條誠實標示)。worker 零改動。
+  - **ISO 週標籤**特別對照 vault `scripts/journal.py` 的 `_iso_week`:**週編號年份不等於日曆年份**(2027-01-01 屬 2026-W53、2025-12-29 屬 2026-W01),不能用 `getFullYear()`;實作與 Python `isocalendar()` 逐日比對 762 天零差異。
+  - **一期刻意不做**:session 內 debounce 自動匯出、「本月尚未匯出」提示、月/年彙整冷備份檔(Firefox/Safari 退路已順手提供單一彙整 markdown)、便條一併匯出(POST-PLAN P3 候選,markdown 組裝可共用這批純函式)。

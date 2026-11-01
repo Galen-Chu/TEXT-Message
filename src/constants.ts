@@ -826,3 +826,50 @@ export const DIARY_COPY = {
   emptyBodyToast: '內容是空的,寫點什麼再儲存吧',
   bodyLengthToast: (n: number) => `內容需 ${DIARY_BODY_MIN}–${DIARY_BODY_MAX} 字(目前 ${n} 字)`,
 };
+
+/**
+ * 日記匯出到 Obsidian vault(DIARY-PLAN D6/D7,2026-11-01)。
+ * 文案的誠實標示有四件事必須講清楚(都是真實限制,不是客套):
+ * ①重開網頁要再挑一次資料夾(handle 只在記憶體);②單向 app→vault、只寫自己的標記
+ * 區塊;③app 會**讀**當天那個檔案(splice 需要);④在 app 刪掉的日記不會同步刪除 vault。
+ */
+export const DIARY_EXPORT_RANGES = [
+  { value: 'all' as const, label: '全部' },
+  { value: 'year' as const, label: '今年' },
+  { value: 'month' as const, label: '本月' },
+];
+
+export const DIARY_EXPORT_COPY = {
+  cardTitle: '📤 匯出到 Obsidian',
+  cardDesc: '把日記寫進你自己的 vault(daily/life/YYYY-MM-DD.md),資料不離開這台電腦',
+  pickButton: '選擇 vault 資料夾',
+  repickButton: '重新選擇資料夾',
+  exportButton: '匯出日記',
+  exportingButton: '匯出中…',
+  rangeLabel: '匯出範圍',
+  folderLabel: (name: string) => `資料夾:${name}`,
+  lastExportLabel: (when: string) => `上次匯出:${when}`,
+  neverExported: '還沒匯出過',
+  pendingLabel: (n: number) => (n === 0 ? '沒有需要更新的日期' : `有 ${n} 天需要寫入`),
+  needPickHint: '每次重開網頁都要再選一次資料夾(網頁無法長期保留資料夾權限)',
+  notes: [
+    '單向寫入:只建立/更新筆記裡 text-message:diary 標記的區塊,你在 Obsidian 手寫的內容不會被動到',
+    '為了併入既有筆記,匯出時 app 會讀取當天那個 .md 檔的內容',
+    '在 app 刪掉的日記不會從 vault 移除——匯出檔是當下的凍結副本',
+  ],
+  cancelledToast: '已取消選擇資料夾',
+  pickedToast: (name: string) => `已選擇「${name}」,可以開始匯出`,
+  nothingToast: '這個範圍內沒有需要更新的日記',
+  doneToast: (n: number) => `已寫入 ${n} 天的日記到 vault ✅`,
+  partialToast: (ok: number, failed: number) => `寫入 ${ok} 天,有 ${failed} 天失敗`,
+  unsupportedTitle: '這個瀏覽器不支援直接寫入資料夾',
+  unsupportedDesc: 'Chrome 或 Edge 可直接寫進 vault;此處改為下載一個彙整的 markdown 檔',
+  downloadButton: '下載彙整 markdown',
+  downloadedToast: '已下載彙整檔',
+  errorToast: {
+    unsupported: '這個瀏覽器不支援直接寫入資料夾',
+    cancelled: '已取消',
+    permission: '沒有資料夾權限,請重新選擇資料夾',
+    write_failed: '寫入失敗,請確認資料夾仍可存取',
+  } as Record<string, string>,
+};

@@ -1302,3 +1302,111 @@ describe('useAppStore:文庫雲端備份二期(自動同步,2026-10-06)', () => 
     expect(result.current.librarySyncCode).toBe('');
   });
 });
+
+/**
+ * 日記匯出到 vault(DIARY-PLAN D7):用假的 File System Access handle 跑完整流程。
+ * 這裡守的是三件真的會壞的事:①既有檔案走 splice(手寫內容不能被動到)、
+ * ②沒有檔案才新建、③戳記讓第二次按下不重寫(增量)。
+ */
+describe('useAppStore:日記匯出到 Obsidian vault', () => {
+  /** 極簡假 vault:`files` 是「路徑 → 內容」的平面 map,目錄 handle 只記自己的前綴。 */
+  function fakeVault(files: Record<string, string> = {}) {
+    const makeDir = (prefix: string): FileSystemDirectoryHandle =>
+      ({
+        name: prefix === '' ? 'MyVault' : prefix.replace(/\/$/, ''),
+        getDirectoryHandle: async (seg: string) => makeDir(`${prefix}${seg}/`),
+        getFileHandle: async (name: string, opts?: { create?: boolean }) => {
+          const path = `${prefix}${name}`;
+          if (!(path in files) && !opts?.create) {
+            throw new DOMException('missing', 'NotFoundError');
+          }
+          return {
+            getFile: async () => ({ text: async () => files[path] ?? '' }),
+            createWritable: async () => ({
+              write: async (content: string) => {
+                files[path] = content;
+              },
+              close: async () => {},
+            }),
+          };
+        },
+      }) as unknown as FileSystemDirectoryHandle;
+
+    const win = window as unknown as { showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle> };
+    win.showDirectoryPicker = async () => makeDir('');
+    return files;
+  }
+
+  afterEach(() => {
+    delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+  });
+
+  it('vault 沒有該天的檔案 → 依 life 範本新建,並記下戳記使第二次不重寫', async () => {
+    const files = fakeVault();
+    const { result } = renderHook(() => useAppStore());
+
+    act(() =>
+      result.current.addDiaryEntry({ date: '2026-10-24', title: '散步', body: '走了 3.5 公里' }),
+    );
+    await act(async () => {
+      await result.current.exportDiaryToVault('all');
+    });
+
+    const written = files['daily/life/2026-10-24.md'];
+    expect(written).toBeDefined();
+    expect(written).toContain('type: life'); // 新建走範本形狀
+    expect(written).toContain('## Moment Worth Remembering');
+    expect(written).toContain('<!-- text-message:diary -->');
+    expect(written).toContain('走了 3.5 公里');
+    // 戳記落地在自己的鍵(不在日記鍵、也不在 v2)
+    const stamps = JSON.parse(localStorage.getItem('text-message:diary-export:v1') ?? '{}');
+    expect(stamps.stamps['2026-10-24']).toBeGreaterThan(0);
+    expect(result.current.diaryExport.lastExportAt).toBeGreaterThan(0);
+
+    // 增量:內容沒變 → 第二次按下不再寫入(把檔案換成哨兵,確認沒被蓋掉)
+    files['daily/life/2026-10-24.md'] = 'SENTINEL';
+    await act(async () => {
+      await result.current.exportDiaryToVault('all');
+    });
+    expect(files['daily/life/2026-10-24.md']).toBe('SENTINEL');
+  });
+
+  it('既有筆記 → 只換自己的標記區塊,手寫內容與 frontmatter 原封不動', async () => {
+    const existing = [
+      '---',
+      'type: life',
+      'mood: 😊 開心',
+      '---',
+      '',
+      '## How I Felt',
+      '',
+      '- 我在 Obsidian 手寫的這行不能消失',
+      '',
+      '<!-- text-message:diary -->',
+      '',
+      '## 舊版',
+      '',
+      '舊內容',
+      '<!-- /text-message:diary -->',
+      '',
+      '---',
+      '*[[weekly-2026-W43]]*',
+      '',
+    ].join('\n');
+    const files = fakeVault({ 'daily/life/2026-10-24.md': existing });
+    const { result } = renderHook(() => useAppStore());
+
+    act(() => result.current.addDiaryEntry({ date: '2026-10-24', title: '新版', body: '新內容' }));
+    await act(async () => {
+      await result.current.exportDiaryToVault('all');
+    });
+
+    const out = files['daily/life/2026-10-24.md'];
+    expect(out).toContain('- 我在 Obsidian 手寫的這行不能消失');
+    expect(out).toContain('mood: 😊 開心');
+    expect(out).toContain('*[[weekly-2026-W43]]*');
+    expect(out).toContain('新內容');
+    expect(out).not.toContain('舊內容');
+    expect(out.split('<!-- text-message:diary -->')).toHaveLength(2); // 沒有重複插入
+  });
+});
