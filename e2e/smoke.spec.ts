@@ -7,10 +7,10 @@ async function gotoTab(page: import('@playwright/test').Page, name: string) {
   await page.locator('nav').getByText(name, { exact: true }).click();
 }
 
-test('載入:標題與側邊欄八個分頁', async ({ page }) => {
+test('載入:標題與側邊欄九個分頁', async ({ page }) => {
   await page.goto(PATH);
   await expect(page).toHaveTitle('TEXT-Message');
-  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '編發器 Draft', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
     await expect(page.locator('nav').getByText(nav, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('近期排程')).toBeVisible();
@@ -18,7 +18,7 @@ test('載入:標題與側邊欄八個分頁', async ({ page }) => {
 
 test('分頁切換:各頁主標題正確', async ({ page }) => {
   await page.goto(PATH);
-  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '編發器 Draft', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
     await gotoTab(page, nav);
     await expect(page.locator('main').getByText(nav, { exact: true }).first()).toBeVisible();
   }
@@ -46,7 +46,7 @@ test('雲端列:示範文檔可預覽、引用到編發器、設為風格樣本'
   await page.getByText('蘭嶼慢旅記:三天兩夜的手帳筆記').first().click();
   await page.getByRole('button', { name: '引用到編發器' }).click();
 
-  await expect(page.locator('main').getByText('編發器 Text', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('main').getByText('編發器 Draft', { exact: true }).first()).toBeVisible();
   await expect(page.locator('textarea').first()).toHaveValue(/蘭嶼慢旅記/);
   // 二期:有風格樣本時,編發器 AI 卡出現參照開關
   await expect(page.getByText('參照我的 Drive 風格(1 篇)')).toBeVisible();
@@ -102,7 +102,7 @@ test('草稿管理:儲存文體入文庫,重新整理後仍在,可開啟至編�
   await expect(page.getByRole('button', { name: '開啟至編輯器' }).first()).toBeVisible();
 
   await page.getByRole('button', { name: '開啟至編輯器' }).first().click();
-  await expect(page.locator('main').getByText('編發器 Text', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('main').getByText('編發器 Draft', { exact: true }).first()).toBeVisible();
   await expect(page.locator('textarea').first()).toHaveValue(/.+/);
   // IA Phase 3:文檔類型 chips 可見
   await expect(page.getByText('文檔類型')).toBeVisible();
@@ -112,7 +112,7 @@ test('核心流程:郵件轉為草稿', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '郵件匣 Gmail');
   await page.getByRole('button', { name: '轉為草稿' }).first().click();
-  await expect(page.locator('main').getByText('編發器 Text', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('main').getByText('編發器 Draft', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('原始郵件參考')).toBeVisible();
   const textarea = page.locator('textarea');
   await expect(textarea).toHaveValue(/.+/);
@@ -158,14 +158,14 @@ test('持久化:草稿重新整理後仍在,刪除內容後清除', async ({ pag
   await page.locator('textarea').fill('E2E持久化草稿');
 
   await page.reload();
-  await gotoTab(page, '編發器 Text');
+  await gotoTab(page, '編發器 Draft');
   await expect(page.locator('textarea')).toHaveValue(/E2E持久化草稿/);
 
   await page.getByRole('button', { name: '刪除內容' }).click();
   await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
 
   await page.reload();
-  await gotoTab(page, '編發器 Text');
+  await gotoTab(page, '編發器 Draft');
   await expect(page.getByText('還沒有選擇內容來源')).toBeVisible();
 });
 
@@ -188,6 +188,44 @@ test('文庫:編輯與刪除範本', async ({ page }) => {
   const editedCard = page.getByText('E2E已編輯').first().locator('..');
   await editedCard.getByRole('button', { name: '刪除' }).click();
   await expect(page.getByText('E2E已編輯')).toHaveCount(0);
+});
+
+test('貼便條:新增、持久化、篩選、套用到編發器、刪除', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '貼便條 Post');
+
+  // 內容為空不得貼上
+  await page.getByRole('button', { name: '貼上便條' }).click();
+  await expect(page.getByText('還沒有便條')).toBeVisible();
+
+  await page.getByPlaceholder('貼上或寫下想留著的東西').fill('E2E便條內容');
+  await page.getByPlaceholder('以逗號或空白分隔,例:寫作 靈感').fill('e2e, 靈感');
+  await page.getByRole('button', { name: '💡 靈感', exact: true }).first().click();
+  await page.getByRole('button', { name: '貼上便條' }).click();
+  await expect(page.getByText('E2E便條內容').first()).toBeVisible();
+
+  // 持久化(獨立鍵 text-message:notes:v1,POST-PLAN D1)
+  await page.reload();
+  await gotoTab(page, '貼便條 Post');
+  await expect(page.getByText('E2E便條內容').first()).toBeVisible();
+
+  // 類型篩選:選「📝 筆記」後這張靈感便條不該出現,切回全部又回來
+  await page.locator('button.pill', { hasText: '📝 筆記' }).first().click();
+  await expect(page.getByText('E2E便條內容')).toHaveCount(0);
+  await page.locator('button.pill', { hasText: '全部' }).first().click();
+  await expect(page.getByText('E2E便條內容').first()).toBeVisible();
+
+  // 套用到編發器:附加到草稿並跳頁
+  await page.getByRole('button', { name: '套用到編發器' }).first().click();
+  await expect(page.locator('main').getByText('編發器 Draft', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('textarea').first()).toHaveValue(/E2E便條內容/);
+
+  // 刪除:確認 Modal
+  await gotoTab(page, '貼便條 Post');
+  await page.getByRole('button', { name: '刪除', exact: true }).first().click();
+  await page.getByRole('button', { name: '刪除便條' }).click();
+  await expect(page.getByText('E2E便條內容')).toHaveCount(0);
+  await expect(page.getByText('還沒有便條')).toBeVisible();
 });
 
 test('寫日記:新增、持久化、編輯、刪除', async ({ page }) => {

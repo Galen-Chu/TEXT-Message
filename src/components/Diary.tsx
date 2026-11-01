@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { DIARY_BODY_MAX, DIARY_BODY_MIN, DIARY_COPY, DIARY_MOODS } from '../constants';
+import {
+  DIARY_BODY_MAX,
+  DIARY_BODY_MIN,
+  DIARY_COPY,
+  DIARY_MOODS,
+  DIARY_PAGE_SIZE,
+} from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { searchDiaryEntries, sortDiaryEntries } from '../services/diary/storage';
 import type { DiaryEntry } from '../types';
@@ -25,8 +31,12 @@ export default function Diary({ store }: { store: AppStore }) {
   const [editBody, setEditBody] = useState('');
   const [editMood, setEditMood] = useState('');
   const [deleting, setDeleting] = useState<DiaryEntry | null>(null);
+  const [shown, setShown] = useState(DIARY_PAGE_SIZE);
 
   const entries = searchDiaryEntries(sortDiaryEntries(store.diaryEntries), search);
+  // 分頁(2026-11-01 補缺口):累積數百篇後整頁全文渲染會過長;換關鍵字時縮回第一頁。
+  const visible = entries.slice(0, shown);
+  const more = entries.length - visible.length;
 
   /** 心情 chips(撰寫卡與編輯 Modal 共用;點已選的再取消)。樣式沿 Inbox 標籤 chips 慣例。 */
   const moodChips = (value: string, onPick: (m: string) => void) => (
@@ -181,7 +191,10 @@ export default function Diary({ store }: { store: AppStore }) {
           className="text-input"
           style={{ flex: 1 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setShown(DIARY_PAGE_SIZE);
+          }}
           placeholder={DIARY_COPY.searchPlaceholder}
         />
         <span style={{ fontSize: 12, color: 'var(--text-weak)', whiteSpace: 'nowrap' }}>
@@ -200,7 +213,7 @@ export default function Diary({ store }: { store: AppStore }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {entries.map((e) => (
+          {visible.map((e) => (
             <div className="card" key={e.id} style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span className="pill pill-brand">{e.date}</span>
@@ -250,6 +263,15 @@ export default function Diary({ store }: { store: AppStore }) {
               </div>
             </div>
           ))}
+          {more > 0 && (
+            <button
+              className="btn btn-outline"
+              style={{ alignSelf: 'center', borderRadius: 8 }}
+              onClick={() => setShown((n) => n + DIARY_PAGE_SIZE)}
+            >
+              {DIARY_COPY.loadMoreButton(more)}
+            </button>
+          )}
         </div>
       )}
 

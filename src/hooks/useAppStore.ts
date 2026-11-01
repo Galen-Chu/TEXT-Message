@@ -24,6 +24,7 @@ import {
   LANGUAGE_OPTIONS,
   LIBRARY_BACKUP_COPY,
   LIBRARY_COPY,
+  NOTES_COPY,
   PIPELINE_COPY,
   PLATFORM_LIST,
   PLATFORM_META,
@@ -50,6 +51,7 @@ import { parseJournal, pickJournalEntries } from '../services/gemini/journal';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { isDiaryEntry, loadDiaryEntries, saveDiaryEntries } from '../services/diary/storage';
+import { isNote, loadNotes, noteInsertText, saveNotes } from '../services/notes/storage';
 import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
 import { pendingToPeerCount, sendCaptionToPeer } from '../services/family/handoff';
 import { clearStoredSyncCode, loadStoredSyncCode, saveStoredSyncCode } from '../services/library/codeStore';
@@ -75,6 +77,7 @@ import type {
   DraftDoc,
   Email,
   EmailTag,
+  Note,
   PlatformKey,
   ScheduleItem,
   SocialPost,
@@ -337,6 +340,11 @@ export function useAppStore() {
     loadDiaryEntries(localStorage),
   );
 
+  // 便條(POST-PLAN,2026-11-01):小筆記/好文章/靈感——同日記的儲存形態,
+  // 獨立鍵 text-message:notes:v1(D1),不進 text-message:v2、不進 family:*;
+  // 內容隨文庫雲端備份(D2,加密 blob 的選用欄位)。
+  const [notes, setNotes] = useState<Note[]>(() => loadNotes(localStorage));
+
   const [inboxSearch, setInboxSearch] = useState('');
   const [inboxFilter, setInboxFilter] = useState<'全部' | EmailTag>('全部');
   /** Gmail 使用者標籤篩選(label id;null = 不套用)——僅已連線時生效。 */
@@ -414,6 +422,16 @@ export function useAppStore() {
       showToast(STORAGE_COPY.quotaExceededToast);
     }
   }, [diaryEntries, showToast]);
+
+  // 便條獨立持久化(POST-PLAN D1):同日記的理由(高頻、獨立 schema),
+  // 配額提示共用同一個一次性 ref。
+  useEffect(() => {
+    const r = saveNotes(notes, localStorage);
+    if (!r.ok && r.quota && !storageQuotaWarned.current) {
+      storageQuotaWarned.current = true;
+      showToast(STORAGE_COPY.quotaExceededToast);
+    }
+  }, [notes, showToast]);
 
   // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
   const [familyPendingCount, setFamilyPendingCount] = useState(0);
@@ -1005,6 +1023,47 @@ export function useAppStore() {
     [showToast],
   );
 
+  // ---- 便條 CRUD(POST-PLAN,2026-11-01)----
+  /** 新增便條:前插(列表更新時間新→舊);url/tags 選填;id 與時間戳統一在此發。 */
+  const addNote = useCallback(
+    (input: { kind: Note['kind']; title: string; body: string; url?: string; tags: string[] }) => {
+      const now = Date.now();
+      const n: Note = { id: newId('note-'), createdAt: now, updatedAt: now, ...input };
+      setNotes((list) => [n, ...list]);
+      showToast(NOTES_COPY.savedToast);
+    },
+    [showToast],
+  );
+
+  const updateNote = useCallback(
+    (
+      id: string,
+      patch: { kind: Note['kind']; title: string; body: string; url?: string; tags: string[] },
+    ) => {
+      setNotes((list) =>
+        list.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)),
+      );
+      showToast(NOTES_COPY.updatedToast);
+    },
+    [showToast],
+  );
+
+  const deleteNote = useCallback(
+    (id: string) => {
+      setNotes((list) => list.filter((n) => n.id !== id));
+      showToast(NOTES_COPY.deletedToast);
+    },
+    [showToast],
+  );
+
+  /** 便條 → 編發器:附加到既有草稿尾端並跳頁(沿 insertDriveText 慣例)。 */
+  const applyNoteToDraft = (note: Note) => {
+    setSelectedMailId((id) => id ?? 'blank');
+    setDraftText((t) => (t ? t + '\n\n' : '') + noteInsertText(note));
+    setActiveTab('draft');
+    showToast(NOTES_COPY.appliedToast);
+  };
+
   // ---- 自動發文管線 P1(PIPELINE-PLAN 架構 1,2026-10-15;前端批次預排)----
   // 冪等鐵則(PIPELINE-PLAN §7 風險表):補糧前必先 GET /api/queue 比對 pending 日期,
   // 略過已排——否則每次開站都補會同一天排到多筆。時間一律本機時區(見 utils/pipeline)。
@@ -1212,6 +1271,7 @@ export function useAppStore() {
       driveStyleSamples,
       driveStyleEnabled,
       diary: diaryEntries, // D2(2026-10-24):日記隨文庫備份(獨立鍵的內容,進同一加密 blob)
+      notes, // POST-PLAN D2(2026-11-01):便條同規——獨立鍵的內容,進同一加密 blob
     });
     const enc = await encryptLibraryBlob(c, JSON.stringify(payload));
     const r = await librarySave({
@@ -1239,7 +1299,7 @@ export function useAppStore() {
   const restoreLibraryPrepare = async (
     code: string,
   ): Promise<
-    | { ok: true; savedAt: number; diaryCount: number | null }
+    | { ok: true; savedAt: number; diaryCount: number | null; noteCount: number | null }
     | { ok: false; code: 'empty' | 'network' | 'not_found' | 'bad_code' | 'bad_payload' }
   > => {
     const c = code.trim();
@@ -1261,8 +1321,13 @@ export function useAppStore() {
     }
     if (!isValidLibraryPayload(parsed)) return { ok: false, code: 'bad_payload' };
     pendingRestoreRef.current = parsed;
-    // diaryCount=null 代表舊備份不含日記欄(還原時不動本機日記),供還原確認 Modal 誠實標示
-    return { ok: true, savedAt: r.data.savedAt, diaryCount: parsed.diary ? parsed.diary.length : null };
+    // count=null 代表舊備份不含該欄(還原時不動本機該類資料),供還原確認 Modal 誠實標示
+    return {
+      ok: true,
+      savedAt: r.data.savedAt,
+      diaryCount: parsed.diary ? parsed.diary.length : null,
+      noteCount: parsed.notes ? parsed.notes.length : null,
+    };
   };
 
   /** 還原第二步(使用者確認後):以雲端內容覆蓋本機全部文庫資料。 */
@@ -1285,6 +1350,8 @@ export function useAppStore() {
     setDriveStyleEnabled(p.driveStyleEnabled);
     // D2:diary 為選用欄位——舊備份無此欄=不動本機日記(防舊快照清掉現存日記);有帶則逐筆過濾
     if (p.diary !== undefined) setDiaryEntries(p.diary.filter(isDiaryEntry));
+    // POST-PLAN D2:便條同規——舊備份無此欄=不動本機便條
+    if (p.notes !== undefined) setNotes(p.notes.filter(isNote));
     setDraftText(p.draftText);
     setDraftPlatforms(p.draftPlatforms);
     setLibrarySavedAt(p.savedAt);
@@ -1349,13 +1416,13 @@ export function useAppStore() {
       void backupLibraryToCloud(librarySyncCode, { silent: true });
     }, 30_000);
     return () => clearTimeout(autoSyncTimer.current);
-    // 內容欄位與一期持久化 effect 同步集合,加 diaryEntries(D2:日記也在備份內容裡);
+    // 內容欄位與一期持久化 effect 同步集合,加 diaryEntries 與 notes(D2:兩者也在備份內容裡);
     // backupLibraryToCloud 讀最新 state(閉包經重渲染更新)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms,
     selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled,
-    drafts, activeDraftId, activeTemplateId, diaryEntries, librarySyncCode, libraryStartup,
+    drafts, activeDraftId, activeTemplateId, diaryEntries, notes, librarySyncCode, libraryStartup,
   ]);
 
   /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
@@ -1754,6 +1821,11 @@ export function useAppStore() {
     addDiaryEntry,
     updateDiaryEntry,
     deleteDiaryEntry,
+    notes,
+    addNote,
+    updateNote,
+    deleteNote,
+    applyNoteToDraft,
     driveStyleSamples,
     driveStyleEnabled,
     setDriveStyleEnabled,

@@ -147,4 +147,25 @@ describe('searchDiaryEntries', () => {
   it('無命中 → []', () => {
     expect(searchDiaryEntries(list, '查無此字')).toEqual([]);
   });
+
+  it('日期可比對:完整日期與月份前綴(2026-11-01 補缺口)', () => {
+    const dated = [
+      entry({ id: 'oct', date: '2026-10-24', body: '十月的事' }),
+      entry({ id: 'nov', date: '2026-11-01', body: '十一月的事' }),
+    ];
+    expect(searchDiaryEntries(dated, '2026-10-24').map((e) => e.id)).toEqual(['oct']);
+    expect(searchDiaryEntries(dated, '2026-11').map((e) => e.id)).toEqual(['nov']);
+    expect(searchDiaryEntries(dated, '2026').map((e) => e.id)).toEqual(['oct', 'nov']);
+  });
+
+  it('日期查詢的 / 與 . 分隔一併接受', () => {
+    const dated = [entry({ id: 'oct', date: '2026-10-24' })];
+    expect(searchDiaryEntries(dated, '2026/10/24').map((e) => e.id)).toEqual(['oct']);
+    expect(searchDiaryEntries(dated, '2026.10').map((e) => e.id)).toEqual(['oct']);
+  });
+
+  it('正規化不得害到內容搜尋:含小數點的字串仍搜得到', () => {
+    const dotted = [entry({ id: 'run', body: '今天跑了 3.5 公里' })];
+    expect(searchDiaryEntries(dotted, '3.5').map((e) => e.id)).toEqual(['run']);
+  });
 });

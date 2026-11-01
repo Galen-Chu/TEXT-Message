@@ -76,7 +76,7 @@ export default function Library({ store }: { store: AppStore }) {
   // 雲端備份(方案 A):同步碼僅存在此元件狀態,不落地
   const [syncCode, setSyncCode] = useState('');
   const [backupBusy, setBackupBusy] = useState(false);
-  const [pendingRestore, setPendingRestore] = useState<{ savedAt: number; diaryCount: number | null } | null>(
+  const [pendingRestore, setPendingRestore] = useState<{ savedAt: number; diaryCount: number | null; noteCount: number | null } | null>(
     null,
   );
 
@@ -228,7 +228,7 @@ export default function Library({ store }: { store: AppStore }) {
                   setBackupBusy(true);
                   const r = await store.restoreLibraryPrepare(store.librarySyncCode);
                   setBackupBusy(false);
-                  if (r.ok) setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
+                  if (r.ok) setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount, noteCount: r.noteCount });
                 }}
               >
                 {LIBRARY_BACKUP_COPY.restoreButton}
@@ -274,7 +274,7 @@ export default function Library({ store }: { store: AppStore }) {
                     const r = await store.restoreLibraryPrepare(store.librarySyncCode);
                     setBackupBusy(false);
                     if (r.ok) {
-                      setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
+                      setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount, noteCount: r.noteCount });
                     } else {
                       const copy = {
                         empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
@@ -330,7 +330,7 @@ export default function Library({ store }: { store: AppStore }) {
                   const r = await store.restoreLibraryPrepare(syncCode);
                   setBackupBusy(false);
                   if (r.ok) {
-                    setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount });
+                    setPendingRestore({ savedAt: r.savedAt, diaryCount: r.diaryCount, noteCount: r.noteCount });
                   } else {
                     const copy = {
                       empty: LIBRARY_BACKUP_COPY.emptyCodeToast,
@@ -842,6 +842,7 @@ export default function Library({ store }: { store: AppStore }) {
             {LIBRARY_BACKUP_COPY.confirmDesc(
               new Date(pendingRestore.savedAt).toLocaleString('zh-TW'),
               pendingRestore.diaryCount,
+              pendingRestore.noteCount,
             )}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

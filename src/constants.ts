@@ -1,4 +1,4 @@
-import type { DocKind, EmailTag, PlatformKey, PlatformMeta } from './types';
+import type { DocKind, EmailTag, NoteKind, PlatformKey, PlatformMeta } from './types';
 import type { GmailErrorCode } from './services/gmail/errors';
 
 /** Gmail 連線錯誤的使用者文案(依 errors.ts 的 code 對應)。 */
@@ -624,10 +624,23 @@ export const LIBRARY_BACKUP_COPY = {
   restoreButton: '從雲端還原',
   restoringLabel: '還原中…',
   confirmTitle: '從雲端還原',
-  confirmDesc: (d: string, diaryCount: number | null) =>
-    `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿)${
-      diaryCount === null ? ';此備份較舊、不含日記,本機日記保持不變' : `與日記(${diaryCount} 篇)`
-    },確認嗎?`,
+  /**
+   * 還原確認文案:誠實標示備份含哪些獨立鍵內容(日記=篇、便條=張)。
+   * count 為 null = 舊備份沒有該欄位 → 還原時不動本機該類資料(見 restoreLibraryApply)。
+   */
+  confirmDesc: (d: string, diaryCount: number | null, noteCount: number | null) => {
+    const has: string[] = [];
+    if (diaryCount !== null) has.push(`日記(${diaryCount} 篇)`);
+    if (noteCount !== null) has.push(`便條(${noteCount} 張)`);
+    const missing: string[] = [];
+    if (diaryCount === null) missing.push('日記');
+    if (noteCount === null) missing.push('便條');
+    const hasPart = has.length ? `與${has.join('、')}` : '';
+    const missingPart = missing.length
+      ? `此備份較舊、不含${missing.join('與')},本機${missing.join('與')}保持不變。`
+      : '';
+    return `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿)${hasPart}。${missingPart}確認嗎?`;
+  },
   confirmApply: '覆蓋本機並還原',
   restoredToast: '已從雲端還原文庫 ✅',
   emptyCodeToast: '請先輸入同步碼(8–64 字)',
@@ -710,6 +723,61 @@ export const YOUTUBE_ERROR_COPY: Record<string, string> = {
   unknown: '發生未預期的錯誤,請重試',
 };
 
+/**
+ * 貼便條(POST-PLAN,2026-11-01):小筆記/好文章/靈感的落點,純前端、零後端;
+ * 內容隨文庫雲端備份(D2)。與日記的分工:日記=按日期寫的長文(100–500 字、
+ * 管線素材),便條=隨手貼的短素材(無長度門檻、可帶連結與標籤)。
+ */
+export const NOTE_KIND_OPTIONS: Array<{ key: NoteKind; label: string; hint: string }> = [
+  { key: 'note', label: '📝 筆記', hint: '自己寫下的重點、備忘' },
+  { key: 'article', label: '🔗 好文章', hint: '外部來源,建議附上連結' },
+  { key: 'idea', label: '💡 靈感', hint: '可長成貼文的種子' },
+];
+
+export const NOTE_BODY_MAX = 2000;
+export const NOTES_PAGE_SIZE = 20;
+
+export const NOTES_COPY = {
+  pageTitle: '貼便條 Post',
+  pageDesc: '小筆記、好文章、靈感隨手貼在這裡——只存在這台裝置,不經後端;內容隨文庫雲端備份',
+  composeTitle: '新增便條',
+  kindLabel: '類型',
+  titleLabel: '標題(選填)',
+  urlLabel: '連結(選填)',
+  urlPlaceholder: 'https://',
+  bodyLabel: '內容',
+  bodyPlaceholder: '貼上或寫下想留著的東西',
+  tagsLabel: '標籤(選填)',
+  tagsPlaceholder: '以逗號或空白分隔,例:寫作 靈感',
+  bodyCountLabel: (n: number) => `字數 ${n}/${NOTE_BODY_MAX}`,
+  saveButton: '貼上便條',
+  searchPlaceholder: '搜尋便條(標題、內容、連結或標籤)',
+  countLabel: (n: number) => `共 ${n} 張`,
+  loadMoreButton: (n: number) => `載入更多(還有 ${n} 張)`,
+  filterAll: '全部',
+  tagFilterAll: '所有標籤',
+  emptyTitle: '還沒有便條',
+  emptyDesc: '看到好文章、想到一句話,先貼上來再說',
+  emptyFiltered: '找不到符合的便條',
+  emptyFilteredDesc: '換個關鍵字或類型試試',
+  openLink: '開啟連結 ↗',
+  applyButton: '套用到編發器',
+  appliedToast: '已套用便條到草稿 ✨',
+  copyButton: '複製內容',
+  copiedToast: '便條內容已複製 📋',
+  editButton: '編輯',
+  deleteButton: '刪除',
+  saveChangesButton: '儲存變更',
+  cancelButton: '取消',
+  deleteModalTitle: '刪除這張便條?',
+  deleteModalDesc: '刪除後無法復原。',
+  deleteConfirmButton: '刪除便條',
+  savedToast: '便條已貼上 📌',
+  updatedToast: '便條已更新',
+  deletedToast: '便條已刪除',
+  emptyBodyToast: '內容是空的,寫點什麼再貼上吧',
+};
+
 /** 寫日記(DIARY-PLAN P1,2026-10-24):私密的第一方內容,純前端、零後端。
  * 2026-10-24 追加(維護者指示):心情(選填,固定選項)+內容長度 100–500 字。 */
 export const DIARY_MOODS = [
@@ -726,6 +794,9 @@ export const DIARY_MOODS = [
 export const DIARY_BODY_MIN = 100;
 export const DIARY_BODY_MAX = 500;
 
+/** 列表每頁篇數(2026-11-01 補缺口:長期累積後整頁全文渲染會過長)。 */
+export const DIARY_PAGE_SIZE = 20;
+
 export const DIARY_COPY = {
   pageTitle: '寫日記 Diary',
   pageDesc: '每天的心情與觀察寫在這裡——日記只存在這台裝置,不經後端',
@@ -737,8 +808,9 @@ export const DIARY_COPY = {
   bodyPlaceholder: '今天想記下什麼?',
   bodyCountLabel: (n: number) => `字數 ${n}/${DIARY_BODY_MAX}`,
   saveButton: '儲存日記',
-  searchPlaceholder: '搜尋日記(標題、內容或心情)',
+  searchPlaceholder: '搜尋日記(日期、標題、內容或心情)',
   countLabel: (n: number) => `共 ${n} 篇`,
+  loadMoreButton: (n: number) => `載入更多(還有 ${n} 篇)`,
   emptyTitle: '還沒有日記',
   emptyDesc: '從今天的一件小事開始,寫下第一篇吧',
   editButton: '編輯',

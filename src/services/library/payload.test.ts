@@ -45,4 +45,12 @@ describe('文庫雲端備份:payload(方案 A)', () => {
     expect(isValidLibraryPayload(buildLibraryPayload({ ...base, diary: [] }))).toBe(true);
     expect(isValidLibraryPayload({ ...buildLibraryPayload(base), diary: 'nope' })).toBe(false);
   });
+
+  it('notes 欄位(POST-PLAN D2,2026-11-01):選用——舊備份無此欄仍通過;有帶則須為陣列', () => {
+    expect(isValidLibraryPayload(buildLibraryPayload(base))).toBe(true); // 舊備份形狀(無 notes)
+    expect(isValidLibraryPayload(buildLibraryPayload({ ...base, notes: [] }))).toBe(true);
+    expect(isValidLibraryPayload({ ...buildLibraryPayload(base), notes: 'nope' })).toBe(false);
+    // 兩個選用欄位互不牽連:只有日記的備份照樣有效(便條端以 null 表示「此備份不含」)
+    expect(isValidLibraryPayload(buildLibraryPayload({ ...base, diary: [] }))).toBe(true);
+  });
 });

@@ -1,4 +1,4 @@
-export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'schedule' | 'draft' | 'diary' | 'library';
+export type Tab = 'dashboard' | 'inbox' | 'social' | 'drive' | 'post' | 'schedule' | 'draft' | 'diary' | 'library';
 
 export type PlatformKey = 'fb' | 'ig' | 'threads' | 'line' | 'yt' | 'linkedin';
 
@@ -63,6 +63,25 @@ export interface DiaryEntry {
   title: string; // 選用;空字串=無標題
   body: string;
   mood?: string; // 選用(2026-10-24 追加);UI 限定 DIARY_MOODS,儲存層只驗型別與長度
+  createdAt: number; // epoch ms
+  updatedAt: number; // epoch ms
+}
+
+/**
+ * 便條類型(POST-PLAN D3,2026-11-01):筆記 / 好文章 / 靈感三分類——
+ * 用途不同(筆記=自己寫的、文章=外部來源附連結、靈感=待長成貼文的種子),
+ * 分類只影響篩選與顯示,不影響儲存結構。
+ */
+export type NoteKind = 'note' | 'article' | 'idea';
+
+/** 便條(POST-PLAN D3):小筆記/好文章/靈感,零後端落地於獨立鍵 `text-message:notes:v1`。 */
+export interface Note {
+  id: string;
+  kind: NoteKind;
+  title: string; // 選用;空字串=無標題
+  body: string;
+  url?: string; // 選用:外部文章連結
+  tags: string[]; // 自由標籤(納入搜尋)
   createdAt: number; // epoch ms
   updatedAt: number; // epoch ms
 }

@@ -86,9 +86,19 @@ export function sortDiaryEntries(entries: DiaryEntry[]): DiaryEntry[] {
   });
 }
 
-/** 搜尋:標題+內容+心情不分大小寫子字串;空白查詢=全部。 */
+/**
+ * 搜尋:日期+標題+內容+心情不分大小寫子字串;空白查詢=全部。
+ * 日期納入比對(2026-11-01 補缺口):條目日期本身是最自然的查找線索,
+ * 月份(`2026-10`)即前綴比對、等同當月篩選。`/` 與 `.` 分隔的寫法額外試一次
+ * 正規化查詢(`2026/10` → `2026-10`),**但原字串也照比一次**——否則內容裡的
+ * 「3.5 公里」會因正規化而搜不到。
+ */
 export function searchDiaryEntries(entries: DiaryEntry[], query: string): DiaryEntry[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return entries;
-  return entries.filter((e) => `${e.title} ${e.body} ${e.mood ?? ''}`.toLowerCase().includes(q));
+  const raw = query.trim().toLowerCase();
+  if (!raw) return entries;
+  const dashed = raw.replace(/[/.]/g, '-');
+  return entries.filter((e) => {
+    const hay = `${e.date} ${e.title} ${e.body} ${e.mood ?? ''}`.toLowerCase();
+    return hay.includes(raw) || hay.includes(dashed);
+  });
 }

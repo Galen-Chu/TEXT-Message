@@ -8,6 +8,7 @@
  * 打字機(science/typewriter)=編發器、帳本(science/ledger)=定排程、
  * 書(science/book,原 law/book 遷入)=文庫。
  * 日誌本(science/diary)=寫日記。
+ * 折角便條=貼便條(2026-11-01 新增;**非原始 SVG 取樣**,詳見 IconNote 註解)。
  * (產生方式:scripts 外臨時產生器,幾何逐字取自 git 追蹤的 icons/ 原始 SVG。)
  */
 import { useId, type ReactNode } from 'react';
@@ -126,6 +127,21 @@ export function IconLedger({ size = 18 }: { size?: number }): ReactNode {
       <path d="M6 4H18Q20 4 20 6V18Q20 20 18 20H6Q4 20 4 18V6Q4 4 6 4Z M6 6V18H18V6Z" fill="currentColor"/>
       <rect x="7.5" y="8" width="9" height="2" rx="1" fill="currentColor"/>
       <rect x="10.5" y="8" width="2" height="8" rx="1" fill="currentColor"/>
+    </NavIcon>
+  );
+}
+/**
+ * 便條(折角紙片)——貼便條 Post。
+ * **注意**:此符號不是從 Uniconsign 原始 SVG 逐字取得的(本 repo 未納入 icons/ 來源,
+ * 設計系統在 galen-chu/uniconsign),而是依上方 NavIcon 骨架與既有符號的筆畫量體手繪。
+ * 日後若 Uniconsign 有對應符號(便條/memo),應以原始幾何替換。
+ */
+export function IconNote({ size = 18 }: { size?: number }): ReactNode {
+  return (
+    <NavIcon size={size}>
+      <path d="M6 4H18Q20 4 20 6V13L13 20H6Q4 20 4 18V6Q4 4 6 4Z M6 6V18H12L18 12V6Z" fill="currentColor"/>
+      <rect x="7.5" y="8.5" width="9" height="1.8" rx="0.9" fill="currentColor"/>
+      <rect x="7.5" y="12" width="5.5" height="1.8" rx="0.9" fill="currentColor"/>
     </NavIcon>
   );
 }

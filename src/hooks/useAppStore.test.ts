@@ -1110,6 +1110,9 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
       driveStyleSamples: [],
       driveStyleEnabled: true,
       diary: [{ id: 'diary-cloud', date: '2026-10-23', title: '', body: '雲端日記', createdAt: 1, updatedAt: 1 }],
+      notes: [
+        { id: 'note-cloud', kind: 'idea', title: '雲端便條', body: '雲端內容', tags: [], createdAt: 1, updatedAt: 1 },
+      ],
     });
     const enc = await encryptLibraryBlob('restore-code-1', JSON.stringify(payload));
     vi.mocked(libraryLoad).mockResolvedValue({
@@ -1122,23 +1125,29 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     act(() => result.current.setDraftText('本機舊內容'));
     // D2:本機先有一篇日記——apply 後應被雲端備份內容覆蓋
     act(() => result.current.addDiaryEntry({ date: '2026-10-24', title: '', body: '本機日記' }));
+    // POST-PLAN D2:便條同規——本機先有一張,apply 後應被雲端備份內容覆蓋
+    act(() => result.current.addNote({ kind: 'note', title: '本機便條', body: '本機內容', tags: [] }));
 
-    let r: { ok: boolean; savedAt?: number; diaryCount?: number | null; code?: string } | undefined;
+    let r:
+      | { ok: boolean; savedAt?: number; diaryCount?: number | null; noteCount?: number | null; code?: string }
+      | undefined;
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('restore-code-1');
     });
     expect(r?.ok).toBe(true);
     expect(r?.savedAt).toBe(payload.savedAt);
     expect(r?.diaryCount).toBe(1);
+    expect(r?.noteCount).toBe(1);
     act(() => {
       expect(result.current.restoreLibraryApply()).toBe(true);
     });
     expect(result.current.draftText).toBe('雲端還原後的內容');
     expect(result.current.draftPlatforms.fb).toBe(true);
     expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
+    expect(result.current.notes.map((n) => n.id)).toEqual(['note-cloud']);
     expect(readStore().draftText).toBe('雲端還原後的內容');
 
-    // D2:舊備份(無 diary 欄)還原——日記保持本機現狀,不被舊快照清空
+    // D2:舊備份(無 diary/notes 欄)還原——日記與便條保持本機現狀,不被舊快照清空
     const oldPayload = buildLibraryPayload({
       templates: [],
       copyTemplates: [],
@@ -1166,11 +1175,13 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     });
     expect(r?.ok).toBe(true);
     expect(r?.diaryCount).toBe(null);
+    expect(r?.noteCount).toBe(null);
     act(() => {
       expect(result.current.restoreLibraryApply()).toBe(true);
     });
     expect(result.current.draftText).toBe('舊備份的內容');
     expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
+    expect(result.current.notes.map((n) => n.id)).toEqual(['note-cloud']);
 
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('wrong-code-x');

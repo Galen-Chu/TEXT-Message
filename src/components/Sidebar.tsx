@@ -2,17 +2,20 @@ import { FAMILY_COPY, PIPELINE_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
-import { BrandMark, IconBook, IconCloud, IconDashboard, IconDiary, IconEnvelope, IconLedger, IconSocialMedia, IconTypewriter } from './BrandIcons';
+import { BrandMark, IconBook, IconCloud, IconDashboard, IconDiary, IconEnvelope, IconLedger, IconNote, IconSocialMedia, IconTypewriter } from './BrandIcons';
 import type { ReactNode } from 'react';
 
 // 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
 // 編發器在定排程之前。icon=Uniconsign 符號系統(對應關係見 BrandIcons.tsx 檔頭);
+// 2026-11-01:新增「貼便條 Post」(置於雲端列 Drive 之後,維護者指示 POST-PLAN D4),
+// 並將「編發器 Text」更名「編發器 Draft」(與內部 Tab key 'draft' 一致、語意更貼切)。
 const NAV_ITEMS: Array<{ key: Tab; icon: ReactNode; label: string }> = [
   { key: 'dashboard', icon: <IconDashboard />, label: '文管 Dashboard' },
   { key: 'inbox', icon: <IconEnvelope />, label: '郵件匣 Gmail' },
   { key: 'social', icon: <IconSocialMedia />, label: '自媒體 Social' },
   { key: 'drive', icon: <IconCloud />, label: '雲端列 Drive' },
-  { key: 'draft', icon: <IconTypewriter />, label: '編發器 Text' },
+  { key: 'post', icon: <IconNote />, label: '貼便條 Post' },
+  { key: 'draft', icon: <IconTypewriter />, label: '編發器 Draft' },
   { key: 'diary', icon: <IconDiary />, label: '寫日記 Diary' },
   { key: 'schedule', icon: <IconLedger />, label: '定排程 Task' },
   { key: 'library', icon: <IconBook />, label: '文庫 Library' },
