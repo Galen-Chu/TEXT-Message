@@ -19,7 +19,7 @@
 
 - `NAV_ITEMS` 順序(九頁籤):文管 Dashboard / 郵件匣 Gmail / 自媒體 Social / 雲端列 Drive / **貼便條 Post** / 編發器 Draft / 寫日記 Diary / 定排程 Task / 文庫 Library。
 - `types.ts` 的 `Tab` 增 `'post'`;新頁面元件 `Post.tsx`;UI 字串入 `constants.ts`(`NOTES_COPY` / `NOTE_KIND_OPTIONS` / `NOTE_BODY_MAX` / `NOTES_PAGE_SIZE`)。
-- icon=`IconNote`(摺角便條)。**誠實記載**:此 icon **非**逐字取自 Uniconsign 原始檔——設計系統在 `galen-chu/uniconsign`,本 repo 沒有 `icons/`,無法比照 `IconDiary` 的「幾何逐字取自 `icons/symbols/science/diary.svg`」紀律;檔內註解已標明,日後若有真正的便條/備忘符號應替換。
+- icon=`IconNote`,幾何**逐字取自 Uniconsign `icons/symbols/science/sticky-note.svg`**(維護者指出該符號已存在;`order.json` 的 science 序列裡就排在 `diary`/`ledger` 旁,`codepoints.json` 也有),僅 fill 改 `currentColor`——同 `IconDiary` 紀律。**教訓**:本 repo 沒有 `icons/`,但設計系統在**本機** `~/Github-Projects/Uniconsign` 有 checkout;「這個 repo 裡找不到」不等於「沒有」,新增導覽符號前先去那個 checkout 的 `icons/order.json` 查一遍,不要自己手繪。
 - **更名**:「編發器 Text」→「編發器 Draft」(維護者指示)。**只改顯示字串**,內部 Tab key 仍為 `'draft'`——更名後標籤與內部識別字反而一致了(2026-09-04 IA 重整留下的「內部識別字不隨之改名」債,這一項順手清掉)。E2E 的頁籤斷言與 `gotoTab` 同步改。
 
 ## 紅線(不因本功能改變)
