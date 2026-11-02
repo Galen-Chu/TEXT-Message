@@ -630,19 +630,24 @@ export const LIBRARY_BACKUP_COPY = {
   restoringLabel: '還原中…',
   confirmTitle: '從 Cloudflare worker 還原',
   /**
-   * 還原確認文案:誠實標示備份含哪些獨立鍵內容(日記=篇、便條=張)。
-   * count 為 null = 舊備份沒有該欄位 → 還原時不動本機該類資料(見 restoreLibraryApply)。
+   * 還原確認文案:誠實標示備份含哪些獨立鍵內容(日記=篇、便條=張、管線設定=有無)。
+   * count 為 null / hasPipeline 為 false = 舊備份沒有該欄位 → 還原時不動本機該類資料
+   * (見 restoreLibraryApply)。管線設定一併標示「啟用狀態不隨備份」(2026-11-02 折衷)。
    */
-  confirmDesc: (d: string, diaryCount: number | null, noteCount: number | null) => {
+  confirmDesc: (d: string, diaryCount: number | null, noteCount: number | null, hasPipeline: boolean) => {
     const has: string[] = [];
     if (diaryCount !== null) has.push(`日記(${diaryCount} 篇)`);
     if (noteCount !== null) has.push(`便條(${noteCount} 張)`);
+    if (hasPipeline) has.push('自動發文管線設定(啟用狀態不隨備份,維持本機現況)');
     const missing: string[] = [];
     if (diaryCount === null) missing.push('日記');
     if (noteCount === null) missing.push('便條');
+    if (!hasPipeline) missing.push('管線設定');
+    /** 兩項以上用「A、B 與 C」;單項直接接。 */
+    const joinZh = (arr: string[]) => (arr.length <= 1 ? arr.join('') : `${arr.slice(0, -1).join('、')}與${arr[arr.length - 1]}`);
     const hasPart = has.length ? `與${has.join('、')}` : '';
     const missingPart = missing.length
-      ? `此備份較舊、不含${missing.join('與')},本機${missing.join('與')}保持不變。`
+      ? `此備份較舊、不含${joinZh(missing)},本機${joinZh(missing)}保持不變。`
       : '';
     return `Cloudflare worker 備份時間:${d}。還原會以其內容覆蓋本機全部內容(範本/排程/發佈記錄/草稿)${hasPart}。${missingPart}確認嗎?`;
   },

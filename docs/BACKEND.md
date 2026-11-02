@@ -257,7 +257,7 @@ CORS:僅放行 `FRONTEND_URL` 的 origin。`installId` 為前端產生並持久�
 **零知識設計**:備份內容由瀏覽器以「同步碼 → PBKDF2(150,000 次,固定鹽)→ AES-GCM」加密後上傳;worker 僅保管密文 blob,**不解析內容、不經手同步碼原文**——請求只帶 `codeId`(同步碼的 SHA-256 hex)作為 KV 鍵(`library:<codeId>`)。金鑰與解密能力只在使用者瀏覽器,**同步碼遺失即無法還原**(UI 已誠實標示);固定鹽為單人產品取捨,強度由同步碼本身承擔。
 
 - 端點:`/api/library/save`、`/api/library/load`——**皆 POST**(codeId 不進 URL 日誌);blob 上限 512KB(資料+IV);
-- 備份範圍:`text-message:v2` 全部使用者內容(範本/排程/發佈記錄/草稿/AI 偏好/Drive 樣本中繼資料);**emails 與 Gemini key 永不備份**(紅線);
+- 備份範圍:`text-message:v2` 全部使用者內容(範本/排程/發佈記錄/草稿/AI 偏好/Drive 樣本中繼資料)+ 日記(`diary`,2026-10-24)+ 便條(`notes`,2026-11-01)+ 管線設定投影(`pipelineSettings`,2026-11-02——只含設定與素材游標;`enabled`/`queuedThrough`/`lastFilledAt` 屬機器本地狀態**刻意排除**:佇列按 installId 分帳,啟用狀態跨機還原會雙機各自補糧=同日重複發文);**emails 與 Gemini key 永不備份**(紅線);
 - 衝突策略:一律 last-write-wins(備份覆蓋雲端、還原覆蓋本機——還原前有確認 Modal 顯示雲端備份時間);
 - 部署:**無需新增 secrets**——既有 worker 部署即含此功能;前端備份卡僅在 `VITE_API_BASE` 已設時出現;
 - 已知限制(誠實清單):知道 codeId 者可覆寫該 blob(無鑑別;單人自用可接受,codeId 由同步碼單向雜湊而來);無備份版本歷史(僅最新一版)。

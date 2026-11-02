@@ -1113,6 +1113,19 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
       notes: [
         { id: 'note-cloud', kind: 'idea', title: '雲端便條', body: '雲端內容', tags: [], createdAt: 1, updatedAt: 1 },
       ],
+      // 2026-11-02 折衷:管線「設定+素材游標」隨備份(下面另驗 enabled/queuedThrough 不被覆蓋)
+      pipelineSettings: {
+        platform: 'threads',
+        time: '08:30',
+        daysOfWeek: [],
+        source: 'journal-ai',
+        horizonDays: 14,
+        journalFileId: 'doc-1',
+        journalFileName: '夢境日誌',
+        usedJournalDates: ['2026-10-20'],
+        sourceCategory: undefined,
+        usedTemplateIds: ['t1'],
+      },
     });
     const enc = await encryptLibraryBlob('restore-code-1', JSON.stringify(payload));
     vi.mocked(libraryLoad).mockResolvedValue({
@@ -1127,9 +1140,14 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     act(() => result.current.addDiaryEntry({ date: '2026-10-24', title: '', body: '本機日記' }));
     // POST-PLAN D2:便條同規——本機先有一張,apply 後應被雲端備份內容覆蓋
     act(() => result.current.addNote({ kind: 'note', title: '本機便條', body: '本機內容', tags: [] }));
+    // 2026-11-02:本機管線先有機器本地狀態(enabled/queuedThrough)與不同設定——
+    // apply 後設定+游標被雲端覆蓋,但 enabled/queuedThrough/lastFilledAt 必須保留本機值
+    act(() =>
+      result.current.updateAutoPipeline({ enabled: true, queuedThrough: '2026-11-01', lastFilledAt: 999, time: '07:00', source: 'templates' }),
+    );
 
     let r:
-      | { ok: boolean; savedAt?: number; diaryCount?: number | null; noteCount?: number | null; code?: string }
+      | { ok: boolean; savedAt?: number; diaryCount?: number | null; noteCount?: number | null; hasPipeline?: boolean; code?: string }
       | undefined;
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('restore-code-1');
@@ -1138,6 +1156,7 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     expect(r?.savedAt).toBe(payload.savedAt);
     expect(r?.diaryCount).toBe(1);
     expect(r?.noteCount).toBe(1);
+    expect(r?.hasPipeline).toBe(true);
     act(() => {
       expect(result.current.restoreLibraryApply()).toBe(true);
     });
@@ -1146,6 +1165,20 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
     expect(result.current.notes.map((n) => n.id)).toEqual(['note-cloud']);
     expect(readStore().draftText).toBe('雲端還原後的內容');
+    // 管線:設定+素材游標採雲端值…
+    expect(result.current.autoPipeline.time).toBe('08:30');
+    expect(result.current.autoPipeline.source).toBe('journal-ai');
+    expect(result.current.autoPipeline.horizonDays).toBe(14);
+    expect(result.current.autoPipeline.journalFileId).toBe('doc-1');
+    expect(result.current.autoPipeline.usedJournalDates).toEqual(['2026-10-20']);
+    expect(result.current.autoPipeline.usedTemplateIds).toEqual(['t1']);
+    // …機器本地三欄保留本機值(佇列按 installId 分帳,不隨備份漫遊)
+    expect(result.current.autoPipeline.enabled).toBe(true);
+    expect(result.current.autoPipeline.queuedThrough).toBe('2026-11-01');
+    expect(result.current.autoPipeline.lastFilledAt).toBe(999);
+    const storedPipeline = readStore().autoPipeline as { time: string; enabled: boolean };
+    expect(storedPipeline.time).toBe('08:30');
+    expect(storedPipeline.enabled).toBe(true);
 
     // D2:舊備份(無 diary/notes 欄)還原——日記與便條保持本機現狀,不被舊快照清空
     const oldPayload = buildLibraryPayload({
@@ -1176,12 +1209,16 @@ describe('useAppStore:文庫雲端備份(方案 A,2026-10-05)', () => {
     expect(r?.ok).toBe(true);
     expect(r?.diaryCount).toBe(null);
     expect(r?.noteCount).toBe(null);
+    expect(r?.hasPipeline).toBe(false);
     act(() => {
       expect(result.current.restoreLibraryApply()).toBe(true);
     });
     expect(result.current.draftText).toBe('舊備份的內容');
     expect(result.current.diaryEntries.map((e) => e.id)).toEqual(['diary-cloud']);
     expect(result.current.notes.map((n) => n.id)).toEqual(['note-cloud']);
+    // 舊備份無 pipelineSettings → 本機管線全部不動(含設定)
+    expect(result.current.autoPipeline.time).toBe('08:30');
+    expect(result.current.autoPipeline.enabled).toBe(true);
 
     await act(async () => {
       r = await result.current.restoreLibraryPrepare('wrong-code-x');

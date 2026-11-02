@@ -85,7 +85,9 @@ import { clearStoredSyncCode, loadStoredSyncCode, saveStoredSyncCode } from '../
 import { codeIdOf, decryptLibraryBlob, encryptLibraryBlob } from '../services/library/crypto';
 import {
   buildLibraryPayload,
+  isPipelineSettings,
   isValidLibraryPayload,
+  pipelineSettingsOf,
   type LibraryPayload,
 } from '../services/library/payload';
 import {
@@ -1411,6 +1413,9 @@ export function useAppStore() {
       driveStyleEnabled,
       diary: diaryEntries, // D2(2026-10-24):日記隨文庫備份(獨立鍵的內容,進同一加密 blob)
       notes, // POST-PLAN D2(2026-11-01):便條同規——獨立鍵的內容,進同一加密 blob
+      // 2026-11-02 折衷:管線「設定+素材游標」隨備份;enabled/queuedThrough/lastFilledAt
+      // 是機器本地狀態(佇列按 installId 分帳),刻意排除——見 payload.ts PipelineSettings
+      pipelineSettings: pipelineSettingsOf(autoPipeline),
     });
     const enc = await encryptLibraryBlob(c, JSON.stringify(payload));
     const r = await librarySave({
@@ -1438,7 +1443,7 @@ export function useAppStore() {
   const restoreLibraryPrepare = async (
     code: string,
   ): Promise<
-    | { ok: true; savedAt: number; diaryCount: number | null; noteCount: number | null }
+    | { ok: true; savedAt: number; diaryCount: number | null; noteCount: number | null; hasPipeline: boolean }
     | { ok: false; code: 'empty' | 'network' | 'not_found' | 'bad_code' | 'bad_payload' }
   > => {
     const c = code.trim();
@@ -1466,6 +1471,7 @@ export function useAppStore() {
       savedAt: r.data.savedAt,
       diaryCount: parsed.diary ? parsed.diary.length : null,
       noteCount: parsed.notes ? parsed.notes.length : null,
+      hasPipeline: isPipelineSettings(parsed.pipelineSettings),
     };
   };
 
@@ -1491,6 +1497,12 @@ export function useAppStore() {
     if (p.diary !== undefined) setDiaryEntries(p.diary.filter(isDiaryEntry));
     // POST-PLAN D2:便條同規——舊備份無此欄=不動本機便條
     if (p.notes !== undefined) setNotes(p.notes.filter(isNote));
+    // 2026-11-02 折衷:管線「設定+素材游標」隨備份套用;enabled/queuedThrough/lastFilledAt
+    // 保留本機現況(spread 不含這三欄)——還原後啟用狀態不變,要開要關都在本機操作
+    if (isPipelineSettings(p.pipelineSettings)) {
+      const ps = p.pipelineSettings;
+      setAutoPipeline((cur) => ({ ...cur, ...ps }));
+    }
     setDraftText(p.draftText);
     setDraftPlatforms(p.draftPlatforms);
     setLibrarySavedAt(p.savedAt);
@@ -1555,13 +1567,14 @@ export function useAppStore() {
       void backupLibraryToCloud(librarySyncCode, { silent: true });
     }, 30_000);
     return () => clearTimeout(autoSyncTimer.current);
-    // 內容欄位與一期持久化 effect 同步集合,加 diaryEntries 與 notes(D2:兩者也在備份內容裡);
+    // 內容欄位與一期持久化 effect 同步集合,加 diaryEntries 與 notes(D2:兩者也在備份內容裡)
+    // 與 autoPipeline(2026-11-02:設定+素材游標隨備份——改時間/來源/選日誌 Doc 後也會 30 秒備份);
     // backupLibraryToCloud 讀最新 state(閉包經重渲染更新)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     templates, copyTemplates, scheduleItems, publishedHistory, draftText, draftPlatforms,
     selectedMailId, draftKind, aiRole, aiLanguage, driveStyleSamples, driveStyleEnabled,
-    drafts, activeDraftId, activeTemplateId, diaryEntries, notes, librarySyncCode, libraryStartup,
+    drafts, activeDraftId, activeTemplateId, diaryEntries, notes, autoPipeline, librarySyncCode, libraryStartup,
   ]);
 
   /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
