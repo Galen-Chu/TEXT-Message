@@ -283,7 +283,7 @@ export function cancelThreadsQueueItem(opts: {
   );
 }
 
-/** 文庫雲端備份(方案 A,2026-10-05):存/取瀏覽器加密後的密文 blob(以 codeId 定位,不帶同步碼原文)。 */
+/** 文庫雲端備份(方案 A,2026-10-05;UI 現名「Cloudflare worker 備份」):存/取瀏覽器加密後的密文 blob(以 codeId 定位,不帶同步碼原文)。 */
 export function librarySave(opts: {
   base: string;
   codeId: string;

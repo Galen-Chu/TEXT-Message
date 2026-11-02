@@ -124,7 +124,7 @@ export default function Schedule({ store }: { store: AppStore }) {
           <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
             定排程 Task
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>跨平台發佈排程一覽</div>
+          <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>跨平台發佈排程一覽,含雲端佇列與自動發文管線</div>
         </div>
         <button className="btn btn-primary" onClick={openNewModal}>
           + 新增排程

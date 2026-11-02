@@ -1,5 +1,5 @@
 /**
- * 文庫雲端備份的內容組裝與套用(方案 A,2026-10-05)。
+ * 文庫雲端備份的內容組裝與套用(方案 A,2026-10-05;UI 現名「Cloudflare worker 備份」)。
  * 備份範圍(D4)= `text-message:v2` 的全部使用者內容;**emails 與 Gemini key 永不備份**
  * (前者不落地、後者屬 BYOK 憑證——紅線見 CLAUDE.md)。
  * D2(2026-10-24):日記(獨立鍵 `text-message:diary:v1`)隨文庫一併備份——`diary` 為

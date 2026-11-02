@@ -1,6 +1,6 @@
-import { PIPELINE_COPY, SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
+import { BACKUP_STATUS_COPY, PIPELINE_COPY, SCHEDULE_COPY, SCHEDULE_STATUS_META } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import { dateLabel, fullDateLabel, toISODate } from '../utils/date';
+import { dateLabel, fullDateLabel, shortDateTimeLabel, toISODate } from '../utils/date';
 import { effectiveStatus, overdueItems } from '../utils/schedule';
 import PlatformBadge from './PlatformBadge';
 import TrendsPanel from './TrendsPanel';
@@ -95,6 +95,42 @@ export default function Dashboard({ store }: { store: AppStore }) {
           </div>
         ))}
       </div>
+
+      {store.backendEnabled && (
+        <div
+          className="card"
+          style={{
+            padding: '14px 18px',
+            marginBottom: 20,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
+              {BACKUP_STATUS_COPY.cardTitle}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-weak)', marginTop: 4 }}>
+              {store.librarySyncCode
+                ? `${BACKUP_STATUS_COPY.enabledHint} · ${
+                    store.librarySavedAt
+                      ? BACKUP_STATUS_COPY.lastBackupLabel(shortDateTimeLabel(store.librarySavedAt))
+                      : BACKUP_STATUS_COPY.neverBackup
+                  }`
+                : BACKUP_STATUS_COPY.offDesc}
+            </div>
+          </div>
+          <button
+            className="btn btn-outline"
+            style={{ borderRadius: 8, whiteSpace: 'nowrap' }}
+            onClick={() => store.setActiveTab('library')}
+          >
+            {store.librarySyncCode ? BACKUP_STATUS_COPY.manageButton : BACKUP_STATUS_COPY.goButton}
+          </button>
+        </div>
+      )}
 
       <TrendsPanel posts={store.publishedHistory} variant="compact" />
 

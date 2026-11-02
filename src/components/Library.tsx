@@ -73,7 +73,7 @@ export default function Library({ store }: { store: AppStore }) {
     text: string;
   } | null>(null);
 
-  // 雲端備份(方案 A):同步碼僅存在此元件狀態,不落地
+  // Cloudflare worker 備份(方案 A,歷史名「文庫雲端備份」):同步碼僅存在此元件狀態,不落地
   const [syncCode, setSyncCode] = useState('');
   const [backupBusy, setBackupBusy] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<{ savedAt: number; diaryCount: number | null; noteCount: number | null } | null>(
@@ -180,7 +180,7 @@ export default function Library({ store }: { store: AppStore }) {
             文庫 Library
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
-            可套用草稿的常用內容與保存的編輯成果,分為訊息管理、文案管理與草稿管理
+            可套用草稿的常用內容與保存的編輯成果,分為訊息管理、文案管理與草稿管理;Cloudflare worker 備份也在此頁設定
           </div>
         </div>
         {!isDraftTab && (

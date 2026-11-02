@@ -56,7 +56,7 @@ export default function Draft({ store }: { store: AppStore }) {
         編發器 Draft
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
-        將郵件內容轉換成適合各平台的貼文草稿
+        撰寫與 AI 潤飾貼文,依平台產生版本;儲存文體歸檔文庫,發佈與排程同頁完成
       </div>
 
       {!hasDraftTarget && (

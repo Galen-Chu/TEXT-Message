@@ -49,7 +49,7 @@ export default function Social({ store }: { store: AppStore }) {
         自媒體 Social
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
-        各社群平台發文歷史記錄
+        各平台發文歷史,與 Threads 留言唯讀代讀
         {store.socialHistoryIsDemo && (
           <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 6 }}>
             (示範資料;於排程頁「標記已發佈」後即為真實記錄)

@@ -134,7 +134,7 @@ export const SCHEDULE_KIND_FILTERS: Array<'全部' | DocKind> = ['全部', 'draf
 /** 自動發文管線 P1 骨架(PIPELINE-PLAN 架構 1,2026-10-15)。 */
 export const PIPELINE_COPY = {
   cardTitle: '⚙️ 自動發文管線',
-  desc: '每天固定時間自動排程發文——從明天起預排數天,內容先以文庫範本輪替(P2 將改為 Drive 日誌+AI 生成)',
+  desc: '每天固定時間自動排程發文——從明天起預排數天,內容來源可選文庫範本輪替或 Drive 日誌 + AI 生成',
   enable: '啟用管線',
   enableHint: '啟用後每次開站自動補糧(冪等:已排的日期不重排)',
   timeLabel: '每天發佈時間(本機時區)',
@@ -179,7 +179,7 @@ export const PIPELINE_COPY = {
 /** 雲端列 Drive(docs/DRIVE-PLAN)的使用者文案。 */
 export const DRIVE_COPY = {
   title: '雲端列 Drive',
-  subtitle: '搜尋 Google Drive 裡自己寫的文章與筆記,引用到編發器作為素材',
+  subtitle: '搜尋 Google Drive 裡自己寫的文章與筆記,引用到編發器作為素材;可標記風格樣本讓 AI 生成模仿你的行文,或把文檔存為文庫範本',
   demoNote: '(示範資料)',
   connect: '連接 Google Drive',
   connecting: '連線中…',
@@ -576,7 +576,7 @@ export const PUBLISH_CARD_COPY = {
  * 對方的資料——叫使用者刪文庫內容會是錯的指引。兩產品的提示一致不斷言來源。
  */
 export const STORAGE_COPY = {
-  quotaExceededToast: '⚠️ 瀏覽器儲存空間已滿,這次變更沒能存進這台裝置——建議先備份至雲端,再清理本機資料後重試',
+  quotaExceededToast: '⚠️ 瀏覽器儲存空間已滿,這次變更沒能存進這台裝置——建議先備份至 Cloudflare worker,再清理本機資料後重試',
 };
 
 /**
@@ -611,19 +611,24 @@ export const FAMILY_COPY = {
   peerFeedUnavailable: '還沒收到媒管庫的排程摘要(開啟過媒管庫後就會出現)',
 };
 
-/** 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。 */
+/**
+ * 文庫雲端備份(方案 A,2026-10-05):同步碼身分、瀏覽器端加密、worker 只存密文。
+ * 2026-11-02 標題改「Cloudflare worker 備份」並在描述點明與 Google Drive 無關——
+ * 原標題與「雲端列 Drive」頁籤撞名,造成實際混淆(維護者誤以為備份功能在雲端列)。
+ * 備份範圍=全部本地內容(見 payload.ts),文案列全,不用「文庫與日記」這種局部列舉。
+ */
 export const LIBRARY_BACKUP_COPY = {
-  cardTitle: '☁️ 雲端備份',
+  cardTitle: 'Cloudflare worker 備份',
   cardDesc:
-    '以同步碼加密文庫與日記內容後存至你的後端 worker——金鑰由同步碼在你瀏覽器衍生,後端只保管密文;換瀏覽器/清資料後可用同一組同步碼還原',
+    '以同步碼加密你的全部本地內容(文庫範本、排程、發佈記錄、草稿、日記、便條)存至你自架的 Cloudflare worker——與 Google Drive 無關;金鑰只在你的瀏覽器衍生,worker 僅保管密文,換瀏覽器可用同一組同步碼還原。emails 與 AI key 永不備份',
   codeLabel: '同步碼',
   codePlaceholder: '自訂 8–64 字(遺失即無法還原,請妥善保管)',
-  backupButton: '備份至雲端',
+  backupButton: '備份至 Cloudflare worker',
   backingUpLabel: '備份中…',
-  backedUpToast: (d: string) => `已備份至雲端(${d})✅`,
-  restoreButton: '從雲端還原',
+  backedUpToast: (d: string) => `已備份至 Cloudflare worker(${d})✅`,
+  restoreButton: '從 Cloudflare worker 還原',
   restoringLabel: '還原中…',
-  confirmTitle: '從雲端還原',
+  confirmTitle: '從 Cloudflare worker 還原',
   /**
    * 還原確認文案:誠實標示備份含哪些獨立鍵內容(日記=篇、便條=張)。
    * count 為 null = 舊備份沒有該欄位 → 還原時不動本機該類資料(見 restoreLibraryApply)。
@@ -639,14 +644,14 @@ export const LIBRARY_BACKUP_COPY = {
     const missingPart = missing.length
       ? `此備份較舊、不含${missing.join('與')},本機${missing.join('與')}保持不變。`
       : '';
-    return `雲端備份時間:${d}。還原會以雲端內容覆蓋本機全部文庫資料(範本/排程/發佈記錄/草稿)${hasPart}。${missingPart}確認嗎?`;
+    return `Cloudflare worker 備份時間:${d}。還原會以其內容覆蓋本機全部內容(範本/排程/發佈記錄/草稿)${hasPart}。${missingPart}確認嗎?`;
   },
   confirmApply: '覆蓋本機並還原',
-  restoredToast: '已從雲端還原文庫 ✅',
+  restoredToast: '已從 Cloudflare worker 還原 ✅',
   emptyCodeToast: '請先輸入同步碼(8–64 字)',
-  notFoundToast: '雲端沒有這組同步碼的備份',
+  notFoundToast: 'Cloudflare worker 上沒有這組同步碼的備份',
   wrongCodeToast: '同步碼不正確或備份已損毀,無法解密',
-  badPayloadToast: '雲端備份內容格式不符,取消還原',
+  badPayloadToast: '備份內容格式不符,取消還原',
   failToast: '備份/還原失敗,請稍後再試',
   autoSyncOn: '已啟用自動同步',
   autoSyncHint: '內容變更後約 30 秒自動備份;開啟網站時也會自動同步一次',
@@ -655,8 +660,24 @@ export const LIBRARY_BACKUP_COPY = {
   backupNowButton: '立即備份',
   disableButton: '停用自動同步',
   disabledToast: '已停用自動同步(同步碼已清除)',
-  cloudNewerHint: (d: string) => `雲端有較新的備份(${d})——本機內容較舊`,
-  keepLocalButton: '以此機覆蓋雲端',
+  cloudNewerHint: (d: string) => `Cloudflare worker 有較新的備份(${d})——本機內容較舊`,
+  keepLocalButton: '以此機覆蓋備份',
+};
+
+/**
+ * 文管 Dashboard 的備份狀態小卡(2026-11-02):只顯示狀態與入口,操作仍在文庫頁的
+ * 備份卡——單一操作點避免兩處狀態不同步。未啟用時提示內容只在本機,已啟用時顯示
+ * 上次備份時間。僅 BACKEND_ENABLED 顯示(與文庫備份卡同一閘門)。
+ */
+export const BACKUP_STATUS_COPY = {
+  cardTitle: 'Cloudflare worker 備份',
+  enabledHint: '已啟用自動同步',
+  lastBackupLabel: (d: string) => `上次備份:${d}`,
+  neverBackup: '尚未備份過',
+  offDesc:
+    '範本、排程、草稿、日記與便條目前只存在這台瀏覽器——設定同步碼後即加密備份,換瀏覽器可還原',
+  goButton: '前往文庫設定',
+  manageButton: '管理備份',
 };
 
 /** 草稿頁 AI 產出輔助(文管庫深化第四期:平台變體生成與 hashtag 建議,BYOK)。 */
@@ -739,7 +760,7 @@ export const NOTES_PAGE_SIZE = 20;
 
 export const NOTES_COPY = {
   pageTitle: '貼便條 Post',
-  pageDesc: '小筆記、好文章、靈感隨手貼在這裡——只存在這台裝置,不經後端;內容隨文庫雲端備份',
+  pageDesc: '小筆記、好文章、靈感隨手貼在這裡——內容隨 Cloudflare worker 備份加密保存;可搜尋篩選後一鍵套用到編發器',
   composeTitle: '新增便條',
   kindLabel: '類型',
   titleLabel: '標題(選填)',
@@ -799,7 +820,7 @@ export const DIARY_PAGE_SIZE = 20;
 
 export const DIARY_COPY = {
   pageTitle: '寫日記 Diary',
-  pageDesc: '每天的心情與觀察寫在這裡——日記只存在這台裝置,不經後端',
+  pageDesc: '每天的心情與觀察寫在這裡——內容隨 Cloudflare worker 備份加密保存,可匯出到自己的 Obsidian vault',
   composeTitle: '新增日記',
   dateLabel: '日期',
   titleLabel: '標題(選填)',
