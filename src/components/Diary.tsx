@@ -35,6 +35,9 @@ export default function Diary({ store }: { store: AppStore }) {
   const [editBody, setEditBody] = useState('');
   const [editMood, setEditMood] = useState('');
   const [deleting, setDeleting] = useState<DiaryEntry | null>(null);
+  // 日記 P2 路徑 B:條目卡生成貼文(genBusyId=生成中的條目;genModal=可編輯結果)
+  const [genBusyId, setGenBusyId] = useState<string | null>(null);
+  const [genModal, setGenModal] = useState<{ entry: DiaryEntry; text: string } | null>(null);
   const [shown, setShown] = useState(DIARY_PAGE_SIZE);
   /** 匯出範圍是頁面本地狀態(每次進頁面重設為「全部」——增量寫入讓它幾乎沒代價)。 */
   const [range, setRange] = useState<'all' | 'year' | 'month'>('all');
@@ -352,6 +355,19 @@ export default function Diary({ store }: { store: AppStore }) {
                 <button
                   className="btn btn-outline"
                   style={{ borderRadius: 8 }}
+                  disabled={genBusyId !== null}
+                  onClick={async () => {
+                    setGenBusyId(e.id);
+                    const r = await store.generateDiaryPostFromEntry(e);
+                    setGenBusyId(null);
+                    if (r.ok) setGenModal({ entry: e, text: r.text });
+                  }}
+                >
+                  {genBusyId === e.id ? DIARY_COPY.generatingLabel : DIARY_COPY.genButton}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  style={{ borderRadius: 8 }}
                   onClick={() => openEdit(e)}
                 >
                   {DIARY_COPY.editButton}
@@ -376,6 +392,53 @@ export default function Diary({ store }: { store: AppStore }) {
             </button>
           )}
         </div>
+      )}
+
+      {genModal && (
+        <Modal onClose={() => setGenModal(null)} width={520} label={DIARY_COPY.genModalTitle}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 6 }}>
+            {DIARY_COPY.genModalTitle}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-weak)', marginBottom: 12 }}>
+            {DIARY_COPY.genFromLabel(genModal.entry.date, genModal.entry.mood)}
+          </div>
+          <textarea
+            className="text-input"
+            value={genModal.text}
+            onChange={(ev) => setGenModal({ ...genModal, text: ev.target.value })}
+            style={{ minHeight: 160, lineHeight: 1.6, resize: 'vertical', marginBottom: 8 }}
+          />
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 14 }}>
+            {DIARY_COPY.genHonesty}
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-ghost"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(genModal.text);
+                  store.showToast(DIARY_COPY.genCopiedToast);
+                } catch {
+                  // 剪貼簿不可用(權限/環境)靜默略過——編輯器內仍可手動複製
+                }
+              }}
+            >
+              {DIARY_COPY.genCopyButton}
+            </button>
+            <button className="btn btn-ghost" onClick={() => setGenModal(null)}>
+              {DIARY_COPY.cancelButton}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                store.insertDiaryPostText(genModal.text);
+                setGenModal(null);
+              }}
+            >
+              {DIARY_COPY.genToDraftButton}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {editing && (

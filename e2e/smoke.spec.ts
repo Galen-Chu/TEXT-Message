@@ -266,3 +266,15 @@ test('寫日記:新增、持久化、編輯、刪除', async ({ page }) => {
   await expect(page.getByText(editedBody)).toHaveCount(0);
   await expect(page.getByText('還沒有日記')).toBeVisible();
 });
+
+test('寫日記:生成貼文(無 key → 提示,不開面板)', async ({ page }) => {
+  await page.goto(PATH);
+  await gotoTab(page, '寫日記 Diary');
+  await page.getByPlaceholder('今天想記下什麼?').fill('E2E生成測試內容'.repeat(12)); // 120 字
+  await page.getByRole('button', { name: '儲存日記' }).click();
+
+  // 示範模式建置無 Gemini key → 點生成僅 toast 提示,不出現生成面板
+  await page.getByRole('button', { name: '✨ 生成貼文', exact: true }).first().click();
+  await expect(page.locator('.toast')).toContainText('Gemini key');
+  await expect(page.locator('.modal-card')).toHaveCount(0);
+});

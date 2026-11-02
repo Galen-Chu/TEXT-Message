@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   buildInstructionPrompt,
+  buildJournalPostPrompt,
   buildRewritePrompt,
   buildSummarizePrompt,
   clearGeminiKey,
@@ -326,5 +327,29 @@ describe('rewriteWithGemini 模型降級', () => {
     expect(res.ok && res.text).toBe('摘要貼文');
     expect(calls[0]).toContain('generateContent');
     localStorage.clear();
+  });
+});
+
+describe('buildJournalPostPrompt(日記/日誌 → 貼文;日記 P2 路徑 B 沿用)', () => {
+  it('隱私規則內建:不照抄原文、不提來源', () => {
+    const p = buildJournalPostPrompt({ entryBody: '今天走了很遠的路' });
+    expect(p).toContain('不得照抄原文');
+    expect(p).toContain('不提「日記」「夢到」等來源');
+    expect(p).toContain('今天走了很遠的路');
+  });
+
+  it('moodHint(日記 P2):帶心情 → 情緒氛圍規則;未帶 → 不出現該行', () => {
+    const withMood = buildJournalPostPrompt({ entryBody: '內容', moodHint: '😊 開心' });
+    expect(withMood).toContain('心情是「😊 開心」');
+    expect(withMood).toContain('不要直接寫出心情標籤');
+    const noMood = buildJournalPostPrompt({ entryBody: '內容' });
+    expect(noMood).not.toContain('心情是');
+  });
+
+  it('選用標題帶入素材開頭;長度上限規則只在 limit>0 出現', () => {
+    const p = buildJournalPostPrompt({ entryTitle: '晨走', entryBody: '內容', limit: 500 });
+    expect(p).toContain('【晨走】');
+    expect(p).toContain('不得超過 500 字');
+    expect(buildJournalPostPrompt({ entryBody: '內容' })).not.toContain('不得超過');
   });
 });

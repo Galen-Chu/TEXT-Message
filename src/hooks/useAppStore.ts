@@ -1069,6 +1069,50 @@ export function useAppStore() {
     [showToast],
   );
 
+  // ---- 日記 P2 路徑 B(2026-11-03):單筆日記 → AI 生成貼文 → 人審後任平台 ----
+  /** 風格沿用 Drive 風格樣本(維護者拍板:發佈記錄語料待累積,先引用 Drive 文件檔);
+   *  隱私規則由 generateJournalPost 內建(不照抄/不提來源),素材只在生成當下送出、不落地;
+   *  無 key 僅提示(同其他 AI 入口);abort 由 D15 stopAi 統一接管(aiAbortRef)。 */
+  const generateDiaryPostFromEntry = async (
+    entry: DiaryEntry,
+  ): Promise<{ ok: true; text: string } | { ok: false }> => {
+    if (!geminiKey) {
+      showToast(DIARY_COPY.genNeedKeyToast);
+      return { ok: false };
+    }
+    if (aiBusy) return { ok: false };
+    setAiBusy(true);
+    const ac = new AbortController();
+    aiAbortRef.current = ac;
+    try {
+      const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
+      const result = await generateJournalPost({
+        apiKey: geminiKey,
+        entryTitle: entry.title || undefined,
+        entryBody: entry.body,
+        moodHint: entry.mood,
+        styleSamples,
+        signal: ac.signal,
+      });
+      if (!result.ok) {
+        showToast(GEMINI_ERROR_COPY[result.code] ?? GEMINI_ERROR_COPY.unknown);
+        return { ok: false };
+      }
+      return { ok: true, text: result.text };
+    } finally {
+      if (aiAbortRef.current === ac) aiAbortRef.current = undefined;
+      setAiBusy(false);
+    }
+  };
+
+  /** 生成貼文帶入編發器:附加到草稿尾端+跳頁(沿用 insertDriveText 慣例)。 */
+  const insertDiaryPostText = (text: string) => {
+    setSelectedMailId((id) => id ?? 'blank');
+    setDraftText((t) => (t ? t + '\n\n' : '') + text);
+    setActiveTab('draft');
+    showToast(DIARY_COPY.genToDraftToast);
+  };
+
   // ---- 日記匯出到 Obsidian vault(DIARY-PLAN D6/D7,2026-11-01)----
   /** 挑 vault 根目錄並預先走到 daily/life/(權限問題當場就報,不要等按下匯出才炸)。 */
   const pickDiaryVault = useCallback(async () => {
@@ -1973,6 +2017,8 @@ export function useAppStore() {
     addDiaryEntry,
     updateDiaryEntry,
     deleteDiaryEntry,
+    generateDiaryPostFromEntry,
+    insertDiaryPostText,
     diaryExport,
     vaultFolder,
     diaryExporting,

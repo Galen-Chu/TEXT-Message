@@ -208,6 +208,7 @@ export function buildInstructionPrompt(
 export function buildJournalPostPrompt(opts: {
   entryTitle?: string;
   entryBody: string;
+  moodHint?: string;
   styleSamples?: string[];
   limit?: number;
 }): string {
@@ -219,6 +220,9 @@ export function buildJournalPostPrompt(opts: {
     '- 語氣自然、有畫面感,適合一般追蹤者閱讀',
     '- 只輸出貼文全文,不要任何前言、說明或引號',
   ];
+  if (opts.moodHint) {
+    lines.push(`- 素材當天的心情是「${opts.moodHint}」:讓貼文的情緒氛圍與之呼應,但不要直接寫出心情標籤`);
+  }
   if (opts.limit && opts.limit > 0) lines.push(`- 總長度不得超過 ${opts.limit} 字(含空白與 emoji)`);
   const head = opts.entryTitle ? `【${opts.entryTitle}】\n${opts.entryBody}` : opts.entryBody;
   return [...lines, ...styleSampleBlock(opts.styleSamples ?? []), '', '靈感素材:', head].join('\n');
@@ -388,11 +392,12 @@ export async function rewriteWithInstruction(input: {
   );
 }
 
-/** 管線日誌生成(BYOK):一則日誌條目 → 一篇 Threads 貼文(P2 補糧使用)。 */
+/** 管線日誌/日記生成(BYOK):一則條目 → 一篇貼文(管線補糧與日記 P2 路徑 B 共用)。 */
 export async function generateJournalPost(input: {
   apiKey: string;
   entryTitle?: string;
   entryBody: string;
+  moodHint?: string;
   styleSamples?: string[];
   limit?: number;
   signal?: AbortSignal;
@@ -402,6 +407,7 @@ export async function generateJournalPost(input: {
     buildJournalPostPrompt({
       entryTitle: input.entryTitle,
       entryBody: input.entryBody,
+      moodHint: input.moodHint,
       styleSamples: input.styleSamples,
       limit: input.limit,
     }),

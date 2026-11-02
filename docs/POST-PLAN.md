@@ -46,4 +46,4 @@
 
 - **P1(2026-11-01 完成,本批)**:三分類便條的新增/編輯/刪除(確認 Modal)+ 搜尋(標題/內容/網址/標籤)+ 分類 pills 與標籤 pills 篩選 + 分頁 + 套用到編發器/複製 + 獨立鍵落地 + 納入雲端備份(D2)+ 九頁籤導覽與「編發器 Draft」更名。`services/notes/storage.ts` 17 測、`payload.ts` 選用欄位 1 測、`useAppStore` 備份還原斷言補 `noteCount` 與覆蓋/不覆蓋、`constants.test.ts` 還原文案 5 測;E2E 新增「貼便條:新增、持久化、篩選、套用到編發器、刪除」。
 - **P2(候選)**:從編發器/Drive/郵件反向「存成便條」(目前只有便條→編發器的單向路徑);Gemini「這張便條能寫成什麼」靈感展開(BYOK 分流,無 key 僅提示)。
-- **P3(候選)**:隨日記匯出(D6/D7)一併寫入 Obsidian vault(便條 → `Inbox/` 或 `Clippings/`,一張一檔;markdown 組裝可共用同一批純函式)。
+- **P3(候選;2026-11-03 拍板落點,實作未開工)**:便條匯出 Obsidian。原提議落點 Obsidian_Library 經查證有隱私矛盾——該 vault 為 **MIT 公開授權、推上 GitHub** 的知識庫(其 CLAUDE.md 明載「只有可公開的個人資訊才能進來」,有 guard 擋機密),而便條是**私密收集桶**,直接匯入=把私人內容推上公開 repo。**維護者拍板(同日)**:**便條改匯入 private 的 Obsidian_Journal `notes/` 資料夾**(一張一檔);**生成貼���/發佈記錄**(本就公開的內容)另行走 **Obsidian_Library**,其內資料夾待討論(候選:`posts/` 頂層——需先對照 Library 自身的 LLM-compiler 架構慣例再定)。機件面無障礙:日記匯出的 `vaultFs`+markdown 組裝可直接沿用。另記:兩 vault 實際路徑在 `D:\Obsidian_Journal` 與 `D:\Obsidian_Library`(11-01 文件所記 `~/Github-Projects/` 已過時)。

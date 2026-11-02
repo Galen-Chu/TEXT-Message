@@ -43,6 +43,10 @@
   - **明確不做**:日記原文**逐字排程/發佈**(私密內容直上社群=隱私事故——一律經 AI 改寫,且保留既有兩道人審窗口:預排從明天起算、Dashboard「明天要發什麼」);不做背景自動取材(沿用管線「按下補糧才動」節奏)。**紅線零修訂**:日記不進 worker(進佇列的只有生成後的貼文成品)、Gemini 僅生成當下、worker 零改動。
 - **D4 條目 schema(一期;2026-10-24 追加 mood)**:`{ id, date: 'YYYY-MM-DD', title?, body, mood?, createdAt, updatedAt }`;日期=管線取材單位(與現行 D6 對齊),同日多筆生成時合併(沿用 `parseJournal` 慣例)。心情=選填 8 選項(`DIARY_MOODS`,同日追加——原「一期不加」由維護者指示翻案);內容長度 100–500 字屬 UI 層驗證,儲存層只驗結構;圖片不加。
 - **D5 匯入既有 Google Doc(三期候選)**:一次貼入/匯入,解析沿用 `journal.ts` 的 D5 文字慣例(整行只有日期=新條目),把既有日誌無痛搬家。
+- **D8 路徑順序與風格語料(2026-11-03 規劃討論拍板)**:
+  - **B 先做、A 後做**(翻轉原規劃「A 主 B 輔」的開發順序,定位不變)——B=風格校準迴路:先以人工生成逐篇驗「像不像本人發的文」,把 prompt/角色/風格樣本校準好,再開 A 自動排程,把自動化品質風險前置消掉;B 與 A 共用生成核心,B 先做不浪費。
+  - **風格語料=沿用 Drive 風格樣本**(現行機制,生成當下匯出注入)。「以發佈記錄 `publishedHistory` 為語料」提案**緩議**——維護者評估目前發文素材尚不足,待累積後回訪。**fine-tune 訓練模型明確緩議**:需把語料上傳 Google 訓練,打破「素材只在生成當下進 prompt、用完即棄」的資料流(紅線級變更),且 tuned model 綁 key 維運負擔大——先以強化 few-shot 實測,真有不滿再另案討論(屆時焦點=哪些語料可上傳)。
+  - **生成貼文匯出 Obsidian(2026-11-03 同日拍板)**:生成貼文/發佈記錄屬可公開內容,落點=**Obsidian_Library**(公開 repo,無隱私矛盾);Library 內的資料夾待討論(需先對照該 vault 的 LLM-compiler 架構慣例)。便條(私密)則拍板走 Obsidian_Journal `notes/`——詳 POST-PLAN P3。
 - **D6 匯出功能(2026-10-30 討論定案方向,未開工)**:應開發——補現有儲存架構三個縫。①雲端備份為**單一最新快照、無版本歷程**(誤刪 30 秒後自動備份即覆蓋雲端副本;本機與雲端同時出事=日記消失),匯出檔是唯一「凍結於時間點、不被後續操作覆蓋」的保存形式;②**512KB blob 上限**(與文庫全部內容共用,每日一篇約 200–400 篇逼近)——匯出使「年度封存」工作流可行(年底匯出該年→自 app 刪除舊年份→localStorage 與 blob 同時減壓),**不換資料庫即撐長期**(維護者前提:無需雲端/本地資料庫);③資料自主權——日記是不可再生內容,使用者手上應有一份自己掌控的檔案。兩種出口互補:**活體副本**(D7 Obsidian:人讀、可搜尋、長期累積)與**冷備份**(月/年彙整檔下載,選配——vault 自有備份/同步時可降為次要)。
 - **D7 Obsidian 匯出落點(2026-10-30 維護者提議;2026-11-01 開工前查實際 vault 後兩問拍板並完成一期)**:
   - **技術路徑**:File System Access API(`showDirectoryPicker` 挑 vault 資料夾→瀏覽器直接寫 `.md`);Chrome/Edge 支援,**Firefox/Safari 不支援目錄寫入→退回彙整 markdown 下載**;GitHub Pages HTTPS 滿足 secure context。**零後端、紅線零修訂**(資料不出機器,較雲端備份更保守)。
@@ -58,7 +62,7 @@
 ## 分期
 
 - **P1(2026-10-24 完成)**:撰寫/編輯/刪除(確認 Modal)+ 列表新→舊 + 搜尋;獨立儲存鍵 `text-message:diary:v1`(`services/diary/storage.ts`,storage 可注入測試);store 走獨立持久化 effect(quota 提示與主 effect 共用一次性 ref);E2E 八分頁+日記 CRUD。同日追加:心情(選填 8 選項,條目 pill+納入搜尋)與內容長度 100–500 字(下限門檻+`maxLength`+即時字數)。
-- **P2**:管線來源=本機日記(D3 兩路徑:**A 管線 diary 分流先做**——分組合併純函式+測試、`topUpPipeline` 分流、管線卡 chips+文案+誠實標示;**B 條目卡生成貼文後做**——按鈕+store 動作)。各約一小批,worker 零改動。
+- **P2**:管線來源=本機日記(D3 兩路徑;開發順序依 D8(2026-11-03)翻轉為 **B 先 A 後**):**B 條目卡生成貼文——✅ 2026-11-03 一期完成**(條目卡「✨ 生成貼文」→ `generateDiaryPostFromEntry`(mood 注入 prompt 語氣提示、Drive 風格樣本、D15 停止鈕接管)→ 可編輯 Modal → 帶入編發器/複製;無 key 僅提示;`rewrite.ts` 增 `moodHint`;生成貼文匯出 Obsidian 待 D8/vault 拍板);**A 管線 diary 分流——待實作**(B 校準後開工:分組合併純函式、`topUpPipeline` 分流、管線卡 chips+誠實標示)。worker 零改動。
 - **P3(候選)**:Google Doc 匯入(D5)、條目內 AI 潤稿。
 - **P4 匯出(D6/D7)——一期 2026-11-01 完成**:`vaultMarkdown.ts` 純邏輯(檔名/ISO 週標籤/區塊組裝/新建筆記/splice/增量判定/範圍界線/彙整檔)22 測、`exportStore.ts` 戳記獨立鍵 8 測、`vaultFs.ts` 檔案系統層(唯一碰 DOM 的一支,自備 `showDirectoryPicker` ambient 型別)、store `pickDiaryVault`/`exportDiaryToVault`(逐日獨立 try,**單天失敗不連坐**、只有寫成功的天記戳記)配 2 個 hook 測(假 handle 跑完整流程,已以 mutation 驗證守得住 splice 與增量)、日記頁匯出卡(範圍 chips/選資料夾/待寫天數/上次匯出/三條誠實標示)。worker 零改動。
   - **ISO 週標籤**特別對照 vault `scripts/journal.py` 的 `_iso_week`:**週編號年份不等於日曆年份**(2027-01-01 屬 2026-W53、2025-12-29 屬 2026-W01),不能用 `getFullYear()`;實作與 Python `isocalendar()` 逐日比對 762 天零差異。

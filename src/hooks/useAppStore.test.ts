@@ -9,7 +9,7 @@ function seedEmptyDrafts(): void {
 
 import { useAppStore } from './useAppStore';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
-import { rewriteWithGemini } from '../services/gemini/rewrite';
+import { generateJournalPost, rewriteWithGemini } from '../services/gemini/rewrite';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
@@ -26,7 +26,7 @@ vi.mock('../services/gemini/variants', () => ({
 // 「停止」測試:僅 mock 語氣改寫入口(abort 由 signal 驅動),其餘(key 存取等)走真實模組
 vi.mock('../services/gemini/rewrite', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/gemini/rewrite')>();
-  return { ...actual, rewriteWithGemini: vi.fn() };
+  return { ...actual, rewriteWithGemini: vi.fn(), generateJournalPost: vi.fn() };
 });
 
 // 文庫雲端備份(方案 A):client 傳輸層 mock,加密/payload 走真實模組;
@@ -1445,5 +1445,53 @@ describe('useAppStore:日記匯出到 Obsidian vault', () => {
     expect(out).toContain('新內容');
     expect(out).not.toContain('舊內容');
     expect(out.split('<!-- text-message:diary -->')).toHaveLength(2); // 沒有重複插入
+  });
+});
+
+describe('useAppStore:日記 P2 路徑 B(條目卡生成貼文,2026-11-03)', () => {
+  it('無 key 僅提示不呼叫 Gemini;有 key → generateJournalPost 帶標題/心情,成功回傳文字並可帶入編發器', async () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() =>
+      result.current.addDiaryEntry({ date: '2026-11-03', title: '晨走', body: '今天的內容'.repeat(30), mood: '😊 開心' }),
+    );
+    const entry = result.current.diaryEntries[0];
+
+    let r: { ok: boolean; text?: string } | undefined;
+    await act(async () => {
+      r = await result.current.generateDiaryPostFromEntry(entry);
+    });
+    expect(r?.ok).toBe(false);
+    expect(generateJournalPost).not.toHaveBeenCalled();
+
+    act(() => result.current.setGeminiKey('AQ.test-key-for-diary'));
+    vi.mocked(generateJournalPost).mockResolvedValue({ ok: true, text: '生成好的貼文' });
+    await act(async () => {
+      r = await result.current.generateDiaryPostFromEntry(entry);
+    });
+    expect(r).toEqual({ ok: true, text: '生成好的貼文' });
+    expect(generateJournalPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: 'AQ.test-key-for-diary',
+        entryTitle: '晨走',
+        moodHint: '😊 開心',
+        entryBody: entry.body,
+      }),
+    );
+
+    act(() => result.current.insertDiaryPostText('生成好的貼文'));
+    expect(result.current.draftText).toContain('生成好的貼文');
+    expect(result.current.activeTab).toBe('draft');
+  });
+
+  it('生成失敗(如 quota)→ 回傳 ok:false(錯誤文案由 toast 呈現)', async () => {
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.setGeminiKey('AQ.test-key-for-diary-2'));
+    act(() => result.current.addDiaryEntry({ date: '2026-11-03', title: '', body: '另一段內容'.repeat(30) }));
+    vi.mocked(generateJournalPost).mockResolvedValue({ ok: false, code: 'quota' });
+    let r: { ok: boolean } | undefined;
+    await act(async () => {
+      r = await result.current.generateDiaryPostFromEntry(result.current.diaryEntries[0]);
+    });
+    expect(r?.ok).toBe(false);
   });
 });

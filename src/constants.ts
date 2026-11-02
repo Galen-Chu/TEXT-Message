@@ -851,6 +851,17 @@ export const DIARY_COPY = {
   deletedToast: '日記已刪除',
   emptyBodyToast: '內容是空的,寫點什麼再儲存吧',
   bodyLengthToast: (n: number) => `內容需 ${DIARY_BODY_MIN}–${DIARY_BODY_MAX} 字(目前 ${n} 字)`,
+  // 日記 P2 路徑 B(2026-11-03):條目卡「✨ 生成貼文」——人審後任平台,風格校準迴路
+  genButton: '✨ 生成貼文',
+  generatingLabel: '生成中…',
+  genNeedKeyToast: '生成貼文需要 Gemini key:於「AI 設定」輸入後即可使用',
+  genModalTitle: '✨ 生成貼文(可編輯)',
+  genFromLabel: (date: string, mood?: string) => `來源日記:${date}${mood ? ` · ${mood}` : ''}`,
+  genHonesty: '經 Gemini 生成;日記原文只在生成當下送出,不照抄原文、不提來源',
+  genToDraftButton: '帶入編發器',
+  genCopyButton: '複製',
+  genCopiedToast: '已複製生成貼文 📋',
+  genToDraftToast: '已帶入編發器草稿 ✨',
 };
 
 /**
