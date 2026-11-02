@@ -10,6 +10,7 @@ import type { AppStore } from '../hooks/useAppStore';
 import type { SocialPost } from '../types';
 import { gmailFilterSearchUrl } from '../services/gmail/filterLink';
 import { dateLabel } from '../utils/date';
+import AccountsCard from './AccountsCard';
 import Modal from './Modal';
 import PlatformBadge from './PlatformBadge';
 import ThreadsInteractionsCard from './ThreadsInteractionsCard';
@@ -45,31 +46,35 @@ export default function Social({ store }: { store: AppStore }) {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+      <div className="t-page-title" style={{ marginBottom: 4 }}>
         自媒體 Social
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
-        各平台發文歷史,與 Threads 留言唯讀代讀
+      <div className="t-page-desc" style={{ marginBottom: 20 }}>
+        連接平台帳號、各平台發文歷史,與 Threads 留言唯讀代讀
         {store.socialHistoryIsDemo && (
-          <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 6 }}>
+          <span className="t-meta" style={{ marginLeft: 6 }}>
             (示範資料;於排程頁「標記已發佈」後即為真實記錄)
           </span>
         )}
       </div>
 
+      {/* 2026-11-02 UIUX 批:連接操作放在本頁最前——它是本頁的「進入操作」,
+          不該只存在編發器裡(否則自媒體頁要先繞進編發器才能串起來) */}
+      <AccountsCard store={store} />
+
       <TrendsPanel posts={store.publishedHistory} />
 
       {/* IA Phase 5 D6 一期:平台互動通知信(唯讀分類,emails 不落地;回覆一律回平台 App) */}
       <div className="card" style={{ padding: 18, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
+        <div className="t-sec-title" style={{ marginBottom: 4 }}>
           {SOCIAL_NOTIFY_COPY.cardTitle}
           {store.gmail.status !== 'connected' && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', marginLeft: 6 }}>
+            <span className="t-meta" style={{ marginLeft: 6 }}>
               {SOCIAL_NOTIFY_COPY.demoNote}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+        <div className="t-meta" style={{ marginBottom: 12 }}>
           {SOCIAL_NOTIFY_COPY.desc}
         </div>
         {store.emails
@@ -87,6 +92,7 @@ export default function Social({ store }: { store: AppStore }) {
               }}
             >
               <div
+                className="t-sub"
                 style={{
                   width: 30,
                   height: 30,
@@ -96,21 +102,17 @@ export default function Social({ store }: { store: AppStore }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 'var(--weight-bold)',
                   flexShrink: 0,
                 }}
               >
                 {m.initial}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                  {m.sender}
-                </div>
+                <div className="t-item-title">{m.sender}</div>
                 <div
+                  className="t-sub"
                   style={{
-                    fontSize: 12,
-                    color: 'var(--text-weak)',
                     marginTop: 2,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -120,7 +122,7 @@ export default function Social({ store }: { store: AppStore }) {
                   {m.subject}
                 </div>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+              <div className="t-meta t-num" style={{ whiteSpace: 'nowrap' }}>
                 {m.date}
               </div>
               {m.senderEmail && (
@@ -128,7 +130,8 @@ export default function Social({ store }: { store: AppStore }) {
                   href={gmailFilterSearchUrl(m.senderEmail)}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)', whiteSpace: 'nowrap' }}
+                  className="t-meta"
+                  style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)', whiteSpace: 'nowrap' }}
                 >
                   {SOCIAL_NOTIFY_COPY.openMail}
                 </a>
@@ -136,9 +139,7 @@ export default function Social({ store }: { store: AppStore }) {
             </div>
           ))}
         {store.emails.filter((m) => m.tag === '互動通知').length === 0 && (
-          <div
-            style={{ padding: '14px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
-          >
+          <div className="t-sub" style={{ padding: '14px 0', textAlign: 'center' }}>
             {SOCIAL_NOTIFY_COPY.empty}
           </div>
         )}
@@ -155,11 +156,11 @@ export default function Social({ store }: { store: AppStore }) {
             <button
               key={f}
               onClick={() => store.setSocialFilter(f)}
+              className="t-sub"
               style={{
                 padding: '8px 14px',
                 borderRadius: 9,
-                fontSize: 12.5,
-                fontWeight: 600,
+                fontWeight: 'var(--weight-semibold)',
                 background: active ? 'var(--brand-fill)' : 'var(--card)',
                 color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -186,19 +187,17 @@ export default function Social({ store }: { store: AppStore }) {
             <PlatformBadge platform={post.platform} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)' }}>
+                <div className="t-item-title" style={{ fontWeight: 'var(--weight-bold)' }}>
                   {post.title}
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                <div className="t-meta t-num" style={{ whiteSpace: 'nowrap' }}>
                   {dateLabel(post.date)} · {post.time}
                 </div>
               </div>
               <div
+                className="t-sub"
                 style={{
-                  fontSize: 12.5,
-                  color: 'var(--text-weak)',
                   marginTop: 4,
-                  lineHeight: 1.5,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -214,12 +213,14 @@ export default function Social({ store }: { store: AppStore }) {
                   marginTop: 6,
                 }}
               >
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#06C755' }}>✓ 已發佈</div>
+                <div className="t-micro" style={{ color: '#06C755' }}>
+                  ✓ 已發佈
+                </div>
                 <button
+                  className="t-meta"
                   onClick={() => openSaveModal(post)}
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     color: 'var(--brand)',
                     padding: '4px 8px',
                     borderRadius: 7,
@@ -232,9 +233,7 @@ export default function Social({ store }: { store: AppStore }) {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div
-            style={{ padding: '32px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
-          >
+          <div className="t-sub" style={{ padding: '32px 0', textAlign: 'center' }}>
             此平台還沒有發文記錄
           </div>
         )}
@@ -246,7 +245,7 @@ export default function Social({ store }: { store: AppStore }) {
           width={420}
           label={LIBRARY_COPY.saveAsTemplateTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {LIBRARY_COPY.saveAsTemplateTitle}
           </div>
           <div className="field-label">標題</div>
@@ -271,10 +270,8 @@ export default function Social({ store }: { store: AppStore }) {
           </select>
           <div className="field-label">{LIBRARY_COPY.saveAsTemplateContentLabel}</div>
           <div
+            className="t-sub"
             style={{
-              fontSize: 12.5,
-              color: 'var(--text-weak)',
-              lineHeight: 1.6,
               whiteSpace: 'pre-line',
               maxHeight: 140,
               overflowY: 'auto',

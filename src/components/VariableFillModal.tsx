@@ -29,10 +29,10 @@ export default function VariableFillModal({
 
   return (
     <Modal onClose={onClose} width={460} label={title}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 6 }}>
+      <div className="t-card-title" style={{ marginBottom: 6 }}>
         {title}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-weak)', marginBottom: 14 }}>
+      <div className="t-sub" style={{ marginBottom: 14 }}>
         {LIBRARY_COPY.fillDesc(variables.length)}
       </div>
       {variables.map((name) => (
@@ -49,10 +49,10 @@ export default function VariableFillModal({
       ))}
       <div className="field-label">{LIBRARY_COPY.fillPreview}</div>
       <div
+        className="t-sub"
         style={{
-          fontSize: 12.5,
           color: 'var(--text-sub)',
-          lineHeight: 1.6,
+          lineHeight: 'var(--leading-normal)',
           whiteSpace: 'pre-line',
           maxHeight: 180,
           overflowY: 'auto',

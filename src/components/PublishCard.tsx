@@ -135,12 +135,12 @@ export default function PublishCard({ store }: { store: AppStore }) {
     return (
       <div style={{ border: '1px solid var(--border-2)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>
+          <span className="t-sub" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-main)' }}>
             {activeMeta?.label} 預覽
           </span>
           <span
+            className="t-meta t-num"
             style={{
-              fontSize: 11,
               color: over ? 'var(--error)' : 'var(--text-faint)',
               marginLeft: 'auto',
             }}
@@ -148,7 +148,14 @@ export default function PublishCard({ store }: { store: AppStore }) {
             {draftLength} / {limit} 字
           </span>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+        <div
+          className="t-body"
+          style={{
+            color: 'var(--text-sub)',
+            lineHeight: 'var(--leading-normal)',
+            whiteSpace: 'pre-line',
+          }}
+        >
           {store.draftText || '(尚未輸入內容)'}
         </div>
       </div>
@@ -157,7 +164,7 @@ export default function PublishCard({ store }: { store: AppStore }) {
 
   const renderSemiAuto = (platform: PlatformKey) => (
     <div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+      <div className="t-meta" style={{ marginBottom: 12 }}>
         {PUBLISH_CARD_COPY.semiAutoHint}
       </div>
       <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => void copyAndOpen(platform)}>
@@ -177,14 +184,18 @@ export default function PublishCard({ store }: { store: AppStore }) {
             marginBottom: 8,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+          <div
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}
+          >
             {store.threadsProxy.status === 'connected'
               ? BACKEND_COPY.connectedHint
               : BACKEND_COPY.cardDesc}
           </div>
           <button
             onClick={() => void store.threadsProxy.refresh()}
-            style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-semibold)' }}
           >
             {BACKEND_COPY.refreshStatus}
           </button>
@@ -197,13 +208,13 @@ export default function PublishCard({ store }: { store: AppStore }) {
                 {BACKEND_COPY.connect}
               </button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+            <div className="t-note">
               {store.threadsProxy.authReturn === 'connected' && BACKEND_COPY.connectedBackToast}
               {store.threadsProxy.authReturn === 'error' && BACKEND_COPY.connectErrorToast}
               {store.threadsProxy.authReturn === null && BACKEND_COPY.connectHint}
             </div>
             {store.threadsProxy.status === 'unknown' && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+              <div className="t-meta" style={{ marginTop: 6 }}>
                 {BACKEND_COPY.checking}
               </div>
             )}
@@ -247,7 +258,7 @@ export default function PublishCard({ store }: { store: AppStore }) {
           </div>
         )}
         {store.threadsProxy.status === 'error' && (
-          <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+          <div className="t-meta" style={{ color: 'var(--error)', marginTop: 8 }}>
             {BACKEND_ERROR_COPY.unknown}
           </div>
         )}
@@ -267,14 +278,18 @@ export default function PublishCard({ store }: { store: AppStore }) {
             marginBottom: 8,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+          <div
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}
+          >
             {store.facebookProxy.status === 'connected'
               ? BACKEND_FB_COPY.connectedHint(store.facebookProxy.pageName)
               : BACKEND_FB_COPY.cardDesc}
           </div>
           <button
             onClick={() => void store.facebookProxy.refresh()}
-            style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-semibold)' }}
           >
             {BACKEND_FB_COPY.refreshStatus}
           </button>
@@ -287,13 +302,13 @@ export default function PublishCard({ store }: { store: AppStore }) {
                 {BACKEND_FB_COPY.connect}
               </button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+            <div className="t-note">
               {store.facebookProxy.authReturn === 'connected' && BACKEND_FB_COPY.connectedBackToast}
               {store.facebookProxy.authReturn === 'error' && BACKEND_FB_COPY.connectErrorToast}
               {store.facebookProxy.authReturn === null && BACKEND_FB_COPY.connectHint}
             </div>
             {store.facebookProxy.status === 'unknown' && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+              <div className="t-meta" style={{ marginTop: 6 }}>
                 {BACKEND_COPY.checking}
               </div>
             )}
@@ -337,7 +352,7 @@ export default function PublishCard({ store }: { store: AppStore }) {
           </div>
         )}
         {store.facebookProxy.status === 'error' && (
-          <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+          <div className="t-meta" style={{ color: 'var(--error)', marginTop: 8 }}>
             {BACKEND_FB_ERROR_COPY.unknown ?? BACKEND_ERROR_COPY.unknown}
           </div>
         )}
@@ -357,14 +372,18 @@ export default function PublishCard({ store }: { store: AppStore }) {
             marginBottom: 8,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+          <div
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}
+          >
             {store.linkedinProxy.status === 'connected'
               ? BACKEND_LINKEDIN_COPY.connectedHint(store.linkedinProxy.memberName)
               : BACKEND_LINKEDIN_COPY.cardDesc}
           </div>
           <button
             onClick={() => void store.linkedinProxy.refresh()}
-            style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-semibold)' }}
           >
             {BACKEND_LINKEDIN_COPY.refreshStatus}
           </button>
@@ -377,13 +396,13 @@ export default function PublishCard({ store }: { store: AppStore }) {
                 {BACKEND_LINKEDIN_COPY.connect}
               </button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+            <div className="t-note">
               {store.linkedinProxy.authReturn === 'connected' && BACKEND_LINKEDIN_COPY.connectedBackToast}
               {store.linkedinProxy.authReturn === 'error' && BACKEND_LINKEDIN_COPY.connectErrorToast}
               {store.linkedinProxy.authReturn === null && BACKEND_LINKEDIN_COPY.connectHint}
             </div>
             {store.linkedinProxy.status === 'unknown' && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
+              <div className="t-meta" style={{ marginTop: 6 }}>
                 {BACKEND_COPY.checking}
               </div>
             )}
@@ -427,7 +446,7 @@ export default function PublishCard({ store }: { store: AppStore }) {
           </div>
         )}
         {store.linkedinProxy.status === 'error' && (
-          <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+          <div className="t-meta" style={{ color: 'var(--error)', marginTop: 8 }}>
             {BACKEND_ERROR_COPY.unknown}
           </div>
         )}
@@ -447,13 +466,17 @@ export default function PublishCard({ store }: { store: AppStore }) {
             marginBottom: 8,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+          <div
+            className="t-meta"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}
+          >
             {YOUTUBE_COPY.cardDesc}
           </div>
           {yt.status === 'connected' && (
             <button
               onClick={yt.disconnect}
-              style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)' }}
+              className="t-meta"
+              style={{ fontWeight: 'var(--weight-semibold)' }}
             >
               {YOUTUBE_COPY.disconnect}
             </button>
@@ -470,14 +493,14 @@ export default function PublishCard({ store }: { store: AppStore }) {
               {yt.status === 'connecting' ? YOUTUBE_COPY.connecting : YOUTUBE_COPY.connect}
             </button>
             {yt.status === 'error' && yt.error && (
-              <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+              <div className="t-meta" style={{ color: 'var(--error)', marginTop: 8 }}>
                 {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
               </div>
             )}
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
+            <div className="t-meta" style={{ marginBottom: 10 }}>
               {YOUTUBE_COPY.connectedHint}
             </div>
             <input
@@ -508,11 +531,11 @@ export default function PublishCard({ store }: { store: AppStore }) {
                   <button
                     key={mode}
                     onClick={() => setPublishMode(mode)}
+                    className="t-sub"
                     style={{
                       padding: '7px 14px',
                       borderRadius: 9,
-                      fontSize: 12.5,
-                      fontWeight: 600,
+                      fontWeight: 'var(--weight-semibold)',
                       background: on ? 'var(--pill-brand-bg)' : 'var(--card)',
                       color: on ? 'var(--brand)' : 'var(--text-faint)',
                       border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -564,18 +587,18 @@ export default function PublishCard({ store }: { store: AppStore }) {
               </div>
             )}
             {yt.error && (
-              <div style={{ fontSize: 11.5, color: 'var(--error)', marginTop: 8 }}>
+              <div className="t-meta" style={{ color: 'var(--error)', marginTop: 8 }}>
                 {YOUTUBE_ERROR_COPY[yt.error.code] ?? YOUTUBE_ERROR_COPY.unknown}
               </div>
             )}
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 10 }}>
+            <div className="t-meta" style={{ marginTop: 10 }}>
               {YOUTUBE_COPY.auditCaveat}
             </div>
           </div>
         )}
       </div>
     ) : (
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+      <div className="t-meta">
         {PUBLISH_CARD_COPY.youtubeDisabledHint}
       </div>
     );
@@ -597,11 +620,14 @@ export default function PublishCard({ store }: { store: AppStore }) {
 
   return (
     <div className="card" style={{ padding: 18 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>
+      <div className="t-sec-title" style={{ color: 'var(--text-weak)', marginBottom: 12 }}>
         {PUBLISH_CARD_COPY.cardTitle}
       </div>
       {selected.length === 0 ? (
-        <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}>
+        <div
+          className="t-sub"
+          style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text-faint)' }}
+        >
           {PUBLISH_CARD_COPY.noPlatformHint}
         </div>
       ) : (
@@ -613,14 +639,14 @@ export default function PublishCard({ store }: { store: AppStore }) {
                 <button
                   key={p.key}
                   onClick={() => setTab(p.key)}
+                  className="t-sub"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 7,
                     padding: '7px 13px',
                     borderRadius: 9,
-                    fontSize: 12.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     background: on ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: on ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${on ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -633,8 +659,8 @@ export default function PublishCard({ store }: { store: AppStore }) {
                       borderRadius: 5,
                       background: p.color,
                       color: '#fff',
-                      fontSize: 9,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-micro)',
+                      fontWeight: 'var(--weight-bold)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

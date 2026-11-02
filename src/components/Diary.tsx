@@ -64,11 +64,11 @@ export default function Diary({ store }: { store: AppStore }) {
           <button
             key={m}
             onClick={() => onPick(active ? '' : m)}
+            className="t-meta"
             style={{
               padding: '5px 12px',
               borderRadius: 8,
-              fontSize: 11.5,
-              fontWeight: 600,
+              fontWeight: 'var(--weight-semibold)',
               background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
               color: active ? 'var(--brand)' : 'var(--text-faint)',
               border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -86,8 +86,8 @@ export default function Diary({ store }: { store: AppStore }) {
     const n = text.trim().length;
     return (
       <div
+        className="t-meta t-num"
         style={{
-          fontSize: 11.5,
           color: n >= DIARY_BODY_MIN && n <= DIARY_BODY_MAX ? 'var(--text-weak)' : 'var(--error)',
           whiteSpace: 'nowrap',
         }}
@@ -150,14 +150,14 @@ export default function Diary({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+        <div className="t-page-title" style={{ marginBottom: 4 }}>
           {DIARY_COPY.pageTitle}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>{DIARY_COPY.pageDesc}</div>
+        <div className="t-page-desc">{DIARY_COPY.pageDesc}</div>
       </div>
 
       <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 12 }}>
+        <div className="t-sec-title" style={{ marginBottom: 12 }}>
           {DIARY_COPY.composeTitle}
         </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
@@ -191,7 +191,7 @@ export default function Diary({ store }: { store: AppStore }) {
           onChange={(e) => setBody(e.target.value)}
           placeholder={DIARY_COPY.bodyPlaceholder}
           maxLength={DIARY_BODY_MAX}
-          style={{ minHeight: 120, lineHeight: 1.6, resize: 'vertical' }}
+          style={{ minHeight: 120, lineHeight: 'var(--leading-normal)', resize: 'vertical' }}
         />
         <div
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}
@@ -205,19 +205,15 @@ export default function Diary({ store }: { store: AppStore }) {
 
       {store.diaryEntries.length > 0 && (
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
-            {DIARY_EXPORT_COPY.cardTitle}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-weak)', marginBottom: 12 }}>
+          <div className="t-sec-title">{DIARY_EXPORT_COPY.cardTitle}</div>
+          <div className="t-meta" style={{ marginBottom: 14 }}>
             {DIARY_EXPORT_COPY.cardDesc}
           </div>
 
           {!supported ? (
             <>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-main)' }}>
-                {DIARY_EXPORT_COPY.unsupportedTitle}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-weak)', margin: '4px 0 12px' }}>
+              <div className="t-item-title">{DIARY_EXPORT_COPY.unsupportedTitle}</div>
+              <div className="t-meta" style={{ margin: '4px 0 12px' }}>
                 {DIARY_EXPORT_COPY.unsupportedDesc}
               </div>
               <button className="btn btn-outline" onClick={() => store.exportDiaryToVault(range)}>
@@ -226,31 +222,70 @@ export default function Diary({ store }: { store: AppStore }) {
             </>
           ) : (
             <>
-              <div className="field-label">{DIARY_EXPORT_COPY.rangeLabel}</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                {DIARY_EXPORT_RANGES.map((r) => {
-                  const active = range === r.value;
-                  return (
-                    <button
-                      key={r.value}
-                      onClick={() => setRange(r.value)}
-                      style={{
-                        padding: '5px 14px',
-                        borderRadius: 8,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
-                        color: active ? 'var(--brand)' : 'var(--text-faint)',
-                        border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
-                      }}
-                    >
-                      {r.label}
-                    </button>
-                  );
-                })}
+              {/* 步驟①:資料夾。狀態(已選哪個/還沒選)與它自己的按鈕同一列——
+                  舊版把這顆鈕排在匯出鈕之後、狀態又落在下方,讀的順序與做的順序不一致。 */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  paddingBottom: 12,
+                  borderBottom: '1px solid var(--border-2)',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="t-item-title">{DIARY_EXPORT_COPY.stepFolderLabel}</div>
+                  <div className="t-meta" style={{ marginTop: 2 }}>
+                    {store.vaultFolder
+                      ? DIARY_EXPORT_COPY.folderLabel(store.vaultFolder)
+                      : DIARY_EXPORT_COPY.needPickHint}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ flexShrink: 0 }}
+                  onClick={store.pickDiaryVault}
+                >
+                  {store.vaultFolder
+                    ? DIARY_EXPORT_COPY.repickButton
+                    : DIARY_EXPORT_COPY.pickButton}
+                </button>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* 步驟②:選範圍 → 看這個範圍的即時狀態 → 按匯出。動作在步驟末尾,不必往上回。 */}
+              <div style={{ paddingTop: 12 }}>
+                <div className="t-item-title">{DIARY_EXPORT_COPY.stepExportLabel}</div>
+                <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
+                  {DIARY_EXPORT_RANGES.map((r) => {
+                    const active = range === r.value;
+                    return (
+                      <button
+                        key={r.value}
+                        onClick={() => setRange(r.value)}
+                        className="t-meta"
+                        style={{
+                          padding: '5px 14px',
+                          borderRadius: 8,
+                          fontWeight: 'var(--weight-semibold)',
+                          background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
+                          color: active ? 'var(--brand)' : 'var(--text-faint)',
+                          border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                        }}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="t-meta" style={{ marginBottom: 10 }}>
+                  {DIARY_EXPORT_COPY.pendingLabel(pending)} ·{' '}
+                  {store.diaryExport.lastExportAt
+                    ? DIARY_EXPORT_COPY.lastExportLabel(
+                        shortDateTimeLabel(store.diaryExport.lastExportAt),
+                      )
+                    : DIARY_EXPORT_COPY.neverExported}
+                </div>
                 <button
                   className="btn btn-primary"
                   disabled={store.diaryExporting}
@@ -260,29 +295,13 @@ export default function Diary({ store }: { store: AppStore }) {
                     ? DIARY_EXPORT_COPY.exportingButton
                     : DIARY_EXPORT_COPY.exportButton}
                 </button>
-                <button className="btn btn-ghost" onClick={store.pickDiaryVault}>
-                  {store.vaultFolder
-                    ? DIARY_EXPORT_COPY.repickButton
-                    : DIARY_EXPORT_COPY.pickButton}
-                </button>
-                <span style={{ fontSize: 12, color: 'var(--text-weak)' }}>
-                  {DIARY_EXPORT_COPY.pendingLabel(pending)}
-                </span>
               </div>
 
-              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 10, lineHeight: 1.7 }}>
-                {store.vaultFolder ? (
-                  <div>{DIARY_EXPORT_COPY.folderLabel(store.vaultFolder)}</div>
-                ) : (
-                  <div>{DIARY_EXPORT_COPY.needPickHint}</div>
-                )}
-                <div>
-                  {store.diaryExport.lastExportAt
-                    ? DIARY_EXPORT_COPY.lastExportLabel(
-                        shortDateTimeLabel(store.diaryExport.lastExportAt),
-                      )
-                    : DIARY_EXPORT_COPY.neverExported}
-                </div>
+              {/* 誠實標示是靜態的(不隨操作變動),固定收在卡底,不再夾在按鈕之間 */}
+              <div
+                className="t-note"
+                style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-2)' }}
+              >
                 {DIARY_EXPORT_COPY.notes.map((n) => (
                   <div key={n}>· {n}</div>
                 ))}
@@ -303,17 +322,17 @@ export default function Diary({ store }: { store: AppStore }) {
           }}
           placeholder={DIARY_COPY.searchPlaceholder}
         />
-        <span style={{ fontSize: 12, color: 'var(--text-weak)', whiteSpace: 'nowrap' }}>
+        <span className="t-sub t-num" style={{ whiteSpace: 'nowrap' }}>
           {DIARY_COPY.countLabel(entries.length)}
         </span>
       </div>
 
       {entries.length === 0 ? (
         <div className="card" style={{ padding: 28, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+          <div className="t-card-title" style={{ marginBottom: 6 }}>
             {search.trim() ? '找不到符合的日記' : DIARY_COPY.emptyTitle}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-weak)' }}>
+          <div className="t-sub">
             {search.trim() ? '換個關鍵字試試' : DIARY_COPY.emptyDesc}
           </div>
         </div>
@@ -324,16 +343,15 @@ export default function Diary({ store }: { store: AppStore }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span className="pill pill-brand">{e.date}</span>
                 {e.mood && <span className="pill pill-accent">{e.mood}</span>}
-                <span style={{ fontSize: 11.5, color: 'var(--text-weak)', marginLeft: 'auto' }}>
+                <span className="t-meta t-num" style={{ marginLeft: 'auto' }}>
                   {shortDateTimeLabel(e.updatedAt)}
                 </span>
               </div>
               {e.title && (
                 <div
+                  className="t-item-title"
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: 'var(--text-main)',
+                    fontWeight: 'var(--weight-bold)',
                     marginBottom: 4,
                     overflowWrap: 'anywhere',
                   }}
@@ -342,8 +360,8 @@ export default function Diary({ store }: { store: AppStore }) {
                 </div>
               )}
               <div
+                className="t-body"
                 style={{
-                  fontSize: 13,
                   color: 'var(--text-sub)',
                   whiteSpace: 'pre-wrap',
                   overflowWrap: 'anywhere',
@@ -396,19 +414,24 @@ export default function Diary({ store }: { store: AppStore }) {
 
       {genModal && (
         <Modal onClose={() => setGenModal(null)} width={520} label={DIARY_COPY.genModalTitle}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 6 }}>
+          <div className="t-card-title" style={{ marginBottom: 6 }}>
             {DIARY_COPY.genModalTitle}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-weak)', marginBottom: 12 }}>
+          <div className="t-sub" style={{ marginBottom: 12 }}>
             {DIARY_COPY.genFromLabel(genModal.entry.date, genModal.entry.mood)}
           </div>
           <textarea
             className="text-input"
             value={genModal.text}
             onChange={(ev) => setGenModal({ ...genModal, text: ev.target.value })}
-            style={{ minHeight: 160, lineHeight: 1.6, resize: 'vertical', marginBottom: 8 }}
+            style={{
+              minHeight: 160,
+              lineHeight: 'var(--leading-normal)',
+              resize: 'vertical',
+              marginBottom: 8,
+            }}
           />
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 14 }}>
+          <div className="t-note" style={{ marginBottom: 14 }}>
             {DIARY_COPY.genHonesty}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -443,7 +466,7 @@ export default function Diary({ store }: { store: AppStore }) {
 
       {editing && (
         <Modal onClose={() => setEditing(null)} width={520} label={DIARY_COPY.editButton}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {DIARY_COPY.editButton}
           </div>
           <div className="field-label">{DIARY_COPY.dateLabel}</div>
@@ -472,7 +495,7 @@ export default function Diary({ store }: { store: AppStore }) {
             onChange={(e) => setEditBody(e.target.value)}
             placeholder={DIARY_COPY.bodyPlaceholder}
             maxLength={DIARY_BODY_MAX}
-            style={{ minHeight: 120, lineHeight: 1.6, resize: 'vertical' }}
+            style={{ minHeight: 120, lineHeight: 'var(--leading-normal)', resize: 'vertical' }}
           />
           <div
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}
@@ -492,10 +515,10 @@ export default function Diary({ store }: { store: AppStore }) {
 
       {deleting && (
         <Modal onClose={() => setDeleting(null)} width={380} label={DIARY_COPY.deleteModalTitle}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 8 }}>
+          <div className="t-card-title" style={{ marginBottom: 8 }}>
             {DIARY_COPY.deleteModalTitle}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 16, lineHeight: 1.6 }}>
+          <div className="t-body" style={{ color: 'var(--text-weak)', marginBottom: 16 }}>
             {DIARY_COPY.deleteModalDesc}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

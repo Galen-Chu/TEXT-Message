@@ -27,7 +27,13 @@ const QUEUE_STATUS_META: Record<string, { label: string; color: string }> = {
 
 /** 排程列動作按鈕(發佈輔助為純前端半自動:複製 + 平台深連結)。 */
 function actionButtonStyle(color: string) {
-  return { fontSize: 11.5, fontWeight: 700, color, padding: '4px 8px', borderRadius: 7 };
+  return {
+    fontSize: 'var(--text-meta)',
+    fontWeight: 'var(--weight-bold)',
+    color,
+    padding: '4px 8px',
+    borderRadius: 7,
+  };
 }
 
 export default function Schedule({ store }: { store: AppStore }) {
@@ -121,10 +127,10 @@ export default function Schedule({ store }: { store: AppStore }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+          <div className="t-page-title" style={{ marginBottom: 4 }}>
             定排程 Task
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>跨平台發佈排程一覽,含雲端佇列與自動發文管線</div>
+          <div className="t-page-desc">跨平台發佈排程一覽,含雲端佇列與自動發文管線</div>
         </div>
         <button className="btn btn-primary" onClick={openNewModal}>
           + 新增排程
@@ -132,18 +138,20 @@ export default function Schedule({ store }: { store: AppStore }) {
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>類別</span>
+        <span className="t-meta" style={{ marginRight: 2 }}>
+          類別
+        </span>
         {SCHEDULE_KIND_FILTERS.map((k) => {
           const active = kindFilter === k;
           return (
             <button
               key={k}
               onClick={() => setKindFilter(k)}
+              className="t-meta"
               style={{
                 padding: '5px 10px',
                 borderRadius: 8,
-                fontSize: 11.5,
-                fontWeight: 600,
+                fontWeight: 'var(--weight-semibold)',
                 background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                 color: active ? 'var(--brand)' : 'var(--text-faint)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -169,11 +177,12 @@ export default function Schedule({ store }: { store: AppStore }) {
             background: 'rgba(231,76,60,0.06)',
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#E74C3C' }}>
+          <div className="t-sec-title" style={{ color: '#E74C3C' }}>
             {SCHEDULE_COPY.overdueBanner(overdue.length)}
           </div>
           <button
-            style={{ fontSize: 12, fontWeight: 700, color: '#E74C3C', whiteSpace: 'nowrap' }}
+            className="t-sub"
+            style={{ fontWeight: 'var(--weight-bold)', color: '#E74C3C', whiteSpace: 'nowrap' }}
             onClick={() => store.setSelectedDay(overdue[0].date)}
           >
             {SCHEDULE_COPY.overdueBannerAction} →
@@ -200,8 +209,17 @@ export default function Schedule({ store }: { store: AppStore }) {
                 boxShadow: '0 2px 8px rgba(108,92,231,0.06)',
               }}
             >
-              <div style={{ fontSize: 11, opacity: 0.75 }}>{WEEKDAY_LABELS[i]}</div>
-              <div style={{ fontSize: 17, fontWeight: 800, margin: '4px 0' }}>
+              {/* 週曆格的字色要跟著選取狀態走(currentColor),所以不套 .t-* 類別
+                  (那會把色彩一起帶進來),改用字級 token 的 inline escape hatch */}
+              <div style={{ fontSize: 'var(--text-meta)', opacity: 0.75 }}>{WEEKDAY_LABELS[i]}</div>
+              <div
+                className="t-num"
+                style={{
+                  fontSize: 'var(--text-card)',
+                  fontWeight: 'var(--weight-bold)',
+                  margin: '4px 0',
+                }}
+              >
                 {new Date(date + 'T00:00:00').getDate()}
               </div>
               {hasItems && (
@@ -221,11 +239,11 @@ export default function Schedule({ store }: { store: AppStore }) {
       </div>
 
       <div className="card" style={{ padding: 18, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 12 }}>
+        <div className="t-sec-title" style={{ marginBottom: 12 }}>
           {dateLabel(store.selectedDay)} 排程內容
         </div>
         {selectedDayItems.length === 0 && (
-          <div style={{ fontSize: 12.5, color: 'var(--text-faint)', padding: '16px 0', textAlign: 'center' }}>
+          <div className="t-sub" style={{ color: 'var(--text-faint)', padding: '16px 0', textAlign: 'center' }}>
             這天還沒有排程,點右上角新增一則吧
           </div>
         )}
@@ -245,13 +263,16 @@ export default function Schedule({ store }: { store: AppStore }) {
             >
               <PlatformBadge platform={item.platform} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                <div className="t-item-title">
                   {item.title}{' '}
-                  <span className="pill pill-brand" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                  <span className="pill pill-brand" style={{ marginLeft: 4 }}>
                     {DOC_KIND_LABELS[scheduleKindOf(item)]}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: meta.color, marginTop: 2, fontWeight: 600 }}>
+                <div
+                  className="t-sub"
+                  style={{ color: meta.color, marginTop: 2, fontWeight: 'var(--weight-semibold)' }}
+                >
                   {item.time} · {meta.label}
                 </div>
                 {status !== 'published' && (
@@ -293,10 +314,10 @@ export default function Schedule({ store }: { store: AppStore }) {
               </div>
               <button
                 onClick={() => store.deleteScheduleItem(item.id)}
+                className="t-sub"
                 style={{
-                  fontSize: 12,
                   color: 'var(--text-faint)',
-                  fontWeight: 600,
+                  fontWeight: 'var(--weight-semibold)',
                   padding: '6px 10px',
                 }}
               >
@@ -308,7 +329,7 @@ export default function Schedule({ store }: { store: AppStore }) {
       </div>
 
       <div className="card" style={{ padding: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 12 }}>
+        <div className="t-sec-title" style={{ marginBottom: 12 }}>
           所有排程(依日期)
         </div>
         {allSorted.map((item) => {
@@ -325,16 +346,18 @@ export default function Schedule({ store }: { store: AppStore }) {
               }}
             >
               <PlatformBadge platform={item.platform} size={28} radius={8} fontSize={10.5} />
-              <div style={{ fontSize: 12.5, color: 'var(--text-weak)', width: 120, flexShrink: 0 }}>
+              <div className="t-sub t-num" style={{ width: 120, flexShrink: 0 }}>
                 {dateLabel(item.date)} {item.time}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600, flex: 1 }}>
+              <div className="t-item-title" style={{ flex: 1 }}>
                 {item.title}{' '}
-                <span className="pill pill-brand" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                <span className="pill pill-brand" style={{ marginLeft: 4 }}>
                   {DOC_KIND_LABELS[scheduleKindOf(item)]}
                 </span>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</div>
+              <div className="t-meta" style={{ fontWeight: 'var(--weight-bold)', color: meta.color }}>
+                {meta.label}
+              </div>
             </div>
           );
         })}
@@ -350,14 +373,14 @@ export default function Schedule({ store }: { store: AppStore }) {
               marginBottom: 8,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
+            <div className="t-sec-title">
               {PIPELINE_COPY.cardTitle}
             </div>
             <button
               onClick={() => store.updateAutoPipeline({ enabled: !store.autoPipeline.enabled })}
+              className="t-sub"
               style={{
-                fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 'var(--weight-bold)',
                 padding: '5px 12px',
                 borderRadius: 8,
                 background: store.autoPipeline.enabled ? 'var(--brand-fill)' : 'var(--bg)',
@@ -368,12 +391,12 @@ export default function Schedule({ store }: { store: AppStore }) {
               {PIPELINE_COPY.enable}
             </button>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12, lineHeight: 1.6 }}>
+          <div className="t-note" style={{ marginBottom: 12 }}>
             {PIPELINE_COPY.desc}
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+            <label className="t-meta" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}>
               {PIPELINE_COPY.timeLabel}
             </label>
             <input
@@ -381,9 +404,12 @@ export default function Schedule({ store }: { store: AppStore }) {
               type="time"
               value={store.autoPipeline.time}
               onChange={(e) => store.updateAutoPipeline({ time: e.target.value })}
-              style={{ width: 100, padding: '6px 8px', fontSize: 12.5 }}
+              style={{ width: 100, padding: '6px 8px', fontSize: 'var(--text-sub)' }}
             />
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)', marginLeft: 8 }}>
+            <label
+              className="t-meta"
+              style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)', marginLeft: 8 }}
+            >
               {PIPELINE_COPY.horizonLabel}
             </label>
             {[7, 14, 30].map((h) => {
@@ -392,11 +418,11 @@ export default function Schedule({ store }: { store: AppStore }) {
                 <button
                   key={h}
                   onClick={() => store.updateAutoPipeline({ horizonDays: h })}
+                  className="t-sub"
                   style={{
                     padding: '5px 11px',
                     borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
+                    fontWeight: 'var(--weight-bold)',
                     background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -410,7 +436,7 @@ export default function Schedule({ store }: { store: AppStore }) {
 
           {/* P2(D2 主體):內容來源切換 + 日誌 Doc 選擇 + 日期工具 + 誠實三標示 */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)' }}>
+            <label className="t-meta" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)' }}>
               {PIPELINE_COPY.sourceLabel}
             </label>
             {(
@@ -424,11 +450,11 @@ export default function Schedule({ store }: { store: AppStore }) {
                 <button
                   key={value}
                   onClick={() => store.updateAutoPipeline({ source: value })}
+                  className="t-sub"
                   style={{
                     padding: '5px 11px',
                     borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
+                    fontWeight: 'var(--weight-bold)',
                     background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -450,11 +476,14 @@ export default function Schedule({ store }: { store: AppStore }) {
                 background: 'var(--surface-soft)',
               }}
             >
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 8 }}>
+              <div
+                className="t-meta"
+                style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)', marginBottom: 8 }}
+              >
                 {PIPELINE_COPY.journalPickerLabel}
               </div>
               {store.drive.status !== 'connected' ? (
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{PIPELINE_COPY.journalDriveOff}</div>
+                <div className="t-meta">{PIPELINE_COPY.journalDriveOff}</div>
               ) : (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <select
@@ -467,7 +496,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                         journalFileName: doc?.name ?? '',
                       });
                     }}
-                    style={{ flex: 1, minWidth: 180, padding: '6px 8px', fontSize: 12 }}
+                    style={{ flex: 1, minWidth: 180, padding: '6px 8px', fontSize: 'var(--text-sub)' }}
                   >
                     <option value="">{PIPELINE_COPY.journalPickerButton}</option>
                     {store.drive.docs.map((d) => (
@@ -476,7 +505,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                       </option>
                     ))}
                   </select>
-                  <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+                  <span className="t-meta">
                     {store.autoPipeline.journalFileName || PIPELINE_COPY.journalNone}
                   </span>
                   <button
@@ -488,13 +517,14 @@ export default function Schedule({ store }: { store: AppStore }) {
                       void navigator.clipboard.writeText(`${y}-${m}-${d}`);
                       store.showToast(PIPELINE_COPY.todayDateToast);
                     }}
-                    style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-meta"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     {PIPELINE_COPY.todayDateButton}
                   </button>
                 </div>
               )}
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6, marginTop: 10 }}>
+              <div className="t-note" style={{ marginTop: 10 }}>
                 {PIPELINE_COPY.honesty1}
                 <br />
                 {PIPELINE_COPY.honesty2}
@@ -506,10 +536,10 @@ export default function Schedule({ store }: { store: AppStore }) {
 
           {store.autoPipeline.enabled && (
             <div
+              className="t-sub"
               style={{
-                fontSize: 12,
                 color: store.pipelineLowWater ? 'var(--accent)' : 'var(--text-sub)',
-                fontWeight: 700,
+                fontWeight: 'var(--weight-bold)',
                 marginBottom: 8,
               }}
             >
@@ -519,10 +549,14 @@ export default function Schedule({ store }: { store: AppStore }) {
             </div>
           )}
           {store.autoPipeline.enabled && store.pipelineLowWater && (
-            <div style={{ fontSize: 11.5, color: 'var(--accent)', marginBottom: 8 }}>{PIPELINE_COPY.lowWater}</div>
+            <div className="t-meta" style={{ color: 'var(--accent)', marginBottom: 8 }}>
+              {PIPELINE_COPY.lowWater}
+            </div>
           )}
           {store.autoPipeline.enabled && store.threadsProxy.status !== 'connected' && (
-            <div style={{ fontSize: 11.5, color: 'var(--error)', marginBottom: 8 }}>{PIPELINE_COPY.notConnected}</div>
+            <div className="t-meta" style={{ color: 'var(--error)', marginBottom: 8 }}>
+              {PIPELINE_COPY.notConnected}
+            </div>
           )}
 
           <button
@@ -546,21 +580,20 @@ export default function Schedule({ store }: { store: AppStore }) {
               marginBottom: 12,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
+            <div className="t-sec-title">
               {BACKEND_COPY.queueTitle}
             </div>
             <button
               onClick={() => void proxy.loadQueue()}
               disabled={proxy.queueLoading}
-              style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--brand)' }}
+              className="t-meta"
+              style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--brand)' }}
             >
               {proxy.queueLoading ? '載入中…' : BACKEND_COPY.queueRefresh}
             </button>
           </div>
           {proxy.queue.length === 0 && (
-            <div
-              style={{ padding: '16px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
-            >
+            <div className="t-sub" style={{ padding: '16px 0', textAlign: 'center' }}>
               {proxy.queueLoading ? '載入中…' : BACKEND_COPY.queueEmpty}
             </div>
           )}
@@ -579,11 +612,12 @@ export default function Schedule({ store }: { store: AppStore }) {
                   borderBottom: '1px solid var(--border-2)',
                 }}
               >
-                <div style={{ fontSize: 12.5, color: 'var(--text-weak)', width: 110, flexShrink: 0 }}>
+                <div className="t-sub t-num" style={{ width: 110, flexShrink: 0 }}>
                   {timeLabel}
                 </div>
                 <div
-                  style={{ fontSize: 12.5, color: 'var(--text-sub)', flex: 1, minWidth: 0 }}
+                  className="t-sub"
+                  style={{ color: 'var(--text-sub)', flex: 1, minWidth: 0 }}
                   title={item.lastError ?? item.text}
                 >
                   <span
@@ -597,14 +631,17 @@ export default function Schedule({ store }: { store: AppStore }) {
                     {item.text.split('\n')[0]}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', flexShrink: 0 }}>
+                <div className="t-meta" style={{ fontWeight: 'var(--weight-bold)', flexShrink: 0 }}>
                   {item.platform === 'facebook' ? 'FB' : 'Threads'}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</div>
+                <div className="t-meta" style={{ fontWeight: 'var(--weight-bold)', color: meta.color }}>
+                  {meta.label}
+                </div>
                 {item.status === 'pending' && (
                   <button
                     onClick={() => void proxy.cancel(item.id)}
-                    style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-faint)', padding: '4px 8px' }}
+                    className="t-meta"
+                    style={{ fontWeight: 'var(--weight-semibold)', padding: '4px 8px' }}
                   >
                     {BACKEND_COPY.queueCancel}
                   </button>
@@ -621,7 +658,7 @@ export default function Schedule({ store }: { store: AppStore }) {
           width={440}
           label={editingId ? SCHEDULE_COPY.editModalTitle : SCHEDULE_COPY.newModalTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {editingId ? SCHEDULE_COPY.editModalTitle : SCHEDULE_COPY.newModalTitle}
           </div>
           <div className="field-label">貼文標題</div>
@@ -669,11 +706,11 @@ export default function Schedule({ store }: { store: AppStore }) {
                 <button
                   key={k.key}
                   onClick={() => setManualKind(k.key)}
+                  className="t-sub"
                   style={{
                     padding: '8px 14px',
                     borderRadius: 9,
-                    fontSize: 12.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -692,11 +729,11 @@ export default function Schedule({ store }: { store: AppStore }) {
                 <button
                   key={p.key}
                   onClick={() => setManualPlatform(p.key)}
+                  className="t-sub"
                   style={{
                     padding: '8px 14px',
                     borderRadius: 9,
-                    fontSize: 12.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     background: active ? p.color : 'var(--card)',
                     color: active ? '#fff' : 'var(--text-sub)',
                     border: `1px solid ${active ? p.color : 'var(--pill-brand-bg-2)'}`,

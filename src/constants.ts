@@ -52,6 +52,33 @@ export const INBOX_FILTERS: Array<'全部' | EmailTag> = [
   '活動通知',
 ];
 
+/**
+ * 自媒體頁「平台帳號」卡(2026-11-02 UIUX 批)。
+ *
+ * 動機:連接平台帳號原本只在編發器的發佈卡裡,等於「要先進編發器才能把自媒體頁串起來」。
+ * 連接屬於帳號管理、發佈屬於撰稿,操作點放在自媒體頁才合單頁流程。
+ *
+ * 刻意只放卡層級文案:各平台的「連接按鈕字樣/已連線說明/授權提示」一律沿用
+ * BACKEND_COPY / BACKEND_FB_COPY / BACKEND_LINKEDIN_COPY / YOUTUBE_COPY——
+ * 同一句話不得有兩份,否則編發器與自媒體顯示的連線說明會漂移。
+ */
+export const ACCOUNTS_COPY = {
+  cardTitle: '🔗 平台帳號',
+  cardDesc: '連接或重新連接各平台;與編發器共用同一組連線狀態,任一處連接後兩邊同步生效',
+  statusConnected: '已連線',
+  statusDisconnected: '未連線',
+  statusUnknown: '檢查中',
+  statusError: '連線異常',
+  statusSemiAuto: '半自動',
+  reconnect: '重新連接',
+  semiAutoNote: '未設定後端,此平台維持半自動發佈(在編發器一鍵複製內容並開啟平台)',
+  notes: [
+    '連接會開新分頁完成平台授權,完成後自動回到本頁',
+    'Threads / Facebook / LinkedIn 的 token 由你自己的 worker 加密保管;YouTube token 只存在這個分頁的記憶體,關閉分頁即失效',
+    '郵件匣 Gmail 與雲端列 Drive 的連線各自留在它們的頁籤——資料邊界不同(兩者皆唯讀且內容不落地),刻意不收進這張卡',
+  ],
+};
+
 /** 自媒體頁「最新互動」卡(IA Phase 5 D6 一期:平台互動通知信分類)。 */
 export const SOCIAL_NOTIFY_COPY = {
   cardTitle: '📬 最新互動',
@@ -883,7 +910,11 @@ export const DIARY_EXPORT_COPY = {
   repickButton: '重新選擇資料夾',
   exportButton: '匯出日記',
   exportingButton: '匯出中…',
-  rangeLabel: '匯出範圍',
+  /* 2026-11-02 UIUX 批:卡片改為兩步驟。原本按鈕與即時狀態交錯(選資料夾的鈕排在匯出鈕
+     之後、它的狀態又落在兩顆鈕下方),讀的順序和做的順序不一致,使用者回報「來來回回的
+     卡頓感」。現在每個步驟=標題+它自己的即時狀態+它自己的按鈕,動作一律在該步驟末尾。 */
+  stepFolderLabel: '① vault 資料夾',
+  stepExportLabel: '② 匯出範圍與執行',
   folderLabel: (name: string) => `資料夾:${name}`,
   lastExportLabel: (when: string) => `上次匯出:${when}`,
   neverExported: '還沒匯出過',

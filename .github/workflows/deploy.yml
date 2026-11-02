@@ -55,6 +55,8 @@ jobs:
       - run: npm test
       # WCAG AA 對比度(從 src/index.css 解析 token,未達標即失敗)
       - run: npm run test:contrast
+      # 字體規格(字級/字重一律走 token 與 .t-* 類別,inline 字面值即失敗)
+      - run: npm run test:typography
       # build 內含 tsc -b 型別檢查,等同基本 CI 關卡
       - run: npm run build
       # E2E smoke 跑在 preview server;通過才部署(驗收站品質閘門)

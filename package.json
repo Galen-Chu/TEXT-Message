@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:contrast": "node scripts/contrast-audit.mjs"
+    "test:contrast": "node scripts/contrast-audit.mjs",
+    "test:typography": "node scripts/typography-audit.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

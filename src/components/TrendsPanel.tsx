@@ -17,7 +17,9 @@ function BarRow({ label, count, max }: { label: string; count: number; max: numb
       style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}
       title={`${label}:${count} ${TRENDS_COPY.postsUnit}`}
     >
-      <div style={{ width: 92, flexShrink: 0, fontSize: 11.5, color: 'var(--text-sub)' }}>{label}</div>
+      <div className="t-meta" style={{ width: 92, flexShrink: 0, color: 'var(--text-sub)' }}>
+        {label}
+      </div>
       <div
         style={{
           flex: 1,
@@ -38,11 +40,11 @@ function BarRow({ label, count, max }: { label: string; count: number; max: numb
         />
       </div>
       <div
+        className="t-meta t-num"
         style={{
           width: 34,
           flexShrink: 0,
-          fontSize: 11.5,
-          fontWeight: 700,
+          fontWeight: 'var(--weight-bold)',
           color: 'var(--text-sub)',
           textAlign: 'right',
         }}
@@ -63,8 +65,11 @@ function StatTile({ value, label }: { value: string; label: string }) {
         textAlign: 'center',
       }}
     >
-      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-weak)', marginTop: 4 }}>{label}</div>
+      {/* 數字磚沿用 Dashboard 統計卡的 .t-stat(同一個角色,字級就該同一級) */}
+      <div className="t-stat">{value}</div>
+      <div className="t-meta" style={{ color: 'var(--text-weak)', marginTop: 4 }}>
+        {label}
+      </div>
     </div>
   );
 }
@@ -83,10 +88,10 @@ export default function TrendsPanel({
     if (variant === 'compact') return null;
     return (
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+        <div className="t-sec-title" style={{ marginBottom: 6 }}>
           {TRENDS_COPY.title}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+        <div className="t-sub" style={{ color: 'var(--text-faint)' }}>
           {TRENDS_COPY.accumulating(posts.length, TRENDS_THRESHOLD)}
         </div>
       </div>
@@ -112,10 +117,8 @@ export default function TrendsPanel({
             marginBottom: 12,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-            {TRENDS_COPY.dashboardTitle}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+          <div className="t-sec-title">{TRENDS_COPY.dashboardTitle}</div>
+          <div className="t-meta t-num">
             {TRENDS_COPY.streakLabel} {TRENDS_COPY.daysUnit(summary.currentStreak)} ·{' '}
             {TRENDS_COPY.totalLabel(summary.total)}
           </div>
@@ -137,9 +140,7 @@ export default function TrendsPanel({
           marginBottom: 4,
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-          {TRENDS_COPY.title}
-        </div>
+        <div className="t-sec-title">{TRENDS_COPY.title}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           {([30, 90] as const).map((p) => {
             const active = period === p;
@@ -148,11 +149,11 @@ export default function TrendsPanel({
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
+                className="t-meta"
                 style={{
                   padding: '5px 10px',
                   borderRadius: 8,
-                  fontSize: 11.5,
-                  fontWeight: 600,
+                  fontWeight: 'var(--weight-semibold)',
                   background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                   color: active ? 'var(--brand)' : 'var(--text-faint)',
                   border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -164,7 +165,7 @@ export default function TrendsPanel({
           })}
         </div>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 14 }}>
+      <div className="t-meta" style={{ marginBottom: 14 }}>
         {TRENDS_COPY.note} · {TRENDS_COPY.totalLabel(summary.total)}
       </div>
 

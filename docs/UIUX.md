@@ -35,3 +35,65 @@
 - 列表慣例:**新→舊排序**、分頁 20 筆 + 載入更多(`DIARY_PAGE_SIZE`/`NOTES_PAGE_SIZE`,換篩選條件縮回第一頁)、搜尋為頁面本地狀態不落地。
 - 搜尋比對涵蓋所有自然線索:日記搜尋含日期字串(月份前綴=當月篩選)、便條含標籤與網址。
 - 連外連結一律 `<a target="_blank" rel="noopener noreferrer">`;app 不抓取、不預覽使用者貼入的網址(資料邊界紅線的 UI 面)。
+
+## 六、字體與排版規格(2026-11-03 制定)
+
+> 背景:色彩很早就 token 化且有對比度閘門守著,字體卻一直散在元件的 inline style 裡——累積出 **19 種字級**(8/9/10/10.5/11/11.5/12/12.5/13/13.5/14/15/16/17/18/20/22/26/36)與 **5 種字重**(含 800/900),其中 11~13.5 那六級肉眼幾無差別,純粹是噪音,同一個角色(例如卡片標題)在不同頁長得不一樣。本節是規格,`scripts/typography-audit.mjs` 是擋住回頭路的閘門。
+
+### 6.1 字級級數(7 級,token 在 `src/index.css` 的 `:root`)
+
+| token | 值 | 用途 |
+| --- | --- | --- |
+| `--text-micro` | 10px | 徽章內字、極小註記 |
+| `--text-meta` | 11px | 中繼資料、時間戳、誠實標示 |
+| `--text-sub` | 12px | 次要描述、chips、小按鈕 |
+| `--text-body` | 13px | 內文基準、頁面描述、列表內容 |
+| `--text-card` | 15px | 卡片與 Modal 標題 |
+| `--text-page` | 20px | 頁面標題 |
+| `--text-stat` | 26px | 統計數字 |
+
+**與 Uniconsign 的關係(刻意偏離並記錄)**:字族(Inter + Noto Sans TC)、字重階層、行高三級**沿用** Uniconsign;**字級級數刻意不同**——Uniconsign 的 12/14/16/18/22/28/34/44 是以 16px 為內文基準的文件型級數,本專案是**高密度工具型介面**(九個頁籤、每頁多張卡、列表密集),內文基準壓到 13px、級距收緊。偏離只在「尺寸數值」這一項,其餘規格不自創。
+
+- **字重只有四級**:`--weight-regular` 400 / `--weight-medium` 500 / `--weight-semibold` 600 / `--weight-bold` 700。原本散落的 800/900 一律收斂到 bold(Uniconsign 原生沒有 800/900)。
+- **行高三級**:`--leading-tight` 1.25(標題)/ `--leading-snug` 1.45(單行或短段)/ `--leading-normal` 1.7(多行段落、誠實標示、textarea)。
+- **emoji 與字級分家**:`--emoji-sm` 16px / `--emoji-md` 18px / `--emoji-art` 36px。圖示大小是視覺重量不是文字級數,綁在一起會讓「調字級」連帶改圖。
+
+### 6.2 `.t-*` 角色類別(實作層)
+
+元件不寫 inline 字級,改掛 `.t-*`。**每個類別是一個「角色」而不是一個尺寸**——要的是「這是卡片標題」,不是「這是 15px」;日後整體調級只改 CSS 一處。
+
+| 類別 | 角色 | 規格 |
+| --- | --- | --- |
+| `.t-page-title` | 頁面標題 | page / bold / tight / text-main |
+| `.t-page-desc` | 頁面描述 | body / normal / text-weak |
+| `.t-card-title` | 卡片與 Modal 標題 | card / bold / tight / text-main |
+| `.t-sec-title` | 卡內小標題(副標題) | body / bold / snug / text-main |
+| `.t-body` | 內文 | body / normal / text-main |
+| `.t-item-title` | 列表項標題 | body / semibold / snug / text-main |
+| `.t-sub` | 次要描述、chips | sub / snug / text-weak |
+| `.t-meta` | 單行中繼(時間/計數) | meta / snug / text-faint |
+| `.t-note` | 多行誠實標示 | meta / **normal** / text-faint |
+| `.t-micro` | 徽章內字 | micro / semibold / 1.2 |
+| `.t-stat` | 統計數字 | stat / bold / tight / tabular-nums |
+| `.t-num` | 等寬數字(只加這一件事) | tabular-nums |
+| `.t-emoji-sm` `.t-emoji` `.t-emoji-art` | emoji 圖示 | emoji token |
+
+**副標題 vs 小標題的分界**(維護者點出的不統一處):頁面層只有一組 `.t-page-title` + `.t-page-desc`;卡片標題用 `.t-card-title`;卡**內**再分段的小標題用 `.t-sec-title`(與內文同字級、靠字重區分,避免同一張卡出現三種字級)。列表每一列的標題是 `.t-item-title`(semibold,比 sec-title 輕——它是資料不是結構)。
+
+- **色彩仍走既有色 token**:`.t-*` 帶的 color 只是預設值;狀態色(選取/錯誤/平台色)用 inline `color` 覆蓋即可——inline 贏類別,兩者可安全並存。
+- `.t-meta` 與 `.t-note` 的差別只在行高:**單行**用 meta,**多行**用 note(1.7 才讀得下去)。誠實標示幾乎都是 note。
+
+### 6.3 日期與數字
+
+- 格式一律走 `src/utils/date.ts`,不在元件裡自己組:`fullDateLabel()`(頁面標頭)/`dateLabel(iso)`/`shortDateLabel(date)`/`shortDateTimeLabel(epochMs)`(M/D HH:mm,卡片時間戳);日記與排程的資料格式是含西元年的 `YYYY-MM-DD`。
+- **所有數字欄位加 `t-num`**(時間戳、計數、統計、並排數列):等寬數字,否則逐日變動的位數會讓欄位左右跳動。統計數字用 `.t-stat`(已內含)。
+
+### 6.4 回歸閘門
+
+- `npm run test:typography`(`scripts/typography-audit.mjs`),已接入 `ci.yml` 與 `deploy.yml`。三條規則:①元件不得寫 inline 字級/字重/行高**字面值**;②`index.css` 的 `font-size`/`font-weight` 必須引用 token;③字重只有 400/500/600/700。
+- **擋的是字面值,不是動態**:`fontWeight: active ? 'var(--weight-bold)' : 'var(--weight-medium)'` 這類 token 三元式過關(腳本把 token 抽掉後只看有沒有殘留數字)。
+- **允許的 inline escape hatch**(值必須是 `var(--text-*)` / `var(--emoji-*)` / `var(--weight-*)` / `var(--leading-*)`),只有兩種正當情形:
+  1. 元素的字色必須**繼承 `currentColor`**——套類別會把預設色一起帶進來(案例:排程頁週曆格,字色跟著選取狀態走)。
+  2. 元素已掛了**排在 `.t-*` 之後**的既有類別(`.pill`/`.text-input`/`.btn`),同屬性會被後者贏(案例:便條頁篩選 chip 借用 `.pill` 配色但要 chip 字級)。
+- **唯一豁免檔**:`src/components/PlatformBadge.tsx`——徽章字級是**幾何參數**(跟著 `size`/`radius` 由呼叫端整組給定),收進 `--text-*` 會讓徽章在不同尺寸下比例跑掉。豁免寫在腳本的 `EXEMPT` 常數旁並註明理由(對照 contrast-audit 的平台色例外)。
+- 新 UI 動工前先讀本節;改 `.t-*` 或 token 後本地先跑 `npm run test:typography` 與 `npm run test:contrast`。

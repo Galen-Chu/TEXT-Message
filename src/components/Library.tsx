@@ -176,10 +176,10 @@ export default function Library({ store }: { store: AppStore }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+          <div className="t-page-title" style={{ marginBottom: 4 }}>
             文庫 Library
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
+          <div className="t-page-desc">
             可套用草稿的常用內容與保存的編輯成果,分為訊息管理、文案管理與草稿管理;Cloudflare worker 備份也在此頁設定
           </div>
         </div>
@@ -194,11 +194,11 @@ export default function Library({ store }: { store: AppStore }) {
 
       {store.backendEnabled && (
         <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>
+          <div className="t-sec-title" style={{ marginBottom: 4 }}>
             {LIBRARY_BACKUP_COPY.cardTitle}
             {store.librarySyncCode ? ` · ${LIBRARY_BACKUP_COPY.autoSyncOn}` : ''}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+          <div className="t-meta" style={{ marginBottom: 12 }}>
             {store.librarySyncCode ? LIBRARY_BACKUP_COPY.autoSyncHint : LIBRARY_BACKUP_COPY.cardDesc}
           </div>
 
@@ -216,7 +216,10 @@ export default function Library({ store }: { store: AppStore }) {
                 alignItems: 'center',
               }}
             >
-              <span style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 700 }}>
+              <span
+                className="t-sub"
+                style={{ color: 'var(--brand)', fontWeight: 'var(--weight-bold)' }}
+              >
                 {LIBRARY_BACKUP_COPY.cloudNewerHint(
                   new Date(store.libraryCloudNewer).toLocaleString('zh-TW'),
                 )}
@@ -245,7 +248,7 @@ export default function Library({ store }: { store: AppStore }) {
 
           {store.librarySyncCode ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
+              <span className="t-meta">
                 {store.librarySavedAt
                   ? LIBRARY_BACKUP_COPY.lastSyncedLabel(
                       new Date(store.librarySavedAt).toLocaleString('zh-TW'),
@@ -307,7 +310,7 @@ export default function Library({ store }: { store: AppStore }) {
                 onChange={(e) => setSyncCode(e.target.value)}
                 placeholder={LIBRARY_BACKUP_COPY.codePlaceholder}
                 aria-label={LIBRARY_BACKUP_COPY.codeLabel}
-                style={{ flex: 1, minWidth: 220, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
+                style={{ flex: 1, minWidth: 220, borderRadius: 9, padding: '8px 12px' }}
               />
               <button
                 className="btn btn-outline"
@@ -357,11 +360,11 @@ export default function Library({ store }: { store: AppStore }) {
             <button
               key={tab.key}
               onClick={() => store.setLibraryMainTab(tab.key)}
+              className="t-body"
               style={{
                 padding: '9px 18px',
                 borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 'var(--weight-bold)',
                 background: active ? 'var(--brand-fill)' : 'var(--card)',
                 color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -382,12 +385,12 @@ export default function Library({ store }: { store: AppStore }) {
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
+                className="t-body"
                 style={{
                   textAlign: 'left',
                   padding: '10px 12px',
                   borderRadius: 9,
-                  fontSize: 13,
-                  fontWeight: active ? 700 : 500,
+                  fontWeight: active ? 'var(--weight-bold)' : 'var(--weight-medium)',
                   color: active ? 'var(--brand)' : 'var(--text-sub)',
                   background: active ? 'var(--pill-brand-bg)' : 'transparent',
                 }}
@@ -399,7 +402,7 @@ export default function Library({ store }: { store: AppStore }) {
         </div>
 
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11.5, color: 'var(--text-weak)', marginBottom: 10 }}>
+          <div className="t-sub" style={{ marginBottom: 10 }}>
             {isMessageTab
               ? '訊息管理:可直接套用到編發器的通用文字片段(問候、感謝、常見問答等)'
               : '文案管理:針對社群發文設計的完整貼文草稿範本'}
@@ -413,18 +416,20 @@ export default function Library({ store }: { store: AppStore }) {
           />
 
           <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>排序</span>
+            <span className="t-meta" style={{ marginRight: 2 }}>
+              排序
+            </span>
             {SORT_OPTIONS.map((opt) => {
               const active = sortBy === opt.key;
               return (
                 <button
                   key={opt.key}
                   onClick={() => setSortBy(opt.key)}
+                  className="t-meta"
                   style={{
                     padding: '5px 10px',
                     borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -449,14 +454,16 @@ export default function Library({ store }: { store: AppStore }) {
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+                <div
+                  className="t-item-title"
+                  style={{ fontWeight: 'var(--weight-bold)', marginBottom: 6 }}
+                >
                   {tpl.title}
                 </div>
                 <div
+                  className="t-sub"
                   style={{
-                    fontSize: 12.5,
-                    color: 'var(--text-weak)',
-                    lineHeight: 1.6,
+                    lineHeight: 'var(--leading-normal)',
                     marginBottom: 8,
                     whiteSpace: 'pre-line',
                   }}
@@ -464,7 +471,7 @@ export default function Library({ store }: { store: AppStore }) {
                   {tpl.text}
                 </div>
                 {tpl.appliedCount ? (
-                  <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginBottom: 10 }}>
+                  <div className="t-meta" style={{ marginBottom: 10 }}>
                     {LIBRARY_COPY.usedCount(tpl.appliedCount)}
                     {tpl.lastAppliedAt
                       ? ' · ' +
@@ -482,8 +489,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
                       color: 'var(--on-brand-fill)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     套用編發器
@@ -495,8 +502,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     編輯
@@ -508,8 +515,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     複製
@@ -523,8 +530,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     {FAMILY_COPY.sendButton}
@@ -536,8 +543,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--error)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     刪除
@@ -548,7 +555,8 @@ export default function Library({ store }: { store: AppStore }) {
           </div>
           {filtered.length === 0 && (
             <div
-              style={{ padding: '32px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
+              className="t-sub"
+              style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-faint)' }}
             >
               沒有符合條件的內容
             </div>
@@ -559,7 +567,7 @@ export default function Library({ store }: { store: AppStore }) {
 
       {isDraftTab && (
         <div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-weak)', marginBottom: 14 }}>
+          <div className="t-sub" style={{ marginBottom: 14 }}>
             {DRAFT_LIBRARY_COPY.subtitle}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -568,21 +576,23 @@ export default function Library({ store }: { store: AppStore }) {
                 <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
                   <span className="pill pill-brand">{DRAFT_LIBRARY_COPY.kindBadge[doc.kind]}</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+                <div
+                  className="t-item-title"
+                  style={{ fontWeight: 'var(--weight-bold)', marginBottom: 6 }}
+                >
                   {doc.title || '未命名草稿'}
                 </div>
                 <div
+                  className="t-sub"
                   style={{
-                    fontSize: 12.5,
-                    color: 'var(--text-weak)',
-                    lineHeight: 1.6,
+                    lineHeight: 'var(--leading-normal)',
                     marginBottom: 8,
                     whiteSpace: 'pre-line',
                   }}
                 >
                   {doc.text}
                 </div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginBottom: 10 }}>
+                <div className="t-meta t-num" style={{ marginBottom: 10 }}>
                   更新 {shortDateLabel(new Date(doc.updatedAt))}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -595,8 +605,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
                       color: 'var(--on-brand-fill)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     {DRAFT_LIBRARY_COPY.openToEditor}
@@ -608,8 +618,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     {DRAFT_LIBRARY_COPY.copyButton}
@@ -622,8 +632,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     {FAMILY_COPY.sendButton}
@@ -635,8 +645,8 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--error)',
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-sub)',
+                      fontWeight: 'var(--weight-bold)',
                     }}
                   >
                     {DRAFT_LIBRARY_COPY.deleteButton}
@@ -647,10 +657,10 @@ export default function Library({ store }: { store: AppStore }) {
           </div>
           {sortedDrafts.length === 0 && (
             <div className="card" style={{ padding: 48, textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+              <div className="t-card-title" style={{ marginBottom: 6 }}>
                 {DRAFT_LIBRARY_COPY.emptyTitle}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>{DRAFT_LIBRARY_COPY.emptyDesc}</div>
+              <div className="t-page-desc">{DRAFT_LIBRARY_COPY.emptyDesc}</div>
             </div>
           )}
         </div>
@@ -662,7 +672,7 @@ export default function Library({ store }: { store: AppStore }) {
           width={440}
           label={editing ? '編輯內容' : '新增內容'}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {editing ? '編輯內容' : '新增內容'}
           </div>
           <div className="field-label">標題</div>
@@ -679,11 +689,16 @@ export default function Library({ store }: { store: AppStore }) {
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             placeholder="輸入範本內容…"
-            style={{ minHeight: 100, lineHeight: 1.6, marginBottom: 14, resize: 'vertical' }}
+            style={{
+              minHeight: 100,
+              lineHeight: 'var(--leading-normal)',
+              marginBottom: 14,
+              resize: 'vertical',
+            }}
           />
 
           <div className="field-label">{LIBRARY_COPY.variantSectionLabel}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>
+          <div className="t-meta" style={{ marginBottom: 8 }}>
             {LIBRARY_COPY.variantSectionHint}
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -694,14 +709,14 @@ export default function Library({ store }: { store: AppStore }) {
                 <button
                   key={p.key}
                   onClick={() => setActiveVariant(p.key)}
+                  className="t-meta"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
                     padding: '6px 10px',
                     borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                     color: active ? 'var(--brand)' : 'var(--text-faint)',
                     border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -709,13 +724,13 @@ export default function Library({ store }: { store: AppStore }) {
                 >
                   <span
                     style={{
-                      width: 14,
-                      height: 14,
+                      width: 16,
+                      height: 16,
                       borderRadius: 4,
                       background: p.color,
                       color: '#fff',
-                      fontSize: 8,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-micro)',
+                      fontWeight: 'var(--weight-bold)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -737,14 +752,19 @@ export default function Library({ store }: { store: AppStore }) {
             }
             placeholder={`${PLATFORM_META[activeVariant].label} 的專屬版本(留空 = 使用通用內容)…`}
             aria-label={`${PLATFORM_META[activeVariant].label} 版本`}
-            style={{ minHeight: 72, lineHeight: 1.6, marginBottom: 8, resize: 'vertical' }}
+            style={{
+              minHeight: 72,
+              lineHeight: 'var(--leading-normal)',
+              marginBottom: 8,
+              resize: 'vertical',
+            }}
           />
           {(newVariants[activeVariant] ?? '').trim() && (
             <button
               onClick={() => setNewVariants((v) => ({ ...v, [activeVariant]: '' }))}
+              className="t-meta"
               style={{
-                fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 'var(--weight-semibold)',
                 color: 'var(--error)',
                 marginBottom: 16,
                 padding: '2px 4px',
@@ -783,7 +803,7 @@ export default function Library({ store }: { store: AppStore }) {
           width={360}
           label={LIBRARY_COPY.copyVariantTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 14 }}>
+          <div className="t-card-title" style={{ marginBottom: 14 }}>
             {LIBRARY_COPY.copyVariantTitle}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -835,10 +855,17 @@ export default function Library({ store }: { store: AppStore }) {
           width={420}
           label={LIBRARY_BACKUP_COPY.confirmTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 14 }}>
+          <div className="t-card-title" style={{ marginBottom: 14 }}>
             {LIBRARY_BACKUP_COPY.confirmTitle}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 18 }}>
+          <div
+            className="t-sub"
+            style={{
+              color: 'var(--text-sub)',
+              lineHeight: 'var(--leading-normal)',
+              marginBottom: 18,
+            }}
+          >
             {LIBRARY_BACKUP_COPY.confirmDesc(
               new Date(pendingRestore.savedAt).toLocaleString('zh-TW'),
               pendingRestore.diaryCount,

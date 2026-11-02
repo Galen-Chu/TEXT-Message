@@ -26,9 +26,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
     <div className="app-sidebar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 24px 8px' }}>
         <BrandMark size={36} />
-        <div className="sidebar-brand-text" style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
-          TEXT-Message
-        </div>
+        <div className="sidebar-brand-text t-card-title">TEXT-Message</div>
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -37,7 +35,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
           return (
             <button
               key={item.key}
-              className="nav-btn"
+              className="nav-btn t-body"
               onClick={() => store.setActiveTab(item.key)}
               style={{
                 display: 'flex',
@@ -45,14 +43,13 @@ export default function Sidebar({ store }: { store: AppStore }) {
                 gap: 10,
                 padding: '10px 12px',
                 borderRadius: 10,
-                fontSize: 13.5,
                 textAlign: 'left',
-                fontWeight: active ? 700 : 500,
+                fontWeight: active ? 'var(--weight-bold)' : 'var(--weight-medium)',
                 color: active ? 'var(--brand)' : 'var(--text-sub)',
                 background: active ? 'var(--pill-brand-bg)' : 'transparent',
               }}
             >
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <span className="t-emoji">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
             </button>
           );
@@ -70,8 +67,10 @@ export default function Sidebar({ store }: { store: AppStore }) {
       >
         <BrandMark size={34} />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>文管庫</div>
-          <div style={{ fontSize: 11, color: 'var(--text-weak)' }}>社群媒體每日發文工具</div>
+          <div className="t-sec-title">文管庫</div>
+          <div className="t-meta" style={{ color: 'var(--text-weak)' }}>
+            社群媒體每日發文工具
+          </div>
         </div>
       </div>
 
@@ -82,7 +81,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
         `.nav-label` 收合慣例:窄螢幕只留圖示。深層串接(交接/排程摘要)在文庫 Library。
       */}
       <a
-        className="nav-btn sidebar-family-link"
+        className="nav-btn sidebar-family-link t-sub"
         href={PEER_URL}
         target="_blank"
         rel="noopener noreferrer"
@@ -93,13 +92,12 @@ export default function Sidebar({ store }: { store: AppStore }) {
           gap: 10,
           padding: '10px 12px',
           borderRadius: 10,
-          fontSize: 12.5,
-          fontWeight: 600,
+          fontWeight: 'var(--weight-semibold)',
           color: 'var(--brand)',
           textDecoration: 'none',
         }}
       >
-        <span style={{ fontSize: 18 }}>🎬</span>
+        <span className="t-emoji">🎬</span>
         <span className="nav-label">{FAMILY_COPY.switchLink}</span>
       </a>
 
@@ -110,7 +108,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
       {store.pipelineLowWater && store.autoPipeline.enabled && (
         <button
           onClick={() => store.setActiveTab('schedule')}
-          className="sidebar-family-link"
+          className="sidebar-family-link t-sub"
           title={PIPELINE_COPY.lowWater}
           style={{
             display: 'flex',
@@ -118,13 +116,12 @@ export default function Sidebar({ store }: { store: AppStore }) {
             gap: 10,
             padding: '10px 12px',
             borderRadius: 10,
-            fontSize: 12,
-            fontWeight: 700,
+            fontWeight: 'var(--weight-bold)',
             color: 'var(--accent)',
             width: '100%',
           }}
         >
-          <span style={{ fontSize: 16 }}>⚠</span>
+          <span className="t-emoji-sm">⚠</span>
           <span className="nav-label">
             {PIPELINE_COPY.statusRemaining(store.pipelineRemainingDays)} · 按此補糧
           </span>

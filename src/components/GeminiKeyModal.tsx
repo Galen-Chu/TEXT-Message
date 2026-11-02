@@ -20,18 +20,25 @@ export default function GeminiKeyModal({
 
   return (
     <Modal onClose={onClose} width={460} label={label}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 10 }}>
+      <div className="t-card-title" style={{ marginBottom: 10 }}>
         {GEMINI_KEY_MODAL.title}
       </div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div
+        className="t-sub"
+        style={{
+          color: 'var(--text-sub)',
+          lineHeight: 'var(--leading-normal)',
+          marginBottom: 8,
+        }}
+      >
         {GEMINI_KEY_MODAL.desc}
       </div>
       {hasKey && (
         <div
+          className="t-sub"
           style={{
-            fontSize: 12,
             color: 'var(--brand)',
-            fontWeight: 700,
+            fontWeight: 'var(--weight-bold)',
             background: 'var(--pill-brand-bg)',
             borderRadius: 8,
             padding: '6px 10px',
@@ -50,7 +57,7 @@ export default function GeminiKeyModal({
         style={{ width: '100%', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}
         autoFocus
       />
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.7, marginBottom: 8 }}>
+      <div className="t-note" style={{ marginBottom: 8 }}>
         {GEMINI_KEY_MODAL.privacy}
       </div>
       {/*
@@ -58,10 +65,9 @@ export default function GeminiKeyModal({
         不是「金鑰外流」——文案必須讓使用者在這裡就看到,而不是到別處才發現。
       */}
       <div
+        className="t-note"
         style={{
-          fontSize: 11.5,
           color: 'var(--text-sub)',
-          lineHeight: 1.7,
           marginBottom: 12,
           padding: '10px 12px',
           borderRadius: 10,
@@ -70,9 +76,14 @@ export default function GeminiKeyModal({
       >
         {GEMINI_KEY_MODAL.familyShareNote}
       </div>
-      <div style={{ fontSize: 12, marginBottom: 16 }}>
+      <div className="t-sub" style={{ marginBottom: 16 }}>
         {GEMINI_KEY_MODAL.getKeyTip}{' '}
-        <a href={GEMINI_KEY_MODAL.getKeyUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--brand)', fontWeight: 600 }}>
+        <a
+          href={GEMINI_KEY_MODAL.getKeyUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: 'var(--brand)', fontWeight: 'var(--weight-semibold)' }}
+        >
           {GEMINI_KEY_MODAL.getKeyUrl.replace('https://', '')}
         </a>
       </div>

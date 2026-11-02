@@ -23,7 +23,7 @@ export default function Inbox({ store }: { store: AppStore }) {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+      <div className="t-page-title" style={{ marginBottom: 4 }}>
         郵件匣 Gmail
       </div>
       <div
@@ -35,7 +35,7 @@ export default function Inbox({ store }: { store: AppStore }) {
           marginBottom: 20,
         }}
       >
-        <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>
+        <div className="t-page-desc">
           {g.status === 'disabled' && '示範模式:此建置未設定 Gmail 連線,以下為示範資料'}
           {g.status === 'disconnected' && '示範模式:顯示示範郵件,可連接真實 Gmail 帳號'}
           {g.status === 'connecting' && '連接中…'}
@@ -72,18 +72,17 @@ export default function Inbox({ store }: { store: AppStore }) {
       </div>
 
       {g.status === 'disconnected' && (
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 12, lineHeight: 1.6 }}>
+        <div className="t-note" style={{ marginBottom: 12 }}>
           {CONNECT_UNVERIFIED_HINT}
         </div>
       )}
 
       {g.status === 'error' && g.error && (
         <div
-          className="card"
+          className="card t-body"
           style={{
             padding: '14px 18px',
             marginBottom: 16,
-            fontSize: 13,
             color: 'var(--error)',
             background: 'var(--pill-accent-bg)',
           }}
@@ -106,11 +105,11 @@ export default function Inbox({ store }: { store: AppStore }) {
             <button
               key={f}
               onClick={() => store.setInboxFilter(f)}
+              className="t-sub"
               style={{
                 padding: '8px 14px',
                 borderRadius: 9,
-                fontSize: 12.5,
-                fontWeight: 600,
+                fontWeight: 'var(--weight-semibold)',
                 background: active ? 'var(--brand-fill)' : 'var(--card)',
                 color: active ? 'var(--on-brand-fill)' : 'var(--text-sub)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -124,16 +123,16 @@ export default function Inbox({ store }: { store: AppStore }) {
 
       {g.status === 'connected' && g.labels.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-faint)', marginRight: 2 }}>
+          <span className="t-meta" style={{ marginRight: 2 }}>
             {INBOX_GMAIL_COPY.labelRowTitle}
           </span>
           <button
             onClick={() => store.setInboxLabelId(null)}
+            className="t-meta"
             style={{
               padding: '5px 12px',
               borderRadius: 8,
-              fontSize: 11.5,
-              fontWeight: 600,
+              fontWeight: 'var(--weight-semibold)',
               background: !store.inboxLabelId ? 'var(--pill-brand-bg)' : 'var(--card)',
               color: !store.inboxLabelId ? 'var(--brand)' : 'var(--text-faint)',
               border: `1px solid ${!store.inboxLabelId ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -147,11 +146,11 @@ export default function Inbox({ store }: { store: AppStore }) {
               <button
                 key={label.id}
                 onClick={() => store.setInboxLabelId(active ? null : label.id)}
+                className="t-meta"
                 style={{
                   padding: '5px 12px',
                   borderRadius: 8,
-                  fontSize: 11.5,
-                  fontWeight: 600,
+                  fontWeight: 'var(--weight-semibold)',
                   background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                   color: active ? 'var(--brand)' : 'var(--text-faint)',
                   border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -166,9 +165,7 @@ export default function Inbox({ store }: { store: AppStore }) {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         {g.loadingEmails && (
-          <div
-            style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-weak)' }}
-          >
+          <div className="t-page-desc" style={{ padding: '40px 0', textAlign: 'center' }}>
             郵件載入中…
           </div>
         )}
@@ -184,14 +181,14 @@ export default function Inbox({ store }: { store: AppStore }) {
             }}
           >
             <div
+              className="t-body"
               style={{
                 width: 38,
                 height: 38,
                 borderRadius: '50%',
                 background: 'var(--pill-brand-bg-2)',
                 color: 'var(--brand)',
-                fontWeight: 700,
-                fontSize: 14,
+                fontWeight: 'var(--weight-bold)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -202,22 +199,22 @@ export default function Inbox({ store }: { store: AppStore }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600 }}>
-                  {mail.sender}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                <div className="t-item-title">{mail.sender}</div>
+                <div className="t-meta t-num" style={{ whiteSpace: 'nowrap' }}>
                   {mail.date}
                 </div>
               </div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>
+              <div
+                className="t-item-title"
+                style={{ fontWeight: 'var(--weight-bold)', marginTop: 2 }}
+              >
                 {mail.subject}
               </div>
               <div
+                className="t-sub"
                 style={{
-                  fontSize: 12.5,
-                  color: 'var(--text-weak)',
                   marginTop: 3,
-                  lineHeight: 1.5,
+                  lineHeight: 'var(--leading-snug)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -241,13 +238,13 @@ export default function Inbox({ store }: { store: AppStore }) {
             >
               <button
                 onClick={() => store.convertToDraft(mail)}
+                className="t-sub"
                 style={{
                   padding: '8px 14px',
                   borderRadius: 9,
                   background: 'var(--brand-fill)',
                   color: 'var(--on-brand-fill)',
-                  fontSize: 12.5,
-                  fontWeight: 700,
+                  fontWeight: 'var(--weight-bold)',
                 }}
               >
                 轉為草稿
@@ -263,13 +260,13 @@ export default function Inbox({ store }: { store: AppStore }) {
                     store.showToast(INBOX_GMAIL_COPY.autoFileToast);
                   }}
                   title={INBOX_GMAIL_COPY.autoFileTitle}
+                  className="t-meta"
                   style={{
                     padding: '6px 10px',
                     borderRadius: 9,
                     background: 'var(--bg)',
                     color: 'var(--text-sub)',
-                    fontSize: 11.5,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                   }}
                 >
                   {INBOX_GMAIL_COPY.autoFileButton}
@@ -287,10 +284,13 @@ export default function Inbox({ store }: { store: AppStore }) {
         )}
         {!g.loadingEmails && filtered.length === 0 && g.status === 'connected' && store.emails.length === 0 && (
           <div style={{ padding: '36px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+            <div className="t-card-title" style={{ marginBottom: 6 }}>
               {INBOX_EMPTY_CONNECTED.title}
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-weak)', lineHeight: 1.7, marginBottom: 16 }}>
+            <div
+              className="t-sub"
+              style={{ lineHeight: 'var(--leading-normal)', marginBottom: 16 }}
+            >
               {INBOX_EMPTY_CONNECTED.desc}
             </div>
             <a
@@ -302,14 +302,15 @@ export default function Inbox({ store }: { store: AppStore }) {
             >
               {INBOX_EMPTY_CONNECTED.action}
             </a>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 14, lineHeight: 1.7 }}>
+            <div className="t-note" style={{ marginTop: 14 }}>
               {INBOX_EMPTY_CONNECTED.after}
             </div>
           </div>
         )}
         {!g.loadingEmails && filtered.length === 0 && !(g.status === 'connected' && store.emails.length === 0) && (
           <div
-            style={{ padding: '32px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
+            className="t-sub"
+            style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-faint)' }}
           >
             沒有符合條件的郵件
           </div>

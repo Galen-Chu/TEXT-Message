@@ -18,14 +18,12 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
   return (
     <div className="card" style={{ padding: 18, marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-          {COPY.cardTitle}
-        </div>
+        <div className="t-sec-title">{COPY.cardTitle}</div>
         {p.unseenCount > 0 && (
           <span
+            className="t-meta"
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontWeight: 'var(--weight-bold)',
               color: 'var(--brand)',
               background: 'var(--pill-brand-bg)',
               borderRadius: 999,
@@ -53,7 +51,7 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
         </div>
       </div>
 
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 12 }}>
+      <div className="t-meta" style={{ marginBottom: 12 }}>
         {COPY.desc}
         {p.interactionsLoaded && !scopeIssue && p.interactionsScanned > 0 && (
           <> · {COPY.scannedNote(p.interactionsScanned)}</>
@@ -61,13 +59,23 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
       </div>
 
       {!connected ? (
-        <div style={{ padding: '14px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}>
+        <div
+          className="t-sub"
+          style={{ padding: '14px 0', textAlign: 'center', color: 'var(--text-faint)' }}
+        >
           {COPY.notConnected}
         </div>
       ) : scopeIssue ? (
         // 權限不足是可行動的狀態,不混進通用錯誤:直接給出「重新連接」這個解法
         <div style={{ padding: '12px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 10 }}>
+          <div
+            className="t-sub"
+            style={{
+              color: 'var(--text-sub)',
+              lineHeight: 'var(--leading-normal)',
+              marginBottom: 10,
+            }}
+          >
             {COPY.scopeRequired}
           </div>
           <button className="btn btn-primary" onClick={p.connect}>
@@ -88,17 +96,20 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                <div className="t-item-title">
                   {it.username ? `@${it.username}` : COPY.anonymous}
                   {it.postSnippet && (
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', marginLeft: 6 }}>
+                    <span
+                      className="t-meta"
+                      style={{ fontWeight: 'var(--weight-medium)', marginLeft: 6 }}
+                    >
                       ↩ {it.postSnippet}
                     </span>
                   )}
                 </div>
                 <div
+                  className="t-sub"
                   style={{
-                    fontSize: 12,
                     color: 'var(--text-weak)',
                     marginTop: 2,
                     whiteSpace: 'nowrap',
@@ -110,7 +121,7 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
                 </div>
               </div>
               {it.timestamp > 0 && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                <div className="t-meta t-num" style={{ whiteSpace: 'nowrap' }}>
                   {shortDateTimeLabel(it.timestamp)}
                 </div>
               )}
@@ -119,7 +130,12 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
                   href={it.permalink}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)', whiteSpace: 'nowrap' }}
+                  className="t-meta"
+                  style={{
+                    fontWeight: 'var(--weight-bold)',
+                    color: 'var(--brand)',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   {COPY.openReply}
                 </a>
@@ -128,7 +144,8 @@ export default function ThreadsInteractionsCard({ store }: { store: AppStore }) 
           ))}
           {p.interactions.length === 0 && (
             <div
-              style={{ padding: '14px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
+              className="t-sub"
+              style={{ padding: '14px 0', textAlign: 'center', color: 'var(--text-faint)' }}
             >
               {/* 「還沒讀過」與「讀過但沒有留言」要分開,否則使用者無法判斷是不是功能壞了 */}
               {p.interactionsError ? COPY.readFailed : p.interactionsLoaded ? COPY.empty : COPY.notLoaded}

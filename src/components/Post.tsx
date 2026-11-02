@@ -61,11 +61,11 @@ export default function Post({ store }: { store: AppStore }) {
             key={o.key}
             onClick={() => onPick(o.key)}
             title={o.hint}
+            className="t-meta"
             style={{
               padding: '5px 12px',
               borderRadius: 8,
-              fontSize: 11.5,
-              fontWeight: 600,
+              fontWeight: 'var(--weight-semibold)',
               background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
               color: active ? 'var(--brand)' : 'var(--text-faint)',
               border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -132,14 +132,14 @@ export default function Post({ store }: { store: AppStore }) {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+        <div className="t-page-title" style={{ marginBottom: 4 }}>
           {NOTES_COPY.pageTitle}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-weak)' }}>{NOTES_COPY.pageDesc}</div>
+        <div className="t-page-desc">{NOTES_COPY.pageDesc}</div>
       </div>
 
       <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginBottom: 12 }}>
+        <div className="t-sec-title" style={{ marginBottom: 12 }}>
           {NOTES_COPY.composeTitle}
         </div>
         <div style={{ marginBottom: 10 }}>
@@ -168,7 +168,7 @@ export default function Post({ store }: { store: AppStore }) {
           onChange={(e) => setBody(e.target.value)}
           placeholder={NOTES_COPY.bodyPlaceholder}
           maxLength={NOTE_BODY_MAX}
-          style={{ minHeight: 100, lineHeight: 1.6, resize: 'vertical' }}
+          style={{ minHeight: 100, lineHeight: 'var(--leading-normal)', resize: 'vertical' }}
         />
         <div style={{ marginTop: 10 }}>
           <div className="field-label">{NOTES_COPY.tagsLabel}</div>
@@ -182,7 +182,7 @@ export default function Post({ store }: { store: AppStore }) {
         <div
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}
         >
-          <div style={{ fontSize: 11.5, color: 'var(--text-weak)' }}>
+          <div className="t-meta t-num" style={{ color: 'var(--text-weak)' }}>
             {NOTES_COPY.bodyCountLabel(body.trim().length)}
           </div>
           <button className="btn btn-primary" onClick={submit}>
@@ -202,7 +202,7 @@ export default function Post({ store }: { store: AppStore }) {
           }}
           placeholder={NOTES_COPY.searchPlaceholder}
         />
-        <span style={{ fontSize: 12, color: 'var(--text-weak)', whiteSpace: 'nowrap' }}>
+        <span className="t-sub t-num" style={{ whiteSpace: 'nowrap' }}>
           {NOTES_COPY.countLabel(matched.length)}
         </span>
       </div>
@@ -219,8 +219,10 @@ export default function Post({ store }: { store: AppStore }) {
               }}
               className={active ? 'pill pill-brand' : 'pill'}
               style={{
-                fontSize: 11.5,
-                fontWeight: 600,
+                // 篩選 chip 借用 .pill 的配色,但字級要跟其他頁的篩選 chip 一致
+                // (.pill 是標籤尺寸且排在 .t-* 之後會贏)——故走 token 的 inline escape hatch
+                fontSize: 'var(--text-meta)',
+                fontWeight: 'var(--weight-semibold)',
                 border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
                 color: active ? undefined : 'var(--text-faint)',
               }}
@@ -240,8 +242,8 @@ export default function Post({ store }: { store: AppStore }) {
               }}
               className={active ? 'pill pill-accent' : 'pill'}
               style={{
-                fontSize: 11.5,
-                fontWeight: 600,
+                fontSize: 'var(--text-meta)',
+                fontWeight: 'var(--weight-semibold)',
                 border: `1px solid ${active ? 'var(--accent)' : 'var(--border-3)'}`,
                 color: active ? undefined : 'var(--text-faint)',
               }}
@@ -254,10 +256,10 @@ export default function Post({ store }: { store: AppStore }) {
 
       {matched.length === 0 ? (
         <div className="card" style={{ padding: 28, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+          <div className="t-card-title" style={{ marginBottom: 6 }}>
             {filtering ? NOTES_COPY.emptyFiltered : NOTES_COPY.emptyTitle}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-weak)' }}>
+          <div className="t-sub">
             {filtering ? NOTES_COPY.emptyFilteredDesc : NOTES_COPY.emptyDesc}
           </div>
         </div>
@@ -272,16 +274,15 @@ export default function Post({ store }: { store: AppStore }) {
                     #{t}
                   </span>
                 ))}
-                <span style={{ fontSize: 11.5, color: 'var(--text-weak)', marginLeft: 'auto' }}>
+                <span className="t-meta t-num" style={{ marginLeft: 'auto' }}>
                   {shortDateTimeLabel(n.updatedAt)}
                 </span>
               </div>
               {n.title && (
                 <div
+                  className="t-item-title"
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: 'var(--text-main)',
+                    fontWeight: 'var(--weight-bold)',
                     marginBottom: 4,
                     overflowWrap: 'anywhere',
                   }}
@@ -290,8 +291,8 @@ export default function Post({ store }: { store: AppStore }) {
                 </div>
               )}
               <div
+                className="t-body"
                 style={{
-                  fontSize: 13,
                   color: 'var(--text-sub)',
                   whiteSpace: 'pre-wrap',
                   overflowWrap: 'anywhere',
@@ -304,11 +305,11 @@ export default function Post({ store }: { store: AppStore }) {
                   href={n.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="t-sub"
                   style={{
                     display: 'inline-block',
                     marginTop: 8,
-                    fontSize: 12,
-                    fontWeight: 600,
+                    fontWeight: 'var(--weight-semibold)',
                     color: 'var(--brand)',
                     overflowWrap: 'anywhere',
                   }}
@@ -362,7 +363,7 @@ export default function Post({ store }: { store: AppStore }) {
 
       {editing && (
         <Modal onClose={() => setEditing(null)} width={520} label={NOTES_COPY.editButton}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {NOTES_COPY.editButton}
           </div>
           <div style={{ marginBottom: 14 }}>
@@ -390,7 +391,12 @@ export default function Post({ store }: { store: AppStore }) {
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
             maxLength={NOTE_BODY_MAX}
-            style={{ minHeight: 120, lineHeight: 1.6, resize: 'vertical', marginBottom: 14 }}
+            style={{
+              minHeight: 120,
+              lineHeight: 'var(--leading-normal)',
+              resize: 'vertical',
+              marginBottom: 14,
+            }}
           />
           <div className="field-label">{NOTES_COPY.tagsLabel}</div>
           <input
@@ -412,10 +418,17 @@ export default function Post({ store }: { store: AppStore }) {
 
       {deleting && (
         <Modal onClose={() => setDeleting(null)} width={380} label={NOTES_COPY.deleteModalTitle}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 8 }}>
+          <div className="t-card-title" style={{ marginBottom: 8 }}>
             {NOTES_COPY.deleteModalTitle}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 16, lineHeight: 1.6 }}>
+          <div
+            className="t-body"
+            style={{
+              color: 'var(--text-weak)',
+              marginBottom: 16,
+              lineHeight: 'var(--leading-normal)',
+            }}
+          >
             {NOTES_COPY.deleteModalDesc}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

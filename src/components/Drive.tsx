@@ -54,13 +54,13 @@ export default function Drive({ store }: { store: AppStore }) {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+      <div className="t-page-title" style={{ marginBottom: 4 }}>
         {DRIVE_COPY.title}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
+      <div className="t-page-desc" style={{ marginBottom: 20 }}>
         {DRIVE_COPY.subtitle}
         {useDemo && (
-          <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 6 }}>
+          <span className="t-meta" style={{ marginLeft: 6 }}>
             {DRIVE_COPY.demoNote}
           </span>
         )}
@@ -68,12 +68,12 @@ export default function Drive({ store }: { store: AppStore }) {
 
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         {drive.status === 'error' && drive.error && (
-          <div style={{ fontSize: 12.5, color: 'var(--error)', marginBottom: 12 }}>
+          <div className="t-sub" style={{ color: 'var(--error)', marginBottom: 12 }}>
             {DRIVE_ERROR_COPY[drive.error.code] ?? DRIVE_ERROR_COPY.unknown}
           </div>
         )}
         {!drive.enabled ? (
-          <div style={{ fontSize: 12.5, color: 'var(--text-faint)' }}>
+          <div className="t-sub" style={{ color: 'var(--text-faint)' }}>
             {DRIVE_ERROR_COPY.disabled}
           </div>
         ) : !connected ? (
@@ -94,10 +94,13 @@ export default function Drive({ store }: { store: AppStore }) {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ fontSize: 12.5, color: 'var(--text-sub)' }}>{DRIVE_COPY.connectedHint}</div>
+            <div className="t-sub" style={{ color: 'var(--text-sub)' }}>
+              {DRIVE_COPY.connectedHint}
+            </div>
             <button
+              className="t-sub"
+              style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-faint)' }}
               onClick={drive.disconnect}
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-faint)' }}
             >
               {DRIVE_COPY.disconnect}
             </button>
@@ -147,19 +150,20 @@ export default function Drive({ store }: { store: AppStore }) {
               background: 'transparent',
             }}
           >
-            <span style={{ fontSize: 18 }}>{doc.mimeType === 'text/plain' ? '📄' : '📝'}</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+            <span className="t-emoji">{doc.mimeType === 'text/plain' ? '📄' : '📝'}</span>
+            <span className="t-item-title" style={{ flex: 1, minWidth: 0 }}>
               {isSample(doc.id) && <span style={{ color: 'var(--accent)' }}>★ </span>}
               {doc.name}
             </span>
-            <span style={{ fontSize: 11.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+            <span className="t-meta t-num" style={{ whiteSpace: 'nowrap' }}>
               {doc.modifiedTime ? shortDateLabel(new Date(doc.modifiedTime)) : ''}
             </span>
           </button>
         ))}
         {docs.length === 0 && (
           <div
-            style={{ padding: '24px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-faint)' }}
+            className="t-sub"
+            style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-faint)' }}
           >
             {connected ? DRIVE_COPY.empty : ''}
           </div>
@@ -172,16 +176,16 @@ export default function Drive({ store }: { store: AppStore }) {
           width={560}
           label={DRIVE_COPY.previewTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 12 }}>
+          <div className="t-card-title" style={{ marginBottom: 12 }}>
             {preview.doc.name}
           </div>
           {previewLoading && (
-            <div style={{ fontSize: 12.5, color: 'var(--text-faint)', marginBottom: 10 }}>
+            <div className="t-sub" style={{ color: 'var(--text-faint)', marginBottom: 10 }}>
               {DRIVE_COPY.loading}
             </div>
           )}
           {previewError && (
-            <div style={{ fontSize: 12.5, color: 'var(--error)', marginBottom: 10 }}>
+            <div className="t-sub" style={{ color: 'var(--error)', marginBottom: 10 }}>
               {previewError}
             </div>
           )}
@@ -190,8 +194,7 @@ export default function Drive({ store }: { store: AppStore }) {
               className="text-input"
               style={{
                 whiteSpace: 'pre-line',
-                fontSize: 13,
-                lineHeight: 1.7,
+                lineHeight: 'var(--leading-normal)',
                 color: 'var(--text-sub)',
                 maxHeight: 320,
                 overflowY: 'auto',
@@ -211,14 +214,12 @@ export default function Drive({ store }: { store: AppStore }) {
                 marginBottom: 12,
               }}
             >
-              <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
-                {DRIVE_COPY.saveAsTemplateTitle}:
-              </span>
+              <span className="t-meta">{DRIVE_COPY.saveAsTemplateTitle}:</span>
               {DRAFT_KIND_META.map((k) => (
                 <button
                   key={k.key}
                   className="btn btn-outline"
-                  style={{ padding: '7px 14px', borderRadius: 9, fontSize: 12.5 }}
+                  style={{ padding: '7px 14px', borderRadius: 9 }}
                   onClick={() => {
                     store.saveDriveDocAsTemplate(k.key, preview.doc.name, preview.text);
                     setSaveOpen(false);

@@ -45,10 +45,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-main)' }}>
-            文管 Dashboard
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)', marginTop: 4 }}>
+          <div className="t-page-title">文管 Dashboard</div>
+          <div className="t-page-desc" style={{ marginTop: 4 }}>
             {fullDateLabel()} · 這是你本週的發文進度
           </div>
         </div>
@@ -73,11 +71,12 @@ export default function Dashboard({ store }: { store: AppStore }) {
             background: 'rgba(231,76,60,0.06)',
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#E74C3C' }}>
+          <div className="t-sec-title" style={{ color: '#E74C3C' }}>
             {SCHEDULE_COPY.overdueBanner(overdue.length)}
           </div>
           <button
-            style={{ fontSize: 12, fontWeight: 700, color: '#E74C3C', whiteSpace: 'nowrap' }}
+            className="t-sub"
+            style={{ fontWeight: 'var(--weight-bold)', color: '#E74C3C', whiteSpace: 'nowrap' }}
             onClick={() => store.setActiveTab('schedule')}
           >
             {SCHEDULE_COPY.overdueBannerAction} →
@@ -88,8 +87,10 @@ export default function Dashboard({ store }: { store: AppStore }) {
       <div className="stat-row" style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {statCards.map((stat) => (
           <div key={stat.label} className="card stat-card" style={{ padding: 20 }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: stat.color }}>{stat.value}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-weak)', marginTop: 6, fontWeight: 500 }}>
+            <div className="t-stat" style={{ color: stat.color }}>
+              {stat.value}
+            </div>
+            <div className="t-sub" style={{ marginTop: 6, fontWeight: 'var(--weight-medium)' }}>
               {stat.label}
             </div>
           </div>
@@ -109,10 +110,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
           }}
         >
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-              {BACKUP_STATUS_COPY.cardTitle}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-weak)', marginTop: 4 }}>
+            <div className="t-sec-title">{BACKUP_STATUS_COPY.cardTitle}</div>
+            <div className="t-sub" style={{ marginTop: 4 }}>
               {store.librarySyncCode
                 ? `${BACKUP_STATUS_COPY.enabledHint} · ${
                     store.librarySavedAt
@@ -144,10 +143,11 @@ export default function Dashboard({ store }: { store: AppStore }) {
               marginBottom: 14,
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)' }}>近期排程</div>
+            <div className="t-card-title">近期排程</div>
             <button
               onClick={() => store.setActiveTab('schedule')}
-              style={{ fontSize: 12.5, color: 'var(--brand)', fontWeight: 600 }}
+              className="t-sub"
+              style={{ color: 'var(--brand)', fontWeight: 'var(--weight-semibold)' }}
             >
               查看全部 →
             </button>
@@ -162,20 +162,34 @@ export default function Dashboard({ store }: { store: AppStore }) {
                 background: 'var(--surface-soft)',
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 6 }}>
+              <div className="t-sec-title" style={{ color: 'var(--text-weak)', marginBottom: 6 }}>
                 {PIPELINE_COPY.dashboardTitle}
-                <span style={{ fontWeight: 500, color: 'var(--text-faint)', marginLeft: 8 }}>
+                <span
+                  className="t-sub"
+                  style={{
+                    fontWeight: 'var(--weight-medium)',
+                    color: 'var(--text-faint)',
+                    marginLeft: 8,
+                  }}
+                >
                   {PIPELINE_COPY.dashboardPreview}
                 </span>
               </div>
               {store.pipelineTomorrowPreview ? (
                 <div
-                  style={{ fontSize: 12.5, color: 'var(--text-sub)', lineHeight: 1.6, whiteSpace: 'pre-line' }}
+                  className="t-sub"
+                  style={{
+                    color: 'var(--text-sub)',
+                    lineHeight: 'var(--leading-normal)',
+                    whiteSpace: 'pre-line',
+                  }}
                 >
                   {store.pipelineTomorrowPreview.text.split('\n')[0]}
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{PIPELINE_COPY.dashboardNone}</div>
+                <div className="t-sub" style={{ color: 'var(--text-faint)' }}>
+                  {PIPELINE_COPY.dashboardNone}
+                </div>
               )}
             </div>
           )}
@@ -193,10 +207,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
               <PlatformBadge platform={item.platform} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
+                  className="t-item-title"
                   style={{
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: 'var(--text-main)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -205,8 +217,8 @@ export default function Dashboard({ store }: { store: AppStore }) {
                   {item.title}
                 </div>
                 <div
+                  className="t-sub t-num"
                   style={{
-                    fontSize: 12,
                     color: SCHEDULE_STATUS_META[effectiveStatus(item, now)].color,
                     marginTop: 2,
                   }}
@@ -220,10 +232,13 @@ export default function Dashboard({ store }: { store: AppStore }) {
         </div>
 
         <div className="card" style={{ flex: 1, padding: 22 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)', marginBottom: 14 }}>
+          <div className="t-card-title" style={{ marginBottom: 14 }}>
             來自 Gmail 的靈感
             {store.gmail.status !== 'connected' && (
-              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', marginLeft: 6 }}>
+              <span
+                className="t-meta"
+                style={{ fontWeight: 'var(--weight-medium)', marginLeft: 6 }}
+              >
                 (示範資料)
               </span>
             )}
@@ -239,24 +254,22 @@ export default function Dashboard({ store }: { store: AppStore }) {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-                  {mail.subject}
-                </div>
+                <div className="t-sec-title">{mail.subject}</div>
                 <div className="pill pill-brand">{mail.tag}</div>
               </div>
               <div
+                className="t-sub"
                 style={{
-                  fontSize: 12,
-                  color: 'var(--text-weak)',
                   margin: '6px 0 10px 0',
-                  lineHeight: 1.5,
+                  lineHeight: 'var(--leading-snug)',
                 }}
               >
                 {mail.snippet}
               </div>
               <button
                 onClick={() => store.convertToDraft(mail)}
-                style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}
+                className="t-sub"
+                style={{ fontWeight: 'var(--weight-bold)', color: 'var(--accent)' }}
               >
                 轉為草稿 →
               </button>

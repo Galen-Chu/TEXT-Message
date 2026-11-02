@@ -52,20 +52,22 @@ export default function Draft({ store }: { store: AppStore }) {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-main)', marginBottom: 4 }}>
+      <div className="t-page-title" style={{ marginBottom: 4 }}>
         編發器 Draft
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
+      <div className="t-page-desc" style={{ marginBottom: 20 }}>
         撰寫與 AI 潤飾貼文,依平台產生版本;儲存文體歸檔文庫,發佈與排程同頁完成
       </div>
 
       {!hasDraftTarget && (
         <div className="card" style={{ padding: 48, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
+          <div className="t-emoji-art" style={{ marginBottom: 12 }}>
+            📝
+          </div>
+          <div className="t-card-title" style={{ marginBottom: 6 }}>
             還沒有選擇內容來源
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-weak)', marginBottom: 20 }}>
+          <div className="t-body" style={{ color: 'var(--text-weak)', marginBottom: 20 }}>
             從 Gmail 挑一封信、社群媒體歷史貼文轉成草稿,或直接空白開始撰寫
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -85,16 +87,16 @@ export default function Draft({ store }: { store: AppStore }) {
       {hasDraftTarget && (
         <div className="draft-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           {!sourceMail && store.selectedMailId !== 'blank' && (
-            <div className="card draft-source" style={{ padding: 18, fontSize: 12.5, color: 'var(--text-weak)' }}>
+            <div className="card draft-source t-sub" style={{ padding: 18 }}>
               來源郵件已不在清單中(可能已中斷連線或重新整理)
             </div>
           )}
           {sourceMail && (
             <div className="card draft-source" style={{ padding: 18 }}>
               <div
+                className="t-meta"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontWeight: 'var(--weight-bold)',
                   color: 'var(--text-weak)',
                   marginBottom: 10,
                   letterSpacing: 0.5,
@@ -102,17 +104,15 @@ export default function Draft({ store }: { store: AppStore }) {
               >
                 原始郵件參考
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
-                {sourceMail.subject}
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', margin: '4px 0 10px 0' }}>
+              <div className="t-sec-title">{sourceMail.subject}</div>
+              <div className="t-meta" style={{ margin: '4px 0 10px 0' }}>
                 {sourceMail.sender} · {sourceMail.date}
               </div>
               <div
+                className="t-sub"
                 style={{
-                  fontSize: 12.5,
                   color: 'var(--text-sub)',
-                  lineHeight: 1.7,
+                  lineHeight: 'var(--leading-normal)',
                   maxHeight: 340,
                   overflowY: 'auto',
                   whiteSpace: 'pre-line',
@@ -134,7 +134,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
+                  <div className="t-sub" style={{ fontWeight: 'var(--weight-bold)' }}>
                     {store.aiBusy
                       ? GEMINI_MODE_LABEL.busy
                       : store.geminiKey
@@ -144,7 +144,8 @@ export default function Draft({ store }: { store: AppStore }) {
                   {store.aiBusy && (
                     <button
                       onClick={store.stopAi}
-                      style={{ fontSize: 12, fontWeight: 700, color: 'var(--error)' }}
+                      className="t-sub"
+                      style={{ fontWeight: 'var(--weight-bold)', color: 'var(--error)' }}
                     >
                       {GEMINI_MODE_LABEL.stopButton}
                     </button>
@@ -154,13 +155,13 @@ export default function Draft({ store }: { store: AppStore }) {
                   <button
                     onClick={() => store.setDriveStyleEnabled(!store.driveStyleEnabled)}
                     title={DRIVE_COPY.styleHint}
+                    className="t-meta"
                     style={{
                       marginTop: 6,
                       alignSelf: 'flex-start',
                       padding: '6px 12px',
                       borderRadius: 8,
-                      fontSize: 11.5,
-                      fontWeight: 700,
+                      fontWeight: 'var(--weight-bold)',
                       background: store.driveStyleEnabled ? 'var(--pill-brand-bg)' : 'var(--card)',
                       color: store.driveStyleEnabled ? 'var(--brand)' : 'var(--text-faint)',
                       border: `1px solid ${store.driveStyleEnabled ? 'var(--brand)' : 'var(--border-3)'}`,
@@ -173,31 +174,36 @@ export default function Draft({ store }: { store: AppStore }) {
                 <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => void store.generateDraftVariants()}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-sub"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     {DRAFT_VARIANTS_COPY.variantsButton}
                   </button>
                   <button
                     onClick={() => void store.requestHashtags()}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-sub"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     {DRAFT_VARIANTS_COPY.hashtagsButton}
                   </button>
                   <button
                     onClick={() => setShowKeyModal(true)}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-sub"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     ⚙️ AI 設定
                   </button>
                   <button
                     onClick={() => setShowTemplatePicker(true)}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-sub"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     📋 從文庫插入
                   </button>
                   <button
                     onClick={() => setShowSocialPicker(true)}
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                    className="t-sub"
+                    style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                   >
                     📣 從社群媒體挑選
                   </button>
@@ -209,11 +215,11 @@ export default function Draft({ store }: { store: AppStore }) {
                     key={tone}
                     onClick={() => void store.applyTone(tone)}
                     disabled={store.aiBusy}
+                    className="t-sub"
                     style={{
                       padding: '7px 14px',
                       borderRadius: 9,
-                      fontSize: 12.5,
-                      fontWeight: 600,
+                      fontWeight: 'var(--weight-semibold)',
                       background: 'var(--bg)',
                       color: 'var(--brand)',
                       border: '1px solid var(--pill-brand-bg-2)',
@@ -234,7 +240,7 @@ export default function Draft({ store }: { store: AppStore }) {
                   marginTop: 10,
                 }}
               >
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-faint)' }}>
+                <span className="t-meta" style={{ fontWeight: 'var(--weight-bold)' }}>
                   {DRAFT_AI_COPY.roleRowLabel}
                 </span>
                 {[null, ...ROLE_OPTIONS].map((role) => {
@@ -244,11 +250,11 @@ export default function Draft({ store }: { store: AppStore }) {
                       key={role ?? 'doc-default'}
                       onClick={() => store.selectAiRole(role)}
                       disabled={store.aiBusy}
+                      className="t-sub"
                       style={{
                         padding: '6px 12px',
                         borderRadius: 9,
-                        fontSize: 12,
-                        fontWeight: 600,
+                        fontWeight: 'var(--weight-semibold)',
                         background: active ? 'var(--pill-brand-bg)' : 'var(--bg)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
                         border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -270,7 +276,7 @@ export default function Draft({ store }: { store: AppStore }) {
                   marginTop: 10,
                 }}
               >
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-faint)' }}>
+                <span className="t-meta" style={{ fontWeight: 'var(--weight-bold)' }}>
                   {DRAFT_AI_COPY.langRowLabel}
                 </span>
                 {LANGUAGE_OPTIONS.map((lang) => {
@@ -280,11 +286,11 @@ export default function Draft({ store }: { store: AppStore }) {
                       key={lang}
                       onClick={() => store.selectAiLanguage(lang)}
                       disabled={store.aiBusy}
+                      className="t-sub"
                       style={{
                         padding: '6px 12px',
                         borderRadius: 9,
-                        fontSize: 12,
-                        fontWeight: 600,
+                        fontWeight: 'var(--weight-semibold)',
                         background: active ? 'var(--pill-brand-bg)' : 'var(--bg)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
                         border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -307,16 +313,16 @@ export default function Draft({ store }: { store: AppStore }) {
                   }}
                   placeholder={DRAFT_AI_COPY.customInstructionPlaceholder}
                   aria-label={DRAFT_AI_COPY.customInstructionLabel}
-                  style={{ flex: 1, borderRadius: 9, padding: '8px 12px', fontSize: 12.5 }}
+                  style={{ flex: 1, borderRadius: 9, padding: '8px 12px', fontSize: 'var(--text-sub)' }}
                 />
                 <button
                   onClick={() => void store.applyCustomInstruction(customInstruction)}
                   disabled={store.aiBusy}
+                  className="t-sub"
                   style={{
                     padding: '8px 16px',
                     borderRadius: 9,
-                    fontSize: 12.5,
-                    fontWeight: 700,
+                    fontWeight: 'var(--weight-bold)',
                     background: 'var(--pill-brand-bg)',
                     color: 'var(--brand)',
                     opacity: store.aiBusy ? 0.5 : 1,
@@ -339,16 +345,16 @@ export default function Draft({ store }: { store: AppStore }) {
                   flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>標籤建議:</span>
+                <span className="t-meta">標籤建議:</span>
                 {store.hashtagSuggestions.map((tag) => (
                   <button
                     key={tag}
                     onClick={() => store.addHashtagsToDraft([tag])}
+                    className="t-sub"
                     style={{
                       padding: '5px 12px',
                       borderRadius: 9,
-                      fontSize: 12,
-                      fontWeight: 600,
+                      fontWeight: 'var(--weight-semibold)',
                       background: 'var(--pill-brand-bg)',
                       color: 'var(--brand)',
                       border: '1px solid var(--pill-brand-bg-2)',
@@ -362,14 +368,16 @@ export default function Draft({ store }: { store: AppStore }) {
                     store.addHashtagsToDraft(store.hashtagSuggestions);
                     store.clearHashtagSuggestions();
                   }}
-                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}
+                  className="t-sub"
+                  style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)' }}
                 >
                   {DRAFT_VARIANTS_COPY.hashtagsAddAll}
                 </button>
                 <button
                   onClick={store.clearHashtagSuggestions}
                   aria-label="關閉標籤建議"
-                  style={{ fontSize: 14, color: 'var(--text-faint)', marginLeft: 'auto' }}
+                  className="t-emoji-sm"
+                  style={{ color: 'var(--text-faint)', marginLeft: 'auto' }}
                 >
                   ✕
                 </button>
@@ -387,14 +395,15 @@ export default function Draft({ store }: { store: AppStore }) {
                   border: '1px solid var(--border-3)',
                   borderRadius: 12,
                   padding: 14,
-                  fontSize: 14,
+                  /* 主要撰寫區刻意用卡片級(15px)而非內文級:這是全站唯一的長文輸入面 */
+                  fontSize: 'var(--text-card)',
                   fontFamily: 'inherit',
-                  lineHeight: 1.7,
+                  lineHeight: 'var(--leading-normal)',
                   color: 'var(--text-main)',
                   resize: 'vertical',
                 }}
               />
-              <div style={{ textAlign: 'right', fontSize: 11.5, color: 'var(--text-faint)', marginTop: 6 }}>
+              <div className="t-meta t-num" style={{ textAlign: 'right', marginTop: 6 }}>
                 {draftLength} 字
               </div>
             </div>
@@ -409,18 +418,17 @@ export default function Draft({ store }: { store: AppStore }) {
                     marginBottom: 4,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)' }}>
-                    {DRAFT_VARIANTS_COPY.variantsTitle}
-                  </div>
+                  <div className="t-sec-title">{DRAFT_VARIANTS_COPY.variantsTitle}</div>
                   <button
                     onClick={store.clearDraftVariants}
                     aria-label={DRAFT_VARIANTS_COPY.variantsClose}
-                    style={{ fontSize: 14, color: 'var(--text-faint)' }}
+                    className="t-emoji-sm"
+                    style={{ color: 'var(--text-faint)' }}
                   >
                     ✕
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 12 }}>
+                <div className="t-meta" style={{ marginBottom: 12 }}>
                   {DRAFT_VARIANTS_COPY.variantsHint}
                 </div>
                 {variantPlatforms.map((p) => {
@@ -436,8 +444,8 @@ export default function Draft({ store }: { store: AppStore }) {
                             borderRadius: 5,
                             background: p.color,
                             color: '#fff',
-                            fontSize: 9,
-                            fontWeight: 700,
+                            fontSize: 'var(--text-micro)',
+                            fontWeight: 'var(--weight-bold)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -445,12 +453,12 @@ export default function Draft({ store }: { store: AppStore }) {
                         >
                           {p.badge}
                         </span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>
+                        <span className="t-sub" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-main)' }}>
                           {p.label} 版
                         </span>
                         <span
+                          className="t-meta t-num"
                           style={{
-                            fontSize: 11,
                             color: over ? 'var(--error)' : 'var(--text-faint)',
                             marginLeft: 'auto',
                           }}
@@ -462,7 +470,7 @@ export default function Draft({ store }: { store: AppStore }) {
                         className="text-input"
                         value={value}
                         onChange={(e) => store.setDraftVariant(p.key, e.target.value)}
-                        style={{ minHeight: 88, lineHeight: 1.6, resize: 'vertical' }}
+                        style={{ minHeight: 88, lineHeight: 'var(--leading-snug)', resize: 'vertical' }}
                       />
                     </div>
                   );
@@ -490,7 +498,7 @@ export default function Draft({ store }: { store: AppStore }) {
             )}
 
             <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>
+              <div className="t-sec-title" style={{ marginBottom: 12 }}>
                 {DRAFT_KIND_HINT}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -500,11 +508,11 @@ export default function Draft({ store }: { store: AppStore }) {
                     <button
                       key={k.key}
                       onClick={() => store.setDraftKind(k.key)}
+                      className="t-sub"
                       style={{
                         padding: '8px 14px',
                         borderRadius: 9,
-                        fontSize: 12.5,
-                        fontWeight: 600,
+                        fontWeight: 'var(--weight-semibold)',
                         background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
                         border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -518,11 +526,11 @@ export default function Draft({ store }: { store: AppStore }) {
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                 <button
                   onClick={store.discardDraft}
+                  className="t-sub"
                   style={{
                     padding: '9px 14px',
                     borderRadius: 9,
-                    fontSize: 12.5,
-                    fontWeight: 700,
+                    fontWeight: 'var(--weight-bold)',
                     color: 'var(--error)',
                     background: 'var(--bg)',
                   }}
@@ -531,7 +539,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ padding: '9px 16px', fontSize: 12.5 }}
+                  style={{ padding: '9px 16px', fontSize: 'var(--text-sub)' }}
                   onClick={store.saveDraft}
                 >
                   {DRAFT_SAVE_COPY.saveButton}
@@ -539,7 +547,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 {/* U3 交接:把目前緩衝的文案送到媒管庫媒庫收件匣,當圖片/影片的說明 */}
                 <button
                   className="btn btn-outline"
-                  style={{ padding: '9px 16px', fontSize: 12.5 }}
+                  style={{ padding: '9px 16px', fontSize: 'var(--text-sub)' }}
                   onClick={() => store.sendToMediaMessage(store.draftText)}
                   title={FAMILY_COPY.sendTitle}
                 >
@@ -549,7 +557,7 @@ export default function Draft({ store }: { store: AppStore }) {
             </div>
 
             <div className="card" style={{ padding: 18 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-weak)', marginBottom: 12 }}>
+              <div className="t-sec-title" style={{ marginBottom: 12 }}>
                 選擇發布平台
               </div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
@@ -559,14 +567,14 @@ export default function Draft({ store }: { store: AppStore }) {
                     <button
                       key={p.key}
                       onClick={() => store.togglePlatform(p.key)}
+                      className="t-sub"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 7,
                         padding: '8px 14px',
                         borderRadius: 9,
-                        fontSize: 12.5,
-                        fontWeight: 600,
+                        fontWeight: 'var(--weight-semibold)',
                         background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
                         color: active ? 'var(--brand)' : 'var(--text-faint)',
                         border: `1px solid ${active ? 'var(--brand)' : 'var(--pill-brand-bg-2)'}`,
@@ -579,8 +587,8 @@ export default function Draft({ store }: { store: AppStore }) {
                           borderRadius: 6,
                           background: p.color,
                           color: '#fff',
-                          fontSize: 10,
-                          fontWeight: 700,
+                          fontSize: 'var(--text-micro)',
+                          fontWeight: 'var(--weight-bold)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -634,7 +642,7 @@ export default function Draft({ store }: { store: AppStore }) {
           width={420}
           label={DRAFT_VARIANTS_COPY.variantsSaveTitle}
         >
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+          <div className="t-card-title" style={{ marginBottom: 16 }}>
             {DRAFT_VARIANTS_COPY.variantsSaveTitle}
           </div>
           <div className="field-label">標題</div>
@@ -657,7 +665,7 @@ export default function Draft({ store }: { store: AppStore }) {
               </option>
             ))}
           </select>
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 16 }}>
+          <div className="t-note" style={{ marginBottom: 16 }}>
             通用內容 = 目前草稿全文;平台版本 = 面板中的各版(存入後可於文庫編輯)
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -701,11 +709,12 @@ export default function Draft({ store }: { store: AppStore }) {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>插入文庫內容</div>
+            <div className="t-card-title">插入文庫內容</div>
             <button
               onClick={() => setShowTemplatePicker(false)}
               aria-label="關閉"
-              style={{ fontSize: 18, color: 'var(--text-faint)' }}
+              className="t-emoji-sm"
+              style={{ color: 'var(--text-faint)' }}
             >
               ✕
             </button>
@@ -733,9 +742,12 @@ export default function Draft({ store }: { store: AppStore }) {
                   borderRadius: 10,
                 }}
               >
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)' }}>{tpl.title}</div>
+                <div className="t-sub" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-main)' }}>
+                  {tpl.title}
+                </div>
                 <div
-                  style={{ fontSize: 11.5, color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
+                  className="t-meta"
+                  style={{ color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
                 >
                   {tpl.text}
                 </div>
@@ -760,11 +772,12 @@ export default function Draft({ store }: { store: AppStore }) {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>從社群媒體挑選</div>
+            <div className="t-card-title">從社群媒體挑選</div>
             <button
               onClick={() => setShowSocialPicker(false)}
               aria-label="關閉"
-              style={{ fontSize: 18, color: 'var(--text-faint)' }}
+              className="t-emoji-sm"
+              style={{ color: 'var(--text-faint)' }}
             >
               ✕
             </button>
@@ -785,7 +798,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-main)' }}>
+                  <div className="t-sub" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-main)' }}>
                     {post.title}
                   </div>
                   <span
@@ -795,8 +808,8 @@ export default function Draft({ store }: { store: AppStore }) {
                       borderRadius: 5,
                       background: PLATFORM_META[post.platform].color,
                       color: '#fff',
-                      fontSize: 9,
-                      fontWeight: 700,
+                      fontSize: 'var(--text-micro)',
+                      fontWeight: 'var(--weight-bold)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -807,11 +820,12 @@ export default function Draft({ store }: { store: AppStore }) {
                   </span>
                 </div>
                 <div
-                  style={{ fontSize: 11.5, color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
+                  className="t-meta"
+                  style={{ color: 'var(--text-weak)', marginTop: 4, whiteSpace: 'pre-line' }}
                 >
                   {post.content}
                 </div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginTop: 4 }}>
+                <div className="t-meta t-num" style={{ marginTop: 4 }}>
                   {dateLabel(post.date)}
                 </div>
               </button>
