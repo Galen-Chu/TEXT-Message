@@ -1,4 +1,4 @@
-import type { DocKind, EmailTag, NoteKind, PlatformKey, PlatformMeta } from './types';
+import type { DiarySectionKey, DocKind, EmailTag, NoteKind, PlatformKey, PlatformMeta } from './types';
 import type { GmailErrorCode } from './services/gmail/errors';
 
 /** Gmail 連線錯誤的使用者文案(依 errors.ts 的 code 對應)。 */
@@ -847,6 +847,22 @@ export const DIARY_MOODS = [
 export const DIARY_BODY_MIN = 100;
 export const DIARY_BODY_MAX = 500;
 
+/**
+ * 沉澱小節(DIARY-PLAN D9,2026-11-10 路二拍板):label=app 表單顯示、heading=vault
+ * `templates/life-daily.md` 的四個固定小節標題——**vault 模板改版須同步此表**。
+ * 小節值是 `weekly_digest.py`/`review.py` 的輸入(`_extract_section` 按 `## 標題` 抓 bullet),
+ * 所以匯出端把小節寫在標記區塊內(唯一出現處),app 新建檔不再帶空的範本小節。
+ */
+export const DIARY_SECTIONS: Array<{ key: DiarySectionKey; label: string; heading: string }> = [
+  { key: 'moment', label: '今日片刻', heading: 'Moment Worth Remembering' },
+  { key: 'feeling', label: '當下感受', heading: 'How I Felt' },
+  { key: 'somethingNew', label: '新鮮事', heading: 'Something New' },
+  { key: 'grateful', label: '感恩', heading: 'Grateful For' },
+];
+
+/** 單一小節一行欄的上限(主文 maxLength 500 不變;合計 100–500 由 UI 統計把關)。 */
+export const DIARY_SECTION_MAX = 200;
+
 /** 列表每頁篇數(2026-11-01 補缺口:長期累積後整頁全文渲染會過長)。 */
 export const DIARY_PAGE_SIZE = 20;
 
@@ -889,6 +905,9 @@ export const DIARY_COPY = {
   genCopyButton: '複製',
   genCopiedToast: '已複製生成貼文 📋',
   genToDraftToast: '已帶入編發器草稿 ✨',
+  // 沉澱小節(D9,2026-11-10):對映 vault 模板四小節的選填一行欄
+  sectionsLabel: '沉澱小節(選填)',
+  sectionsHint: '字數計入統計;匯出時寫進 Obsidian 條目的對應小節,供週/月回顧腳本取用',
 };
 
 /**

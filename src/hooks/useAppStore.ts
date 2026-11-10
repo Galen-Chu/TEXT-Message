@@ -1040,9 +1040,9 @@ export function useAppStore() {
   };
 
   // ---- 日記 CRUD(DIARY-PLAN P1,2026-10-24)----
-  /** 新增日記:前插(列表新→舊);title 空字串=無標題、mood 選填(UI 限定 DIARY_MOODS);id 與時間戳統一在此發。 */
+  /** 新增日記:前插(列表新→舊);title 空字串=無標題、mood/sections 選填(UI 已正規化);id 與時間戳統一在此發。 */
   const addDiaryEntry = useCallback(
-    (input: { date: string; title: string; body: string; mood?: string }) => {
+    (input: { date: string; title: string; body: string; mood?: string; sections?: DiaryEntry['sections'] }) => {
       const now = Date.now();
       const e: DiaryEntry = { id: newId('diary-'), createdAt: now, updatedAt: now, ...input };
       setDiaryEntries((list) => [e, ...list]);
@@ -1052,7 +1052,7 @@ export function useAppStore() {
   );
 
   const updateDiaryEntry = useCallback(
-    (id: string, patch: { date: string; title: string; body: string; mood?: string }) => {
+    (id: string, patch: { date: string; title: string; body: string; mood?: string; sections?: DiaryEntry['sections'] }) => {
       setDiaryEntries((list) =>
         list.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: Date.now() } : e)),
       );

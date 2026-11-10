@@ -101,10 +101,12 @@ describe('日記匯出:新建筆記(比照 templates/life-daily.md)', () => {
     expect(buildNewVaultNote([mk({ date: '2026-11-01' })], '2026-11-01')).toContain('mood: \n');
   });
 
-  it('沿用範本的標題、四個固定小節與週回顧反向連結', () => {
+  it('D9:四個小節標題只在區塊內出現一次(頂部不再放空範本小節)', () => {
     expect(note).toContain('# 🌱 Life · 2026-11-01');
     for (const h of ['## Moment Worth Remembering', '## How I Felt', '## Something New', '## Grateful For']) {
-      expect(note).toContain(h);
+      expect(note.split(h)).toHaveLength(2); // 恰好一次
+      expect(note.indexOf(h)).toBeGreaterThan(note.indexOf(BLOCK_START));
+      expect(note.indexOf(h)).toBeLessThan(note.indexOf(BLOCK_END));
     }
     expect(note).toContain('*[[weekly-2026-W44]]*');
   });
@@ -112,6 +114,50 @@ describe('日記匯出:新建筆記(比照 templates/life-daily.md)', () => {
   it('區塊在尾段分隔線之前', () => {
     expect(note.indexOf(BLOCK_START)).toBeLessThan(note.lastIndexOf('---'));
     expect(note.indexOf(BLOCK_END)).toBeLessThan(note.lastIndexOf('---'));
+  });
+});
+
+describe('日記匯出:沉澱小節(D9,2026-11-10 路二)', () => {
+  it('有填的值寫成 bullet(值 trim);沒填的保留範本 `-`', () => {
+    const block = buildDiaryBlock(
+      [mk({ date: '2026-11-10', sections: { moment: '  晚霞很美 ', grateful: '熱湯' } })],
+      '2026-11-10',
+    );
+    expect(block).toContain('## Moment Worth Remembering\n\n- 晚霞很美');
+    expect(block).toContain('## Grateful For\n\n- 熱湯');
+    expect(block).toContain('## How I Felt\n\n-');
+    expect(block).toContain('## Something New\n\n-');
+  });
+
+  it('同日多筆:小節值各成一條 bullet,時間早→晚', () => {
+    const block = buildDiaryBlock(
+      [
+        mk({ date: '2026-11-10', createdAt: at(21), sections: { moment: '晚上拍的' } }),
+        mk({ date: '2026-11-10', createdAt: at(7), sections: { moment: '早晨的光' } }),
+      ],
+      '2026-11-10',
+    );
+    const m = block.match(/## Moment Worth Remembering\n\n([\s\S]*?)\n\n## /);
+    const momentSection = m?.[1] ?? '';
+    expect(momentSection).toContain('- 早晨的光');
+    expect(momentSection).toContain('- 晚上拍的');
+    expect(momentSection.indexOf('早晨的光')).toBeLessThan(momentSection.indexOf('晚上拍的'));
+  });
+
+  it('小節在條目之後(記錄在前、沉澱在後)', () => {
+    const block = buildDiaryBlock([mk({ date: '2026-11-10', body: '主文內容' })], '2026-11-10');
+    expect(block.indexOf('主文內容')).toBeLessThan(block.indexOf('## Moment Worth Remembering'));
+  });
+
+  it('跨系統契約:模擬 journal.py _extract_section(re.search=第一個命中)抓得到小節值', () => {
+    const note = buildNewVaultNote(
+      [mk({ date: '2026-11-10', sections: { moment: '唯一的片刻' } })],
+      '2026-11-10',
+    );
+    // journal.py:re.search(rf"^## (?:{wanted})\s*\n(.*?)(?=^## |^---\s*$|\Z)", content, re.S | re.M)
+    const re = new RegExp('^## Moment Worth Remembering\\s*\\n([\\s\\S]*?)(?=^## |^---\\s*$|$)', 'm');
+    const m = note.match(re);
+    expect(m?.[1]).toContain('- 唯一的片刻');
   });
 });
 

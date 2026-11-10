@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DiaryEntry } from '../../types';
 import {
+  diaryTotalLength,
   DIARY_KEY,
   isDiaryEntry,
   loadDiaryEntries,
@@ -85,6 +86,13 @@ describe('parseDiary(防禦式解析)', () => {
     expect(isDiaryEntry(entry({ mood: 7 as unknown as string }))).toBe(false);
     expect(isDiaryEntry(entry({ mood: 'x'.repeat(21) }))).toBe(false);
   });
+
+  it('sections 選填(D9,2026-11-10):物件+字串值可過;缺漏/陣列/非字串值不過', () => {
+    expect(isDiaryEntry(entry({ sections: { moment: '晚霞', grateful: '熱湯' } }))).toBe(true);
+    expect(isDiaryEntry(entry({ sections: {} }))).toBe(true);
+    expect(isDiaryEntry(entry({ sections: [] as unknown as DiaryEntry['sections'] }))).toBe(false);
+    expect(isDiaryEntry(entry({ sections: { moment: 7 } as unknown as DiaryEntry['sections'] }))).toBe(false);
+  });
 });
 
 describe('saveDiaryEntries / loadDiaryEntries', () => {
@@ -167,5 +175,23 @@ describe('searchDiaryEntries', () => {
   it('正規化不得害到內容搜尋:含小數點的字串仍搜得到', () => {
     const dotted = [entry({ id: 'run', body: '今天跑了 3.5 公里' })];
     expect(searchDiaryEntries(dotted, '3.5').map((e) => e.id)).toEqual(['run']);
+  });
+
+  it('沉澱小節也納入搜尋(D9)', () => {
+    const list = [entry({ id: 'a', sections: { moment: '陽明山的芒草' } }), entry({ id: 'b' })];
+    expect(searchDiaryEntries(list, '芒草').map((e) => e.id)).toEqual(['a']);
+  });
+});
+
+describe('diaryTotalLength(D9:小節計入 100–500 統計)', () => {
+  it('主文+有填的小節,各自 trim 後相加', () => {
+    expect(diaryTotalLength({ body: '今天走了很遠的路' })).toBe(8); // 8 個字
+    expect(diaryTotalLength({ body: '六個字的主文', sections: { moment: '  晚霞  ', grateful: '熱湯' } })).toBe(6 + 2 + 2);
+    expect(diaryTotalLength({ body: '', sections: { moment: '只有小節' } })).toBe(4);
+  });
+
+  it('沒填(undefined/空值)不計', () => {
+    expect(diaryTotalLength({ body: '五個字', sections: undefined })).toBe(3);
+    expect(diaryTotalLength({ body: '五個字', sections: { moment: '   ', feeling: '' } })).toBe(3);
   });
 });

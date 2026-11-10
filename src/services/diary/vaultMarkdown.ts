@@ -14,6 +14,7 @@
  * 慣例來源=`~/Github-Projects/Obsidian_Journal`(vault 本身的 `CLAUDE.md` 與
  * `templates/life-daily.md`;週回顧反向連結格式比對 `scripts/journal.py` 的 `_iso_week`)。
  */
+import { DIARY_SECTIONS } from '../../constants';
 import type { DiaryEntry } from '../../types';
 
 /** vault 內的落點(相對 vault 根目錄),逐層 getDirectoryHandle。 */
@@ -65,26 +66,42 @@ export function exportDates(entries: DiaryEntry[]): string[] {
 
 /**
  * 組出某一天的區塊內容(含首尾標記)。
- * 小節標題:單筆=`## {標題或「日記」}`;**同日多筆加時間前綴**`## HH:mm · …`
+ * 條目標題:單筆=`## {標題或「日記」}`;**同日多筆加時間前綴**`## HH:mm · …`
  * ——沿 D4 的同日合併慣例,且時間保證兩筆標題不相撞(Obsidian 的 `[[筆記#標題]]`
  * 連結靠標題唯一性)。心情寫成區塊內的一行,不去動 frontmatter:
  * splice 時那是別人的地盤(見檔頭紀律)。
+ *
+ * 沉澱小節(D9,2026-11-10):四個小節接在條目之後(記錄在前、沉澱在後),
+ * **放在標記區塊內=整份檔案的唯一出現處**——vault `journal.py` 的 `_extract_section`
+ * 是 `re.search`(第一個命中),若檔案同時存在空的範本小節與區塊內的填值小節,
+ * 週摘只會讀到前面那個空的。同日多筆的小節值依時間早→晚各成一條 bullet;
+ * 沒人填的小節保留範本形狀 `-`。
  */
 export function buildDiaryBlock(entries: DiaryEntry[], date: string): string {
   const list = entriesOfDate(entries, date);
   const multi = list.length > 1;
-  const sections = list.map((e) => {
+  const parts = list.map((e) => {
     const name = e.title.trim() || '日記';
     const heading = multi ? `## ${timeLabel(e.createdAt)} · ${name}` : `## ${name}`;
     const mood = e.mood ? `**心情**:${e.mood}\n\n` : '';
     return `${heading}\n\n${mood}${e.body.trim()}\n`;
   });
-  return [BLOCK_START, '', ...sections, BLOCK_END].join('\n');
+  const sectionBlocks = DIARY_SECTIONS.map((s) => {
+    const values = list
+      .map((e) => (e.sections?.[s.key] ?? '').trim())
+      .filter((v) => v.length > 0);
+    const bullets = values.length > 0 ? values.map((v) => `- ${v}`).join('\n') : '-';
+    return `## ${s.heading}\n\n${bullets}\n`;
+  });
+  return [BLOCK_START, '', ...parts, ...sectionBlocks, BLOCK_END].join('\n');
 }
 
 /**
- * 新建筆記:比照 `templates/life-daily.md` 的形狀(frontmatter + 標題 + 固定四小節
- * + 分隔線 + 週回顧反向連結),把區塊放在分隔線之前。
+ * 新建筆記:frontmatter + 標題 + 區塊 + 分隔線 + 週回顧反向連結。
+ * **D9(2026-11-10)起不再帶範本的四個空小節**——小節值改由區塊承載(見
+ * buildDiaryBlock 的 _extract_section 說明),頂部再放一份空的小節只會是死重量、
+ * 且讓週摘讀到空值。手寫情境(journal.py 建檔)仍走範本自帶小節,兩種形狀並存;
+ * `_extract_section` 對兩者都讀得到(各自的唯一出現處)。
  * frontmatter 的 `mood` **只有新建時**才填(取當天最早一筆)——既有檔案的 frontmatter
  * 一律不碰。`date` 加引號同範本;`tags: [life]` 沿用 vault 固定標籤集,
  * **不自創新標籤**(vault 標籤慣例:收斂不發散,新標籤先進清單再使用)。
@@ -102,22 +119,6 @@ export function buildNewVaultNote(entries: DiaryEntry[], date: string): string {
     '---',
     '',
     `# 🌱 Life · ${date}`,
-    '',
-    '## Moment Worth Remembering',
-    '',
-    '-',
-    '',
-    '## How I Felt',
-    '',
-    '-',
-    '',
-    '## Something New',
-    '',
-    '-',
-    '',
-    '## Grateful For',
-    '',
-    '-',
     '',
     buildDiaryBlock(entries, date),
     '',

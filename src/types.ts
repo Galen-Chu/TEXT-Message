@@ -52,6 +52,13 @@ export interface DraftDoc {
 }
 
 /**
+ * 日記沉澱小節的鍵(DIARY-PLAN D9,2026-11-10 路二拍板):對映 vault
+ * `templates/life-daily.md` 的四個固定小節——app 表單為選填一行欄,有填才匯出。
+ * 英文標題的對照表在 `constants.ts` 的 DIARY_SECTIONS(**vault 模板改版須同步**)。
+ */
+export type DiarySectionKey = 'moment' | 'feeling' | 'somethingNew' | 'grateful';
+
+/**
  * 日記條目(DIARY-PLAN D4,2026-10-24):私密的第一方內容,純前端、零後端——
  * localStorage 獨立鍵 `text-message:diary:v1`,不進 `text-message:v2`、不進 `family:*`、
  * 絕不進 worker/KV。date=管線取材單位(P2 與 usedJournalDates 對齊);
@@ -63,6 +70,8 @@ export interface DiaryEntry {
   title: string; // 選用;空字串=無標題
   body: string;
   mood?: string; // 選用(2026-10-24 追加);UI 限定 DIARY_MOODS,儲存層只驗型別與長度
+  /** 沉澱小節(2026-11-10 D9):選填;字數計入 100–500 統計、不進管線素材(仍取 body)。 */
+  sections?: Partial<Record<DiarySectionKey, string>>;
   createdAt: number; // epoch ms
   updatedAt: number; // epoch ms
 }

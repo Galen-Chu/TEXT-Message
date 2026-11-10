@@ -1,4 +1,4 @@
-import type { DiaryEntry } from '../../types';
+import type { DiaryEntry, DiarySectionKey } from '../../types';
 
 /**
  * 日記本機儲存(DIARY-PLAN D1,2026-10-24):獨立鍵 `text-message:diary:v1`——
@@ -21,6 +21,13 @@ function moodOk(m: unknown): boolean {
   return m === undefined || (typeof m === 'string' && m.length > 0 && m.length <= 20);
 }
 
+/** 沉澱小節選填(D9,2026-11-10):只驗「物件且值都是字串」——鍵的合法集不在此綁(UI 常數不進儲存層)。 */
+function sectionsOk(s: unknown): boolean {
+  if (s === undefined) return true;
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return false;
+  return Object.values(s).every((v) => typeof v === 'string');
+}
+
 export function isDiaryEntry(v: unknown): v is DiaryEntry {
   if (!v || typeof v !== 'object') return false;
   const e = v as Partial<DiaryEntry>;
@@ -31,11 +38,22 @@ export function isDiaryEntry(v: unknown): v is DiaryEntry {
     typeof e.title === 'string' &&
     typeof e.body === 'string' &&
     moodOk(e.mood) &&
+    sectionsOk(e.sections) &&
     typeof e.createdAt === 'number' &&
     Number.isFinite(e.createdAt) &&
     typeof e.updatedAt === 'number' &&
     Number.isFinite(e.updatedAt)
   );
+}
+
+/**
+ * 合計字數(D9,2026-11-10 拍板:小節計入 100–500 統計)= 主文 + 有填的小節,各自 trim。
+ * UI 的即時字數與儲存門檻都用這支;管線素材仍只取 body(小節是沉澱提示,不是素材)。
+ */
+export function diaryTotalLength(input: { body: string; sections?: Partial<Record<DiarySectionKey, string>> }): number {
+  let n = input.body.trim().length;
+  for (const v of Object.values(input.sections ?? {})) n += v.trim().length;
+  return n;
 }
 
 /** 解析 `{version:1, entries}`:版本不符/形狀壞 → [];單筆壞只丟那筆(防禦式,同 family)。 */
@@ -98,7 +116,8 @@ export function searchDiaryEntries(entries: DiaryEntry[], query: string): DiaryE
   if (!raw) return entries;
   const dashed = raw.replace(/[/.]/g, '-');
   return entries.filter((e) => {
-    const hay = `${e.date} ${e.title} ${e.body} ${e.mood ?? ''}`.toLowerCase();
+    // 沉澱小節(D9,2026-11-10)也納入比對——它們是內容,不是單純中繼資料
+    const hay = `${e.date} ${e.title} ${e.body} ${e.mood ?? ''} ${Object.values(e.sections ?? {}).join(' ')}`.toLowerCase();
     return hay.includes(raw) || hay.includes(dashed);
   });
 }

@@ -7,12 +7,14 @@ import {
   DIARY_EXPORT_RANGES,
   DIARY_MOODS,
   DIARY_PAGE_SIZE,
+  DIARY_SECTIONS,
+  DIARY_SECTION_MAX,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
-import { searchDiaryEntries, sortDiaryEntries } from '../services/diary/storage';
+import { diaryTotalLength, searchDiaryEntries, sortDiaryEntries } from '../services/diary/storage';
 import { isVaultExportSupported } from '../services/diary/vaultFs';
 import { datesNeedingExport, rangeBounds } from '../services/diary/vaultMarkdown';
-import type { DiaryEntry } from '../types';
+import type { DiaryEntry, DiarySectionKey } from '../types';
 import { shortDateTimeLabel, toISODate } from '../utils/date';
 import Modal from './Modal';
 
@@ -34,6 +36,9 @@ export default function Diary({ store }: { store: AppStore }) {
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editMood, setEditMood] = useState('');
+  // 沉澱小節(D9,2026-11-10):對映 vault 模板四小節的選填一行欄;字數計入 100–500 統計
+  const [sections, setSections] = useState<Partial<Record<DiarySectionKey, string>>>({});
+  const [editSections, setEditSections] = useState<Partial<Record<DiarySectionKey, string>>>({});
   const [deleting, setDeleting] = useState<DiaryEntry | null>(null);
   // 日記 P2 路徑 B:條目卡生成貼文(genBusyId=生成中的條目;genModal=可編輯結果)
   const [genBusyId, setGenBusyId] = useState<string | null>(null);
@@ -81,9 +86,40 @@ export default function Diary({ store }: { store: AppStore }) {
     </div>
   );
 
-  /** 即時字數:100–500 之外轉紅提示,在門檻內轉弱色。 */
-  const bodyCount = (text: string) => {
-    const n = text.trim().length;
+  /** 沉澱小節欄(D9):撰寫卡與編輯 Modal 共用;選填一行欄,窄螢幕自動單欄。 */
+  const sectionFields = (
+    value: Partial<Record<DiarySectionKey, string>>,
+    onChange: (next: Partial<Record<DiarySectionKey, string>>) => void,
+  ) => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+      {DIARY_SECTIONS.map((s) => (
+        <div key={s.key}>
+          <div className="field-label">{s.label}</div>
+          <input
+            className="text-input"
+            value={value[s.key] ?? ''}
+            maxLength={DIARY_SECTION_MAX}
+            aria-label={s.label}
+            onChange={(e) => onChange({ ...value, [s.key]: e.target.value })}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  /** 正規化:trim、空值不落地;全空=整組不存(undefined)。 */
+  const filledSections = (s: Partial<Record<DiarySectionKey, string>>) => {
+    const out: Partial<Record<DiarySectionKey, string>> = {};
+    for (const { key } of DIARY_SECTIONS) {
+      const v = (s[key] ?? '').trim();
+      if (v) out[key] = v;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
+
+  /** 即時字數(D9:主文+小節合計):100–500 之外轉紅提示,在門檻內轉弱色。 */
+  const totalCount = (text: string, secs: Partial<Record<DiarySectionKey, string>>) => {
+    const n = diaryTotalLength({ body: text, sections: secs });
     return (
       <div
         className="t-meta t-num"
@@ -98,11 +134,12 @@ export default function Diary({ store }: { store: AppStore }) {
   };
 
   const submit = () => {
-    const n = body.trim().length;
-    if (!n) {
+    const secs = filledSections(sections);
+    if (!body.trim().length) {
       store.showToast(DIARY_COPY.emptyBodyToast);
       return;
     }
+    const n = diaryTotalLength({ body, sections: secs });
     if (n < DIARY_BODY_MIN || n > DIARY_BODY_MAX) {
       store.showToast(DIARY_COPY.bodyLengthToast(n));
       return;
@@ -112,11 +149,13 @@ export default function Diary({ store }: { store: AppStore }) {
       title: title.trim(),
       body,
       mood: mood || undefined,
+      sections: secs,
     });
     setDate(toISODate(new Date()));
     setTitle('');
     setBody('');
     setMood('');
+    setSections({});
   };
 
   const openEdit = (e: DiaryEntry) => {
@@ -125,15 +164,17 @@ export default function Diary({ store }: { store: AppStore }) {
     setEditTitle(e.title);
     setEditBody(e.body);
     setEditMood(e.mood ?? '');
+    setEditSections(e.sections ?? {});
   };
 
   const saveEdit = () => {
     if (!editing) return;
-    const n = editBody.trim().length;
-    if (!n) {
+    const secs = filledSections(editSections);
+    if (!editBody.trim().length) {
       store.showToast(DIARY_COPY.emptyBodyToast);
       return;
     }
+    const n = diaryTotalLength({ body: editBody, sections: secs });
     if (n < DIARY_BODY_MIN || n > DIARY_BODY_MAX) {
       store.showToast(DIARY_COPY.bodyLengthToast(n));
       return;
@@ -143,6 +184,7 @@ export default function Diary({ store }: { store: AppStore }) {
       title: editTitle.trim(),
       body: editBody,
       mood: editMood || undefined,
+      sections: secs,
     });
     setEditing(null);
   };
@@ -193,10 +235,17 @@ export default function Diary({ store }: { store: AppStore }) {
           maxLength={DIARY_BODY_MAX}
           style={{ minHeight: 120, lineHeight: 'var(--leading-normal)', resize: 'vertical' }}
         />
+        <div style={{ margin: '14px 0 0' }}>
+          <div className="field-label">{DIARY_COPY.sectionsLabel}</div>
+          <div className="t-note" style={{ marginBottom: 8 }}>
+            {DIARY_COPY.sectionsHint}
+          </div>
+          {sectionFields(sections, setSections)}
+        </div>
         <div
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}
         >
-          {bodyCount(body)}
+          {totalCount(body, sections)}
           <button className="btn btn-primary" onClick={submit}>
             {DIARY_COPY.saveButton}
           </button>
@@ -497,10 +546,14 @@ export default function Diary({ store }: { store: AppStore }) {
             maxLength={DIARY_BODY_MAX}
             style={{ minHeight: 120, lineHeight: 'var(--leading-normal)', resize: 'vertical' }}
           />
+          <div style={{ margin: '14px 0 0' }}>
+            <div className="field-label">{DIARY_COPY.sectionsLabel}</div>
+            <div style={{ marginTop: 8 }}>{sectionFields(editSections, setEditSections)}</div>
+          </div>
           <div
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}
           >
-            {bodyCount(editBody)}
+            {totalCount(editBody, editSections)}
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost" onClick={() => setEditing(null)}>
                 {DIARY_COPY.cancelButton}
