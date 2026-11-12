@@ -42,13 +42,14 @@ export function isVaultExportSupported(): boolean {
 
 /**
  * 讓使用者挑 vault 根目錄。取消 → 回 null(不是錯誤:按了「取消」是正常操作)。
- * `id` 讓瀏覽器記住上次挑的位置(下次 picker 直接開在那裡,減少半自動的摩擦)。
+ * `id` 讓瀏覽器記住上次挑的位置(下次 picker 直接開在那裡,減少半自動的摩擦);
+ * 日記與便條指向**不同 vault**(Journal/Library),各用一個 id 各自記住。
  */
-export async function pickVaultDirectory(): Promise<FileSystemDirectoryHandle | null> {
+export async function pickVaultDirectory(id = 'text-message-vault'): Promise<FileSystemDirectoryHandle | null> {
   const picker = (window as PickerWindow).showDirectoryPicker;
   if (!picker) throw new VaultError('unsupported');
   try {
-    return await picker({ id: 'text-message-vault', mode: 'readwrite' });
+    return await picker({ id, mode: 'readwrite' });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return null;
     if (err instanceof DOMException && err.name === 'SecurityError') throw new VaultError('permission');
@@ -57,15 +58,16 @@ export async function pickVaultDirectory(): Promise<FileSystemDirectoryHandle | 
 }
 
 /**
- * 走到 `daily/life/`(不存在就建)。
- * **只建這條路徑上的資料夾**——vault 的禁止事項包含不動 `.obsidian/`、不刪 `archive/`,
- * 本模組從頭到尾只開這一個子樹、只讀寫 `YYYY-MM-DD.md`,其他一概不碰。
+ * 走到指定子樹(不存在就建)。**只建這條路徑上的資料夾**——vault 的禁止事項包含
+ * 不動 `.obsidian/`、不刪 `archive/`,呼叫端(日記=daily/life、便條=notes)只開
+ * 自己那一個子樹、只讀寫自己的檔名,其他一概不碰。
  */
-export async function ensureLifeDirectory(
+export async function ensureSubtree(
   root: FileSystemDirectoryHandle,
+  segments: readonly string[],
 ): Promise<FileSystemDirectoryHandle> {
   let dir = root;
-  for (const seg of VAULT_LIFE_PATH) {
+  for (const seg of segments) {
     try {
       dir = await dir.getDirectoryHandle(seg, { create: true });
     } catch (err) {
@@ -73,6 +75,13 @@ export async function ensureLifeDirectory(
     }
   }
   return dir;
+}
+
+/** 走到 `daily/life/`(日記匯出用;便條走 `ensureSubtree(root, VAULT_NOTES_PATH)`)。 */
+export async function ensureLifeDirectory(
+  root: FileSystemDirectoryHandle,
+): Promise<FileSystemDirectoryHandle> {
+  return ensureSubtree(root, VAULT_LIFE_PATH);
 }
 
 /** 讀既有筆記內容;檔案不存在 → null(呼叫端據此決定 splice 還是新建)。 */

@@ -831,6 +831,49 @@ export const NOTES_COPY = {
   emptyBodyToast: '內容是空的,寫點什麼再貼上吧',
 };
 
+/**
+ * 便條匯出到 Obsidian vault(POST-PLAN P3,2026-11-12)。落點=**Obsidian_Library**
+ * 的**頂層 `notes/`**(2026-11-12 維護者拍板——兩 vault 實況均為私人,Library 為原始
+ * 意願;刻意不在 raw/ 之下,避開 compile.py 的掃描,私密便條不進編譯管線——見
+ * Library CLAUDE.md 的 notes/ 子樹章節)。誠實標示沿用日記的框架(見 DIARY_EXPORT_COPY)。
+ */
+export const NOTES_EXPORT_COPY = {
+  cardTitle: '📤 匯出到 Obsidian',
+  cardDesc: '把便條寫進你的 Obsidian_Library(notes/ 資料夾,一張一檔),資料不離開這台電腦',
+  stepFolderLabel: '① vault 資料夾(挑 Obsidian_Library 根目錄)',
+  pickButton: '選擇 vault 資料夾',
+  repickButton: '重新選擇資料夾',
+  folderLabel: (name: string) => `資料夾:${name}`,
+  needPickHint: '每次重開網頁都要再選一次資料夾(網頁無法長期保留資料夾權限)',
+  stepExportLabel: '② 匯出範圍與執行',
+  exportButton: '匯出便條',
+  exportingButton: '匯出中…',
+  lastExportLabel: (when: string) => `上次匯出:${when}`,
+  neverExported: '還沒匯出過',
+  pendingLabel: (n: number) => (n === 0 ? '沒有需要更新的便條' : `有 ${n} 張需要寫入`),
+  notes: [
+    '單向寫入:只建立/更新便條檔裡 text-message:note 標記的區塊,你在 Obsidian 手寫的內容不會被動到',
+    '在 app 刪掉的便條不會從 vault 移除——匯出檔是當下的凍結副本',
+    '便條改標題會以新檔名寫新檔,舊檔留在原地(凍結)',
+    '放在 notes/(不在 raw/ 之下)——Library 的編譯管線不會讀到便條',
+  ],
+  nothingToast: '這個範圍內沒有需要更新的便條',
+  doneToast: (n: number) => `已寫入 ${n} 張便條到 vault ✅`,
+  partialToast: (ok: number, failed: number) => `寫入 ${ok} 張,有 ${failed} 張失敗`,
+  cancelledToast: '已取消選擇資料夾',
+  pickedToast: (name: string) => `已選擇「${name}」,可以開始匯出`,
+  downloadedToast: '已下載彙整檔',
+  downloadButton: '下載彙整 markdown',
+  unsupportedTitle: '這個瀏覽器不支援直接寫入資料夾',
+  unsupportedDesc: 'Chrome 或 Edge 可直接寫進 vault;此處改為下載一個彙整的 markdown 檔',
+  errorToast: {
+    unsupported: '這個瀏覽器不支援直接寫入資料夾',
+    cancelled: '已取消',
+    permission: '沒有資料夾權限,請重新選擇資料夾',
+    write_failed: '寫入失敗,請確認資料夾仍可存取',
+  } as Record<string, string>,
+};
+
 /** 寫日記(DIARY-PLAN P1,2026-10-24):私密的第一方內容,純前端、零後端。
  * 2026-10-24 追加(維護者指示):心情(選填,固定選項)+內容長度 100–500 字。 */
 export const DIARY_MOODS = [

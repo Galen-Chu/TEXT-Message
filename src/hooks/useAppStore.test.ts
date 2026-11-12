@@ -13,6 +13,7 @@ import { generateJournalPost, rewriteWithGemini } from '../services/gemini/rewri
 import { libraryLoad, librarySave } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
+import { noteFileName } from '../services/notes/vaultMarkdown';
 import { FAMILY_COPY, STORAGE_COPY } from '../constants';
 import { HANDOFF_KEY, scheduleFeedKey } from '../services/family/config';
 import { parseHandoff } from '../services/family/handoff';
@@ -1493,5 +1494,99 @@ describe('useAppStore:日記 P2 路徑 B(條目卡生成貼文,2026-11-03)', () 
       r = await result.current.generateDiaryPostFromEntry(result.current.diaryEntries[0]);
     });
     expect(r?.ok).toBe(false);
+  });
+});
+
+describe('useAppStore:便條匯出到 Obsidian vault(POST-PLAN P3,2026-11-12)', () => {
+  /** 極簡假 vault(同日記匯出測試的 fakeVault,獨立一份供本 describe 使用)。 */
+  function fakeVault(files: Record<string, string> = {}) {
+    const makeDir = (prefix: string): FileSystemDirectoryHandle =>
+      ({
+        name: prefix === '' ? 'MyVault' : prefix.replace(/\/$/, ''),
+        getDirectoryHandle: async (seg: string) => makeDir(`${prefix}${seg}/`),
+        getFileHandle: async (name: string, opts?: { create?: boolean }) => {
+          const path = `${prefix}${name}`;
+          if (!(path in files) && !opts?.create) {
+            throw new DOMException('missing', 'NotFoundError');
+          }
+          return {
+            getFile: async () => ({ text: async () => files[path] ?? '' }),
+            createWritable: async () => ({
+              write: async (content: string) => {
+                files[path] = content;
+              },
+              close: async () => {},
+            }),
+          };
+        },
+      }) as unknown as FileSystemDirectoryHandle;
+    (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker = async () =>
+      makeDir('');
+    return files;
+  }
+
+  afterEach(() => {
+    delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+  });
+
+  it('沒有檔案 → notes/ 下新建(frontmatter+標記區塊)、戳記落地自己的鍵;增量=第二次按下不重寫', async () => {
+    const files = fakeVault();
+    const { result } = renderHook(() => useAppStore());
+    act(() =>
+      result.current.addNote({
+        kind: 'article',
+        title: '值得讀的文章',
+        body: '要点整理',
+        tags: ['AI'],
+        url: 'https://example.com/a',
+      }),
+    );
+    const note = result.current.notes[0];
+
+    await act(async () => {
+      await result.current.exportNotesToVault('all');
+    });
+
+    const path = `notes/${noteFileName(note)}`;
+    expect(files[path]).toBeDefined();
+    expect(files[path]).toContain('source: text-message-post');
+    expect(files[path]).toContain('<!-- text-message:note -->');
+    expect(files[path]).toContain('https://example.com/a');
+    // 戳記落地在自己的鍵(不等於日記戳記鍵、不在 notes:v1、不在 v2)
+    const stamps = JSON.parse(localStorage.getItem('text-message:notes-export:v1') ?? '{}');
+    expect(stamps.stamps[note.id]).toBe(note.updatedAt);
+    expect(result.current.notesExport.lastExportAt).toBeGreaterThan(0);
+
+    // 增量:內容沒變 → 第二次按下不再寫入(哨兵確認沒被蓋掉)
+    files[path] = 'SENTINEL';
+    await act(async () => {
+      await result.current.exportNotesToVault('all');
+    });
+    expect(files[path]).toBe('SENTINEL');
+  });
+
+  it('改標題 → 以新檔名寫新檔,舊檔凍結留在原地(凍結語意)', async () => {
+    const files = fakeVault();
+    const { result } = renderHook(() => useAppStore());
+    act(() => result.current.addNote({ kind: 'idea', title: '舊標題', body: '內容', tags: [] }));
+    const note = result.current.notes[0];
+    await act(async () => {
+      await result.current.exportNotesToVault('all');
+    });
+    const oldPath = `notes/${noteFileName(note)}`;
+    expect(files[oldPath]).toContain('# 舊標題');
+
+    act(() =>
+      result.current.updateNote(note.id, { kind: 'idea', title: '新標題', body: '內容', tags: [] }),
+    );
+    const renamed = result.current.notes[0];
+    await act(async () => {
+      await result.current.exportNotesToVault('all');
+    });
+
+    const newPath = `notes/${noteFileName(renamed)}`;
+    expect(newPath).not.toBe(oldPath);
+    expect(files[newPath]).toContain('# 新標題');
+    expect(files[oldPath]).toContain('# 舊標題'); // 舊檔原封不動
   });
 });

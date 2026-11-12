@@ -46,7 +46,7 @@
 - **D8 路徑順序與風格語料(2026-11-03 規劃討論拍板)**:
   - **B 先做、A 後做**(翻轉原規劃「A 主 B 輔」的開發順序,定位不變)——B=風格校準迴路:先以人工生成逐篇驗「像不像本人發的文」,把 prompt/角色/風格樣本校準好,再開 A 自動排程,把自動化品質風險前置消掉;B 與 A 共用生成核心,B 先做不浪費。
   - **風格語料=沿用 Drive 風格樣本**(現行機制,生成當下匯出注入)。「以發佈記錄 `publishedHistory` 為語料」提案**緩議**——維護者評估目前發文素材尚不足,待累積後回訪。**fine-tune 訓練模型明確緩議**:需把語料上傳 Google 訓練,打破「素材只在生成當下進 prompt、用完即棄」的資料流(紅線級變更),且 tuned model 綁 key 維運負擔大——先以強化 few-shot 實測,真有不滿再另案討論(屆時焦點=哪些語料可上傳)。
-  - **生成貼文匯出 Obsidian(2026-11-03 同日拍板)**:生成貼文/發佈記錄屬可公開內容,落點=**Obsidian_Library**(公開 repo,無隱私矛盾);Library 內的資料夾待討論(需先對照該 vault 的 LLM-compiler 架構慣例)。便條(私密)則拍板走 Obsidian_Journal `notes/`——詳 POST-PLAN P3。
+  - **生成貼文匯出 Obsidian(2026-11-03 同日拍板)**:生成貼文/發佈記錄屬可公開內容,落點=**Obsidian_Library**;Library 內的資料夾待討論(需先對照該 vault 的 LLM-compiler 架構慣例)。便條落點 2026-11-12 亦改拍板 Library 頂層 `notes/`(兩 vault 實況均私人+維護者意願;不在 raw/ 之下避開編譯掃描)——詳 POST-PLAN P3。
 - **D9 沉澱小節對映 vault 模板(2026-11-10 驗收日討論拍板,路二)**:匯出上線後 vault 模板四小節(`Moment Worth Remembering`/`How I Felt`/`Something New`/`Grateful For`)在 app 新建檔裡永遠空著——而它們是 `weekly_digest.py`/`review.py` 的輸入(`journal.py` 的 `_extract_section` 按 `## 標題` 抓 bullet、**re.search=第一個命中**),等於書寫移到 app 後週/月回顧斷源。三案比較(①維持手寫分工/②app 選填對映欄/③精簡匯出形狀)拍板**路二**,維護者加拍:**小節字數計入 100–500 統計**:
   - 表單四個選填一行欄(今日片刻/當下感受/新鮮事/感恩;`DIARY_SECTIONS` 對照 vault 模板標題——**模板改版須同步此表**;單欄上限 200);合計字數 `diaryTotalLength`=主文+有填小節各自 trim 相加,即時字數與儲存門檻共用;主文仍必填。
   - `DiaryEntry.sections?`(選填物件;防禦驗證只驗「物件+字串值」);隨文庫備份自然帶走;搜尋納入小節;**管線素材仍只取 body**(小節是沉澱提示,不是素材)。

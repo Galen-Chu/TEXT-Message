@@ -129,17 +129,22 @@ export function buildNewVaultNote(entries: DiaryEntry[], date: string): string {
 }
 
 /**
- * 把區塊併進既有筆記:
+ * 把標記區塊併進既有筆記(**通用版**,日記/便條共用;2026-11-12 抽出):
  * ①已有標記 → 只換掉標記之間(含標記)的那段,其餘原封不動;
  * ②沒有標記 → 插在尾段分隔線 + 週連結**之前**(保持 vault 範本的收尾形狀);
  * ③連尾段都沒有 → 接在最後面。
  * 冪等:同樣的輸入再跑一次結果相同(①的路徑保證)。
  */
-export function spliceDiaryBlock(existing: string, block: string): string {
-  const s = existing.indexOf(BLOCK_START);
-  const e = existing.indexOf(BLOCK_END);
+export function spliceMarkedBlock(
+  existing: string,
+  block: string,
+  startMarker: string,
+  endMarker: string,
+): string {
+  const s = existing.indexOf(startMarker);
+  const e = existing.indexOf(endMarker);
   if (s !== -1 && e !== -1 && e > s) {
-    return existing.slice(0, s) + block + existing.slice(e + BLOCK_END.length);
+    return existing.slice(0, s) + block + existing.slice(e + endMarker.length);
   }
   const lines = existing.replace(/\s+$/, '').split('\n');
   // frontmatter 的收尾 `---` 不是尾段分隔線:先把 frontmatter 區間跳過
@@ -164,6 +169,11 @@ export function spliceDiaryBlock(existing: string, block: string): string {
     return `${head}\n\n${block}\n\n${tail}\n`;
   }
   return `${lines.join('\n')}\n\n${block}\n`;
+}
+
+/** 日記版包裝(標記常數固定)——既有呼叫端與測試沿用此名。 */
+export function spliceDiaryBlock(existing: string, block: string): string {
+  return spliceMarkedBlock(existing, block, BLOCK_START, BLOCK_END);
 }
 
 /**

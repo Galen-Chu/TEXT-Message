@@ -1,6 +1,15 @@
 import { useState } from 'react';
-import { NOTES_COPY, NOTES_PAGE_SIZE, NOTE_BODY_MAX, NOTE_KIND_OPTIONS } from '../constants';
+import {
+  DIARY_EXPORT_RANGES,
+  NOTES_COPY,
+  NOTES_EXPORT_COPY,
+  NOTES_PAGE_SIZE,
+  NOTE_BODY_MAX,
+  NOTE_KIND_OPTIONS,
+} from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
+import { isVaultExportSupported } from '../services/diary/vaultFs';
+import { rangeBounds } from '../services/diary/vaultMarkdown';
 import {
   collectTags,
   filterNotesByKind,
@@ -8,8 +17,9 @@ import {
   searchNotes,
   sortNotes,
 } from '../services/notes/storage';
+import { notesNeedingExport } from '../services/notes/vaultMarkdown';
 import type { Note, NoteKind } from '../types';
-import { shortDateTimeLabel } from '../utils/date';
+import { shortDateTimeLabel, toISODate } from '../utils/date';
 import Modal from './Modal';
 
 /**
@@ -35,6 +45,8 @@ export default function Post({ store }: { store: AppStore }) {
   const [editBody, setEditBody] = useState('');
   const [editTags, setEditTags] = useState('');
   const [deleting, setDeleting] = useState<Note | null>(null);
+  /** 匯出範圍是頁面本地狀態(同日記頁:增量寫入讓切換範圍幾乎沒代價)。 */
+  const [range, setRange] = useState<'all' | 'year' | 'month'>('all');
 
   const allTags = collectTags(store.notes);
   const matched = searchNotes(
@@ -44,6 +56,14 @@ export default function Post({ store }: { store: AppStore }) {
   const visible = matched.slice(0, shown);
   const more = matched.length - visible.length;
   const filtering = !!search.trim() || !!kindFilter || !!tagFilter;
+
+  // 匯出(POST-PLAN P3):支援度決定顯示流程還是下載退路;待寫張數=增量判定(戳記比對)。
+  const supported = isVaultExportSupported();
+  const pending = notesNeedingExport(
+    store.notes,
+    store.notesExport.stamps,
+    rangeBounds(range, toISODate(new Date())),
+  ).length;
 
   /** 任一篩選條件變動都縮回第一頁,否則會停在空白的後段。 */
   const resetPage = () => setShown(NOTES_PAGE_SIZE);
@@ -190,6 +210,112 @@ export default function Post({ store }: { store: AppStore }) {
           </button>
         </div>
       </div>
+
+      {store.notes.length > 0 && (
+        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+          <div className="t-sec-title">{NOTES_EXPORT_COPY.cardTitle}</div>
+          <div className="t-meta" style={{ marginBottom: 14 }}>
+            {NOTES_EXPORT_COPY.cardDesc}
+          </div>
+
+          {!supported ? (
+            <>
+              <div className="t-item-title">{NOTES_EXPORT_COPY.unsupportedTitle}</div>
+              <div className="t-meta" style={{ margin: '4px 0 12px' }}>
+                {NOTES_EXPORT_COPY.unsupportedDesc}
+              </div>
+              <button className="btn btn-outline" onClick={() => store.exportNotesToVault(range)}>
+                {NOTES_EXPORT_COPY.downloadButton}
+              </button>
+            </>
+          ) : (
+            <>
+              {/* 步驟①:資料夾(便條指向 Library vault——與日記的 Journal 不同,各挑各的)。 */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  paddingBottom: 12,
+                  borderBottom: '1px solid var(--border-2)',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="t-item-title">{NOTES_EXPORT_COPY.stepFolderLabel}</div>
+                  <div className="t-meta" style={{ marginTop: 2 }}>
+                    {store.notesFolder
+                      ? NOTES_EXPORT_COPY.folderLabel(store.notesFolder)
+                      : NOTES_EXPORT_COPY.needPickHint}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ flexShrink: 0 }}
+                  onClick={store.pickNotesVault}
+                >
+                  {store.notesFolder
+                    ? NOTES_EXPORT_COPY.repickButton
+                    : NOTES_EXPORT_COPY.pickButton}
+                </button>
+              </div>
+
+              {/* 步驟②:選範圍 → 即時狀態 → 按匯出(同日記兩步式的讀做同序)。 */}
+              <div style={{ paddingTop: 12 }}>
+                <div className="t-item-title">{NOTES_EXPORT_COPY.stepExportLabel}</div>
+                <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
+                  {DIARY_EXPORT_RANGES.map((r) => {
+                    const active = range === r.value;
+                    return (
+                      <button
+                        key={r.value}
+                        onClick={() => setRange(r.value)}
+                        className="t-meta"
+                        style={{
+                          padding: '5px 14px',
+                          borderRadius: 8,
+                          fontWeight: 'var(--weight-semibold)',
+                          background: active ? 'var(--pill-brand-bg)' : 'var(--card)',
+                          color: active ? 'var(--brand)' : 'var(--text-faint)',
+                          border: `1px solid ${active ? 'var(--brand)' : 'var(--border-3)'}`,
+                        }}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="t-meta" style={{ marginBottom: 10 }}>
+                  {NOTES_EXPORT_COPY.pendingLabel(pending)} ·{' '}
+                  {store.notesExport.lastExportAt
+                    ? NOTES_EXPORT_COPY.lastExportLabel(
+                        shortDateTimeLabel(store.notesExport.lastExportAt),
+                      )
+                    : NOTES_EXPORT_COPY.neverExported}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  disabled={store.notesExporting}
+                  onClick={() => store.exportNotesToVault(range)}
+                >
+                  {store.notesExporting
+                    ? NOTES_EXPORT_COPY.exportingButton
+                    : NOTES_EXPORT_COPY.exportButton}
+                </button>
+              </div>
+
+              <div
+                className="t-note"
+                style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-2)' }}
+              >
+                {NOTES_EXPORT_COPY.notes.map((n) => (
+                  <div key={n}>· {n}</div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
         <input

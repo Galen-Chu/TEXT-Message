@@ -14,6 +14,7 @@ import {
   BACKEND_LINKEDIN_ERROR_COPY,
   DIARY_COPY,
   DIARY_EXPORT_COPY,
+  NOTES_EXPORT_COPY,
   DOC_KIND_LABELS,
   DRAFT_AI_COPY,
   DRAFT_LIBRARY_COPY,
@@ -60,6 +61,7 @@ import { isDiaryEntry, loadDiaryEntries, saveDiaryEntries } from '../services/di
 import {
   downloadMarkdown,
   ensureLifeDirectory,
+  ensureSubtree,
   isVaultExportSupported,
   pickVaultDirectory,
   readNote,
@@ -78,6 +80,21 @@ import {
   vaultNoteName,
   type ExportStamps,
 } from '../services/diary/vaultMarkdown';
+import {
+  loadNotesExportState,
+  saveNotesExportState,
+  type NotesExportState,
+} from '../services/notes/exportStore';
+import {
+  buildNoteBlock,
+  buildNoteMarkdown,
+  buildNotesCombinedMarkdown,
+  noteFileName,
+  notesNeedingExport,
+  spliceNoteBlock,
+  VAULT_NOTES_PATH,
+  type NoteExportStamps,
+} from '../services/notes/vaultMarkdown';
 import { isNote, loadNotes, noteInsertText, saveNotes } from '../services/notes/storage';
 import { publishOwnFeed, readPeerFeed, type ScheduleFeed } from '../services/family/feed';
 import { pendingToPeerCount, sendCaptionToPeer } from '../services/family/handoff';
@@ -380,6 +397,15 @@ export function useAppStore() {
   const [vaultFolder, setVaultFolder] = useState<string | null>(null);
   const [diaryExporting, setDiaryExporting] = useState(false);
 
+  // 便條匯出(POST-PLAN P3,2026-11-12):戳記另鍵(機器本地、不進備份);
+  // 資料夾 handle 與日記**各自獨立**——日記→Journal vault、便條→Library vault(11-12 維護者改拍板)。
+  const [notesExport, setNotesExport] = useState<NotesExportState>(() =>
+    loadNotesExportState(localStorage),
+  );
+  const [notesExporting, setNotesExporting] = useState(false);
+  const notesVaultDirRef = useRef<FileSystemDirectoryHandle | null>(null);
+  const [notesFolder, setNotesFolder] = useState<string | null>(null);
+
   // 便條(POST-PLAN,2026-11-01):小筆記/好文章/靈感——同日記的儲存形態,
   // 獨立鍵 text-message:notes:v1(D1),不進 text-message:v2、不進 family:*;
   // 內容隨文庫雲端備份(D2,加密 blob 的選用欄位)。
@@ -478,6 +504,11 @@ export function useAppStore() {
   useEffect(() => {
     saveDiaryExportState(diaryExport, localStorage);
   }, [diaryExport]);
+
+  // 便條匯出戳記持久化(P3):同日記——失敗靜默,遺失只是多寫幾個檔案。
+  useEffect(() => {
+    saveNotesExportState(notesExport, localStorage);
+  }, [notesExport]);
 
   // ── 家族串接(U3/U4,2026-10-12):契約鍵 family:*,不互讀對方內部鍵 ──
   const [familyPendingCount, setFamilyPendingCount] = useState(0);
@@ -1206,6 +1237,98 @@ export function useAppStore() {
       }
     },
     [diaryEntries, diaryExport.stamps, pickDiaryVault, showToast],
+  );
+
+  // ---- 便條匯出到 Obsidian vault(POST-PLAN P3,2026-11-12)----
+  /** 挑便條的 vault 根目錄(**Library**——與日記的 Journal 不同 vault,各挑各的、
+   *  picker id 各自記住上次位置)並預先走到 notes/(權限問題當場就報)。 */
+  const pickNotesVault = useCallback(async () => {
+    try {
+      const root = await pickVaultDirectory('text-message-notes-vault');
+      if (!root) {
+        showToast(NOTES_EXPORT_COPY.cancelledToast);
+        return;
+      }
+      await ensureSubtree(root, VAULT_NOTES_PATH);
+      notesVaultDirRef.current = root;
+      setNotesFolder(root.name);
+      setNotesExport((s) => ({ ...s, folderName: root.name }));
+      showToast(NOTES_EXPORT_COPY.pickedToast(root.name));
+    } catch (err) {
+      const code = err instanceof VaultError ? err.code : 'permission';
+      showToast(NOTES_EXPORT_COPY.errorToast[code] ?? NOTES_EXPORT_COPY.errorToast.permission);
+    }
+  }, [showToast]);
+
+  /** 落點=**Library** vault 的 notes/(2026-11-12 維護者改拍板——兩 vault 實況均為私人,
+   *  Library 是其原始意願;**刻意放頂層不在 raw/ 之下**,避開 compile.py 的 scan_raw 掃描,
+   *  私密便條不進編譯管線**——見 Library CLAUDE.md 的 notes/ 子樹章節)。
+   *  鏡像日記:逐張獨立 try(單張失敗不連坐)、只有寫成功的記戳記。 */
+  const exportNotesToVault = useCallback(
+    async (range: 'all' | 'year' | 'month') => {
+      const bounds = rangeBounds(range, toISODate(new Date()));
+      const pending = notesNeedingExport(notes, notesExport.stamps, bounds);
+
+      // 不支援目錄寫入(Firefox/Safari)→ 退回下載彙整檔(範圍內全部、不看也不寫戳記)。
+      if (!isVaultExportSupported()) {
+        const all = notesNeedingExport(notes, {}, bounds);
+        if (all.length === 0) {
+          showToast(NOTES_EXPORT_COPY.nothingToast);
+          return;
+        }
+        downloadMarkdown(buildNotesCombinedMarkdown(all), `notes-${toISODate(new Date())}.md`);
+        showToast(NOTES_EXPORT_COPY.downloadedToast);
+        return;
+      }
+
+      if (!notesVaultDirRef.current) {
+        await pickNotesVault();
+        if (!notesVaultDirRef.current) return; // 取消或失敗(toast 已由 pick 發)
+      }
+      if (pending.length === 0) {
+        showToast(NOTES_EXPORT_COPY.nothingToast);
+        return;
+      }
+
+      setNotesExporting(true);
+      try {
+        const dir = await ensureSubtree(notesVaultDirRef.current, VAULT_NOTES_PATH);
+        const stamps: NoteExportStamps = {};
+        let failed = 0;
+        for (const n of pending) {
+          try {
+            const name = noteFileName(n);
+            const existing = await readNote(dir, name);
+            const content =
+              existing === null
+                ? buildNoteMarkdown(n)
+                : spliceNoteBlock(existing, buildNoteBlock(n));
+            await writeNote(dir, name, content);
+            stamps[n.id] = n.updatedAt;
+          } catch {
+            failed += 1;
+          }
+        }
+        const okCount = pending.length - failed;
+        setNotesExport((s) => ({
+          ...s,
+          stamps: { ...s.stamps, ...stamps },
+          lastExportAt: okCount > 0 ? Date.now() : s.lastExportAt,
+          folderName: notesVaultDirRef.current?.name ?? s.folderName,
+        }));
+        showToast(
+          failed === 0
+            ? NOTES_EXPORT_COPY.doneToast(okCount)
+            : NOTES_EXPORT_COPY.partialToast(okCount, failed),
+        );
+      } catch (err) {
+        const code = err instanceof VaultError ? err.code : 'write_failed';
+        showToast(NOTES_EXPORT_COPY.errorToast[code] ?? NOTES_EXPORT_COPY.errorToast.write_failed);
+      } finally {
+        setNotesExporting(false);
+      }
+    },
+    [notes, notesExport.stamps, pickNotesVault, showToast],
   );
 
   // ---- 便條 CRUD(POST-PLAN,2026-11-01)----
@@ -2024,6 +2147,11 @@ export function useAppStore() {
     diaryExporting,
     pickDiaryVault,
     exportDiaryToVault,
+    notesExport,
+    notesExporting,
+    notesFolder,
+    pickNotesVault,
+    exportNotesToVault,
     notes,
     addNote,
     updateNote,
