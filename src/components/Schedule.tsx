@@ -404,7 +404,7 @@ export default function Schedule({ store }: { store: AppStore }) {
               type="time"
               value={store.autoPipeline.time}
               onChange={(e) => store.updateAutoPipeline({ time: e.target.value })}
-              style={{ width: 100, padding: '6px 8px', fontSize: 'var(--text-sub)' }}
+              style={{ width: 100, padding: '6px 8px', fontSize: 'var(--text-sm)' }}
             />
             <label
               className="t-meta"
@@ -496,7 +496,7 @@ export default function Schedule({ store }: { store: AppStore }) {
                         journalFileName: doc?.name ?? '',
                       });
                     }}
-                    style={{ flex: 1, minWidth: 180, padding: '6px 8px', fontSize: 'var(--text-sub)' }}
+                    style={{ flex: 1, minWidth: 180, padding: '6px 8px', fontSize: 'var(--text-sm)' }}
                   >
                     <option value="">{PIPELINE_COPY.journalPickerButton}</option>
                     {store.drive.docs.map((d) => (

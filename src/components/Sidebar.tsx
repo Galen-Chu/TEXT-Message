@@ -1,4 +1,4 @@
-import { FAMILY_COPY, PIPELINE_COPY } from '../constants';
+import { FAMILY_COPY, FAMILY_VOICES_URL, PIPELINE_COPY } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { PEER_URL } from '../services/family/config';
 import type { Tab } from '../types';
@@ -8,14 +8,16 @@ import type { ReactNode } from 'react';
 // 導覽順序 v3(2026-09-04 IA 重整,決策見 docs/IA-PLAN.md D1;2026-09-07 編輯器更名編發器):
 // 編發器在定排程之前。icon=Uniconsign 符號系統(對應關係見 BrandIcons.tsx 檔頭);
 // 2026-11-01:新增「貼便條 Post」(置於雲端列 Drive 之後,維護者指示 POST-PLAN D4),
-// 並將「編發器 Text」更名「編發器 Draft」(與內部 Tab key 'draft' 一致、語意更貼切)。
+// 並將「編發器 Text」更名「編發器 Draft」;2026-11-20 回名「編發器 Text」——三庫編輯頁
+// 家族統一「編發器+產品英文詞」(Text/Media/Voices,決策記錄見 VOICES-Message docs/V-PLAN.md D8)。
+// Tab key 仍為 'draft':家族慣例「內部識別字不隨顯示名變動」。
 const NAV_ITEMS: Array<{ key: Tab; icon: ReactNode; label: string }> = [
   { key: 'dashboard', icon: <IconDashboard />, label: '文管 Dashboard' },
   { key: 'inbox', icon: <IconEnvelope />, label: '郵件匣 Gmail' },
   { key: 'social', icon: <IconSocialMedia />, label: '自媒體 Social' },
   { key: 'drive', icon: <IconCloud />, label: '雲端列 Drive' },
   { key: 'post', icon: <IconNote />, label: '貼便條 Post' },
-  { key: 'draft', icon: <IconTypewriter />, label: '編發器 Draft' },
+  { key: 'draft', icon: <IconTypewriter />, label: '編發器 Text' },
   { key: 'diary', icon: <IconDiary />, label: '寫日記 Diary' },
   { key: 'schedule', icon: <IconLedger />, label: '定排程 Task' },
   { key: 'library', icon: <IconBook />, label: '文庫 Library' },
@@ -79,6 +81,7 @@ export default function Sidebar({ store }: { store: AppStore }) {
         刻意放在識別塊**外面**——`.sidebar-footer` 在 ≤720px 整塊 display:none,連結若放在
         裡面,窄螢幕就沒有入口可按(IA-D7 要的是「任何頁籤都一鍵可達」)。這裡沿用
         `.nav-label` 收合慣例:窄螢幕只留圖示。深層串接(交接/排程摘要)在文庫 Library。
+        2026-11-20 三方互連:加第二條「聲管庫 ↗」——與 VOICES 尚無契約,純導覽。
       */}
       <a
         className="nav-btn sidebar-family-link t-sub"
@@ -97,8 +100,28 @@ export default function Sidebar({ store }: { store: AppStore }) {
           textDecoration: 'none',
         }}
       >
-        <span className="t-emoji">🎬</span>
+        <span className="t-emoji" aria-hidden="true">🎬</span>
         <span className="nav-label">{FAMILY_COPY.switchLink}</span>
+      </a>
+      <a
+        className="nav-btn sidebar-family-link t-sub"
+        href={FAMILY_VOICES_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={FAMILY_COPY.switchTitleVoices}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 12px',
+          borderRadius: 10,
+          fontWeight: 'var(--weight-semibold)',
+          color: 'var(--brand)',
+          textDecoration: 'none',
+        }}
+      >
+        <span className="t-emoji" aria-hidden="true">🎤</span>
+        <span className="nav-label">{FAMILY_COPY.switchLinkVoices}</span>
       </a>
 
       {/*

@@ -53,7 +53,7 @@ export default function Draft({ store }: { store: AppStore }) {
   return (
     <div>
       <div className="t-page-title" style={{ marginBottom: 4 }}>
-        編發器 Draft
+        編發器 Text
       </div>
       <div className="t-page-desc" style={{ marginBottom: 20 }}>
         撰寫與 AI 潤飾貼文,依平台產生版本;儲存文體歸檔文庫,發佈與排程同頁完成
@@ -313,7 +313,7 @@ export default function Draft({ store }: { store: AppStore }) {
                   }}
                   placeholder={DRAFT_AI_COPY.customInstructionPlaceholder}
                   aria-label={DRAFT_AI_COPY.customInstructionLabel}
-                  style={{ flex: 1, borderRadius: 9, padding: '8px 12px', fontSize: 'var(--text-sub)' }}
+                  style={{ flex: 1, borderRadius: 9, padding: '8px 12px', fontSize: 'var(--text-sm)' }}
                 />
                 <button
                   onClick={() => void store.applyCustomInstruction(customInstruction)}
@@ -539,7 +539,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ padding: '9px 16px', fontSize: 'var(--text-sub)' }}
+                  style={{ padding: '9px 16px', fontSize: 'var(--text-sm)' }}
                   onClick={store.saveDraft}
                 >
                   {DRAFT_SAVE_COPY.saveButton}
@@ -547,7 +547,7 @@ export default function Draft({ store }: { store: AppStore }) {
                 {/* U3 交接:把目前緩衝的文案送到媒管庫媒庫收件匣,當圖片/影片的說明 */}
                 <button
                   className="btn btn-outline"
-                  style={{ padding: '9px 16px', fontSize: 'var(--text-sub)' }}
+                  style={{ padding: '9px 16px', fontSize: 'var(--text-sm)' }}
                   onClick={() => store.sendToMediaMessage(store.draftText)}
                   title={FAMILY_COPY.sendTitle}
                 >

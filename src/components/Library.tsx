@@ -489,7 +489,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
                       color: 'var(--on-brand-fill)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -502,7 +502,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -515,7 +515,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -530,7 +530,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -543,7 +543,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--error)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -605,7 +605,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--brand-fill)',
                       color: 'var(--on-brand-fill)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -618,7 +618,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -632,7 +632,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--brand)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >
@@ -645,7 +645,7 @@ export default function Library({ store }: { store: AppStore }) {
                       borderRadius: 8,
                       background: 'var(--bg)',
                       color: 'var(--error)',
-                      fontSize: 'var(--text-sub)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 'var(--weight-bold)',
                     }}
                   >

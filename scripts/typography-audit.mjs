@@ -12,6 +12,9 @@
  *      真有動態需求時值必須是 var(--text-*) / var(--emoji-*),不得是數字。
  *   2. index.css 的 font-size/font-weight 必須引用 token,不得硬寫數值。
  *   3. 字重只有 400/500/600/700 四級(Uniconsign 原生沒有 800/900)。
+ *   4. 同一 :root 區塊內 token 不得重複定義——同名後者靜默勝出,異值撞名時
+ *      (顏色 vs 尺寸)兩種用法各壞一邊且外觀退化輕微極難察覺(2026-11-20
+ *      --text-sub 撞名實例:字級 token 已改名 --text-sm 並以此規則守門)。
  *
  * 用法:node scripts/typography-audit.mjs
  */
@@ -88,6 +91,33 @@ css.split('\n').forEach((text, i) => {
   const over = stripped.match(/font-weight\s*:\s*(800|900)\b|fontWeight\s*:\s*(800|900)\b/);
   if (over) add(CSS_PATH, i + 1, `字重 ${over[1] ?? over[2]} 不在四級內(400/500/600/700)`);
 });
+
+// ---- 規則 4:同一 :root 區塊內 token 重複定義 --------------------------------
+// :root 區塊內只有宣告與註解、無巢狀大括號,故用第一個 '}' 定界即可。
+const rootOpen = /:root\s*\{/g;
+let rootMatch;
+while ((rootMatch = rootOpen.exec(css)) !== null) {
+  const start = rootMatch.index + rootMatch[0].length;
+  const end = css.indexOf('}', start);
+  if (end < 0) break;
+  const block = css.slice(start, end);
+  const seen = new Map();
+  for (const def of block.matchAll(/--[a-z][a-z0-9-]*\s*:/g)) {
+    const name = def[0].slice(0, -1).trim();
+    const list = seen.get(name) ?? [];
+    list.push(start + def.index);
+    seen.set(name, list);
+  }
+  for (const [name, spots] of seen) {
+    if (spots.length < 2) continue;
+    const line = css.slice(0, spots[1]).split('\n').length;
+    add(
+      CSS_PATH,
+      line,
+      `token ${name} 在同一 :root 區塊定義 ${spots.length} 次——同名後者靜默勝出,異值撞名兩種用法各壞一邊`,
+    );
+  }
+}
 
 // ---- 輸出 ----------------------------------------------------------------
 if (problems.length === 0) {

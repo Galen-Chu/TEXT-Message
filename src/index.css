@@ -33,7 +33,11 @@
      一套 7 級(非等比,密度優先),對應關係與偏離理由記在 UIUX.md,勿各頁自行加級。 */
   --text-micro: 10px; /* 徽章內字、極小註記 */
   --text-meta: 11px; /* 中繼資料、時間戳、誠實標示 */
-  --text-sub: 12px; /* 次要描述、chips、小按鈕 */
+  /* 2026-11-20 修復:原稱 --text-sub,與調色盤的次要文字「顏色」token(上方 #5a574f)
+     撞名——:root 內同名後定義者勝出,導致淺色模式所有 color: var(--text-sub) 失效回落
+     主文字色、深色模式的字級反被顏色值覆蓋。改走不與顏色撞名的尺度命名;.t-sub 角色
+     類別名不變。稽核腳本已加「同一 :root 重複定義」規則防再犯。 */
+  --text-sm: 12px; /* 次要描述、chips、小按鈕 */
   --text-body: 13px; /* 內文基準、頁面描述、列表內容 */
   --text-card: 15px; /* 卡片與 Modal 標題 */
   --text-page: 20px; /* 頁面標題 */
@@ -180,7 +184,7 @@ button {
   color: var(--text-main);
 }
 .t-sub {
-  font-size: var(--text-sub);
+  font-size: var(--text-sm);
   line-height: var(--leading-snug);
   color: var(--text-weak);
 }
@@ -239,7 +243,7 @@ button {
 }
 /* 次要／密集排列用的小尺寸按鈕(取代各頁自行寫 inline 的小字按鈕) */
 .btn-sm {
-  font-size: var(--text-sub);
+  font-size: var(--text-sm);
   padding: 6px 12px;
   border-radius: 8px;
 }
@@ -354,8 +358,10 @@ button {
   gap: 10px;
 }
 /*
-  家族切換連結(U2)。margin-top 放這裡而非 inline style:≤720px 時 .sidebar-footer
-  整塊隱藏,此連結需接手 margin-top:auto 才會留在側欄底部(inline style 會蓋掉斷點規則)。
+  家族切換連結(U2;2026-11-20 起兩條)。margin-top 放這裡而非 inline style:≤720px 時
+  .sidebar-footer 整塊隱藏,第一條連結需接手 margin-top:auto 才會留在側欄底部(inline
+  style 會蓋掉斷點規則)——斷點只推第一條(:first-of-type),兩條都推會平分閒置空間、
+  連結飄在欄中間。此處 first-of-type 對「同層第一個 <a>」成立:前面的 nav 按鈕是 button。
 */
 .sidebar-family-link {
   margin-top: 8px;
@@ -409,7 +415,7 @@ button {
   .nav-label {
     display: none;
   }
-  .sidebar-family-link {
+  .sidebar-family-link:first-of-type {
     margin-top: auto;
   }
   .nav-btn {

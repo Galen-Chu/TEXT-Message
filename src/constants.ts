@@ -607,14 +607,25 @@ export const STORAGE_COPY = {
 };
 
 /**
+ * 聲管庫入口(2026-11-20 三方互連):與 VOICES 尚無 `family:*` 契約,純導覽連結,
+ * 故放 constants 而非 services/family(那是文管庫↔媒管庫的契約模組)。
+ */
+export const FAMILY_VOICES_URL = 'https://galen-chu.github.io/VOICES-Message/';
+
+/**
  * 家族串接(U2–U4,2026-10-12)。文管庫 ↔ 媒管庫:側欄常駐切換 + 文庫 Library
  * 深層串接(交接文案、互看近期排程)。契約與分期見 `services/family/config.ts`
  * 與媒管庫 `docs/IA-PLAN.md` §1 IA-D7/§3.2——兩邊位置與文案須一致。
+ * 2026-11-20 家族切換擴為三方互連(+聲管庫,見 FAMILY_VOICES_URL)。
  */
 export const FAMILY_COPY = {
-  /** U2:側欄左下識別塊的常駐切換連結(兩產品同位置、同樣式)。 */
+  /** U2:側欄左下識別塊的常駐切換連結(家族產品同位置、同樣式)。 */
   switchLink: '媒管庫 ↗',
   switchTitle: '前往媒管庫(圖片/影片發佈)',
+
+  /** 三方互連(2026-11-20):聲管庫 V1 已上線,導覽連結不等 V2/V3 handoff。 */
+  switchLinkVoices: '聲管庫 ↗',
+  switchTitleVoices: '前往聲管庫(錄音與講稿)',
 
   cardTitle: '👨‍👩‍👧 家族串接',
   cardDesc: '媒管庫負責圖片與影片發佈;這裡可以把文案送過去當說明,也能看到彼此的近期排程',
