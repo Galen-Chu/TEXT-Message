@@ -225,6 +225,8 @@ P1/P2 刻意分開:P1 跑得起來才有東西可以驗冪等與時區,P2 再換
 
 **2026-10-24 追記(來源擴充已規劃,屬 DIARY-PLAN P2 非本表分期)**:寫日記功能上線後(`docs/DIARY-PLAN.md` D3),管線將增第三源 `'diary-ai'`「本機日記」——條目**依日期分組合併**成與 `parseJournal` 產出同構的形狀後直接餵既有 `pickJournalEntries`,D6 選料與排程機制**零改動**;最大實質利多=**免 Drive 重連**(§3.5 的摩擦在日記路徑不存在)。`usedJournalDates` 與 Drive 日誌共用;明確不做日記原文逐字排程,紅線零修訂。
 
+**2026-11-25 實作記錄(diary-ai 上線,規劃照 10-24 追記落地)**:①純函式 `src/services/diary/pipelineSource.ts`(`diaryToJournalEntries`:同日多筆 body 依 createdAt 以空行串接、標題取第一個非空、心情去重以「、」合併——合併慣例同 `parseJournal`;sections 不進素材)+7 測;②`pickJournalEntries` 改泛型 `<T extends JournalEntry>`——選料邏輯零改動,日記來源多帶的 mood 經選料不掉;③`topUpPipeline` 重構:journal-ai 與 diary-ai 共用 `fillFromAiSource`「生成→逐日排程」迴圈(journal-ai 行為不變:quota 半成品照排、成功才記 `usedJournalDates`、游標推進到實際排到的最後一天),diary-ai 硬前置僅 Gemini key+有日記條目,素材全用過=回 0 誠實停止;**風格參照 best-effort(2026-11-25 維護者拍板「Drive 連線成敗都照生成,排程成功率優先」)**——未連線時 `getDriveStyleSampleTexts` toast 後回 `[]`,無風格照生成;④`source` 聯集四處同步(types.ts/utils/pipeline.ts/payload.ts PIPELINE_SOURCES/isValidAutoPipeline),備份投影接受 diary-ai;⑤管線卡第三 chip「本機日記 + AI 生成」+資訊塊(篇數/同日合併/免 Drive/風格視當下連線/明天起預算)——卡在 `backendEnabled` 內,demo build 不出現、E2E 不覆蓋(實機驗收);⑥store 3 測(補糧帶 moodHint 與新→舊順序/前置不符三態/quota 半成品)+ pipelineSource 7 測 + payload 1 案例=466 測。worker 零改動、紅線零修訂(日記不進 worker——進佇列的只有生成後的貼文成品)。
+
 ## 7. 決議紀錄(D1–D6,2026-10-14 維護者拍板)
 
 | 決議 | 定案 | 備註 |

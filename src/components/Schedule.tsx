@@ -443,6 +443,7 @@ export default function Schedule({ store }: { store: AppStore }) {
               [
                 ['templates', PIPELINE_COPY.sourceTemplates],
                 ['journal-ai', PIPELINE_COPY.sourceJournal],
+                ['diary-ai', PIPELINE_COPY.sourceDiary],
               ] as const
             ).map(([value, label]) => {
               const active = store.autoPipeline.source === value;
@@ -528,6 +529,36 @@ export default function Schedule({ store }: { store: AppStore }) {
                 {PIPELINE_COPY.honesty1}
                 <br />
                 {PIPELINE_COPY.honesty2}
+                <br />
+                {PIPELINE_COPY.honesty3}
+              </div>
+            </div>
+          )}
+
+          {/* 管線 A(2026-11-25):本機日記來源——免 Drive 連線;誠實三標示(第三條與日誌源共用) */}
+          {store.autoPipeline.source === 'diary-ai' && (
+            <div
+              style={{
+                border: '1px solid var(--border-2)',
+                borderRadius: 10,
+                padding: 12,
+                marginBottom: 12,
+                background: 'var(--surface-soft)',
+              }}
+            >
+              <div
+                className="t-meta"
+                style={{ fontWeight: 'var(--weight-bold)', color: 'var(--text-weak)', marginBottom: 8 }}
+              >
+                {PIPELINE_COPY.diaryPickerLabel}
+              </div>
+              <div className="t-meta" style={{ marginBottom: 8 }}>
+                {PIPELINE_COPY.diaryCountLabel(store.diaryEntries.length)}
+              </div>
+              <div className="t-note">
+                {PIPELINE_COPY.diaryHonesty1}
+                <br />
+                {PIPELINE_COPY.diaryHonesty2}
                 <br />
                 {PIPELINE_COPY.honesty3}
               </div>

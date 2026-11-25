@@ -84,13 +84,14 @@ function appendEntry(map: Map<string, JournalEntry>, entry: JournalEntry): void 
  * 選料(D6:沒寫就用較舊、還沒用過的):
  * 新→舊掃,跳過 usedDates 已含、跳過晚於 today(未來=筆誤);取滿 count 筆為止。
  * 取不滿就只回取得的筆數;全部用過 → 空陣列(補糧停止,不生成憑空內容)。
+ * 泛型(2026-11-25 管線 A):日記來源的 DiaryJournalEntry(多帶 mood)經此不掉了 mood。
  */
-export function pickJournalEntries(
-  entries: JournalEntry[],
+export function pickJournalEntries<T extends JournalEntry>(
+  entries: T[],
   opts: { today: string; usedDates: string[]; count: number },
-): JournalEntry[] {
+): T[] {
   const used = new Set(opts.usedDates);
-  const picked: JournalEntry[] = [];
+  const picked: T[] = [];
   for (const e of entries) {
     if (picked.length >= opts.count) break;
     if (e.date > opts.today) continue; // 未來日期視為筆誤

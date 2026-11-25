@@ -51,6 +51,8 @@ import {
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import { generateJournalPost } from '../services/gemini/rewrite';
 import { parseJournal, pickJournalEntries } from '../services/gemini/journal';
+import { diaryToJournalEntries } from '../services/diary/pipelineSource';
+import type { DiaryJournalEntry } from '../services/diary/pipelineSource';
 import { BACKEND_API_BASE, BACKEND_ENABLED } from '../services/backend/config';
 import { libraryLoad, librarySave } from '../services/backend/client';
 import {
@@ -212,7 +214,7 @@ function isValidAutoPipeline(v: unknown): v is AutoPipeline {
     typeof p.platform === 'string' &&
     typeof p.time === 'string' &&
     Array.isArray(p.daysOfWeek) &&
-    (p.source === 'journal-ai' || p.source === 'templates' || p.source === 'manual') &&
+    (p.source === 'journal-ai' || p.source === 'diary-ai' || p.source === 'templates' || p.source === 'manual') &&
     typeof p.horizonDays === 'number' &&
     typeof p.queuedThrough === 'string' &&
     typeof p.lastFilledAt === 'number' &&
@@ -1416,12 +1418,60 @@ export function useAppStore() {
           : copyTemplates
       ).filter((t) => t.text.trim());
 
-      // P2(D2 主體):source='journal-ai' 時以 Drive 日誌條目 + Gemini 生成;
-      // 任一前置不符(Drive 未連/無 Gemini key/日誌未選)→ 誠實提示,不退回範本偷跑
-      if (autoPipeline.source === 'journal-ai') {
-        if (!driveStyleSamples.length && !driveStyleEnabled) {
-          // 風格參照非必要(使用者可關),僅日誌來源是硬前置
+      // P2(D2 主體)與管線 A(2026-11-25):journal-ai(Drive 日誌)與 diary-ai(本機日記)
+      // 共用「AI 素材 → Gemini 生成 → 逐日排程」迴圈;硬前置不符 → 誠實提示,不退回範本偷跑。
+      // 風格參照=best-effort(維護者拍板「Drive 連線成敗都照生成,排程成功率優先」):
+      // getDriveStyleSampleTexts 在未連線時 toast 後回 [],生成照走(無風格參照)。
+      const fillFromAiSource = async (picked: DiaryJournalEntry[]): Promise<number> => {
+        const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
+        const limit = PLATFORM_META.threads.limit;
+        let scheduled = 0;
+        const usedDates = [...autoPipeline.usedJournalDates];
+        for (let i = 0; i < picked.length; i++) {
+          const entry = picked[i];
+          const target = plan[i];
+          const r = await generateJournalPost({
+            apiKey: geminiKey,
+            entryTitle: entry.title,
+            entryBody: entry.body,
+            moodHint: entry.mood,
+            styleSamples,
+            limit,
+          });
+          if (!r.ok) {
+            if (r.code === 'quota') {
+              showToast(GEMINI_ERROR_COPY.quota);
+            } else {
+              showToast(GEMINI_ERROR_COPY[r.code] ?? GEMINI_ERROR_COPY.unknown);
+            }
+            break; // 半成品照排(風險5):已成功的留下,失敗之後的不試
+          }
+          if (charCount(r.text) > limit) {
+            r.text = `${Array.from(r.text).slice(0, limit).join('')}`;
+          }
+          const q = await threadsProxy.schedule(r.text, target.publishAt);
+          if (q?.ok) {
+            scheduled += 1;
+            usedDates.push(entry.date); // 只有成功排程才標記已用
+          }
         }
+        if (scheduled > 0) {
+          const done = maxDate(plan.slice(0, scheduled).map((p) => p.date));
+          setAutoPipeline((p) => ({
+            ...p,
+            queuedThrough: done,
+            lastFilledAt: Date.now(),
+            usedJournalDates: usedDates,
+          }));
+          showToast(PIPELINE_COPY.fillDoneToast(scheduled, done));
+        } else {
+          showToast(PIPELINE_COPY.fillFailedToast);
+        }
+        await threadsProxy.loadQueue();
+        return scheduled;
+      };
+
+      if (autoPipeline.source === 'journal-ai') {
         if (!geminiKey) {
           showToast(PIPELINE_COPY.needKeyToast);
           return -3;
@@ -1456,51 +1506,31 @@ export function useAppStore() {
           showToast(PIPELINE_COPY.journalEmptyToast);
           return 0; // 素材用盡=誠實停止(不湊數);游標照推進
         }
-        const styleSamples = driveStyleEnabled ? await getDriveStyleSampleTexts() : [];
-        const limit = PLATFORM_META.threads.limit;
-        let scheduled = 0;
-        const usedDates = [...autoPipeline.usedJournalDates];
-        for (let i = 0; i < picked.length; i++) {
-          const entry = picked[i];
-          const target = plan[i];
-          const r = await generateJournalPost({
-            apiKey: geminiKey,
-            entryTitle: entry.title,
-            entryBody: entry.body,
-            styleSamples,
-            limit,
-          });
-          if (!r.ok) {
-            if (r.code === 'quota') {
-              showToast(GEMINI_ERROR_COPY.quota);
-            } else {
-              showToast(GEMINI_ERROR_COPY[r.code] ?? GEMINI_ERROR_COPY.unknown);
-            }
-            break; // 半成品照排(風險5):已成功的留下,失敗之後的不試
-          }
-          if (charCount(r.text) > limit) {
-            r.text = `${Array.from(r.text).slice(0, limit).join('')}`;
-          }
-          const q = await threadsProxy.schedule(r.text, target.publishAt);
-          if (q?.ok) {
-            scheduled += 1;
-            usedDates.push(entry.date); // 只有成功排程才標記已用
-          }
+        return fillFromAiSource(picked);
+      }
+
+      // 管線 A(DIARY-PLAN P2 路徑 A,2026-11-25):本機日記為素材——免 Drive 連線(素材
+      // 在本機)、免日誌 Doc;usedJournalDates 與 Drive 日誌源共用游標(選料單位都是日期)
+      if (autoPipeline.source === 'diary-ai') {
+        if (!geminiKey) {
+          showToast(PIPELINE_COPY.needKeyToast);
+          return -3;
         }
-        if (scheduled > 0) {
-          const done = maxDate(plan.slice(0, scheduled).map((p) => p.date));
-          setAutoPipeline((p) => ({
-            ...p,
-            queuedThrough: done,
-            lastFilledAt: Date.now(),
-            usedJournalDates: usedDates,
-          }));
-          showToast(`自動管線已排 ${scheduled} 天(至 ${done})`);
-        } else {
-          showToast(PIPELINE_COPY.fillFailedToast);
+        const entries = diaryToJournalEntries(diaryEntries);
+        if (!entries.length) {
+          showToast(PIPELINE_COPY.needDiaryToast);
+          return -3;
         }
-        await threadsProxy.loadQueue();
-        return scheduled;
+        const picked = pickJournalEntries(entries, {
+          today: toISODate(new Date()),
+          usedDates: autoPipeline.usedJournalDates,
+          count: plan.length,
+        });
+        if (!picked.length) {
+          showToast(PIPELINE_COPY.diaryEmptyToast);
+          return 0; // 素材用盡=誠實停止(不湊數)
+        }
+        return fillFromAiSource(picked);
       }
 
       if (!pool.length) return -2; // 無可用範本(誠實提示,不排)

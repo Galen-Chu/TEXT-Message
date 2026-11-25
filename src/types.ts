@@ -134,7 +134,7 @@ export interface AutoPipeline {
   platform: PlatformKey; // 一期固定 threads;FB/LinkedIn 同機制可擴(D4)
   time: string; // 'HH:mm',本機時區
   daysOfWeek: number[]; // 一期固定每日,欄位先留
-  source: 'journal-ai' | 'templates' | 'manual'; // D2 定案 journal-ai;P1 先以 templates 輪替驗骨架
+  source: 'journal-ai' | 'diary-ai' | 'templates' | 'manual'; // D2 定案 journal-ai;管線 A(2026-11-25)增 diary-ai=本機日記;P1 先以 templates 輪替驗骨架
   horizonDays: number; // 一次預排幾天(7/14/30)
   queuedThrough: string; // 'YYYY-MM-DD' 已排到哪天(低水位判斷)
   lastFilledAt: number; // 上次補糧時間(epoch ms)

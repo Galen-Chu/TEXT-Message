@@ -161,7 +161,7 @@ export const SCHEDULE_KIND_FILTERS: Array<'全部' | DocKind> = ['全部', 'draf
 /** 自動發文管線 P1 骨架(PIPELINE-PLAN 架構 1,2026-10-15)。 */
 export const PIPELINE_COPY = {
   cardTitle: '⚙️ 自動發文管線',
-  desc: '每天固定時間自動排程發文——從明天起預排數天,內容來源可選文庫範本輪替或 Drive 日誌 + AI 生成',
+  desc: '每天固定時間自動排程發文——從明天起預排數天,內容來源可選文庫範本輪替、Drive 日誌或本機日記(AI 生成)',
   enable: '啟用管線',
   enableHint: '啟用後每次開站自動補糧(冪等:已排的日期不重排)',
   timeLabel: '每天發佈時間(本機時區)',
@@ -182,6 +182,7 @@ export const PIPELINE_COPY = {
   sourceLabel: '內容來源',
   sourceTemplates: '文庫範本輪替',
   sourceJournal: 'Drive 日誌 + AI 生成',
+  sourceDiary: '本機日記 + AI 生成',
   journalPickerLabel: '夢境靈感日誌(Drive 文檔)',
   journalPickerButton: '選擇日誌文檔…',
   journalNone: '尚未選擇',
@@ -192,6 +193,13 @@ export const PIPELINE_COPY = {
   driveReadFailedToast: '讀取日誌文檔失敗——確認 Drive 已連線後重試',
   journalFormatToast: '日誌裡找不到任何日期行——格式為「一行只有日期」開頭一則,例:2026-10-14(下一行起寫內容)',
   journalEmptyToast: '日誌素材已全部用過——補糧停止(在日誌 Doc 寫新條目即可恢復)',
+  // 管線 A(diary-ai 來源,2026-11-25)文案
+  diaryPickerLabel: '素材:寫日記頁的本機條目',
+  diaryCountLabel: (n: number) => `本機日記共 ${n} 篇——同日多筆會合併為一篇素材;已用過的日期不會重複選用`,
+  needDiaryToast: '寫日記還沒有任何條目——先在「寫日記」頁寫幾篇,管線才有素材',
+  diaryEmptyToast: '日記素材已全部用過——補糧停止(在「寫日記」寫新條目即可恢復)',
+  diaryHonesty1: '素材取自本機日記,不需連接 Drive;日記原文只在生成當下送出、用完即棄,絕不落地',
+  diaryHonesty2: '已連接 Drive 且開啟風格參照時會模仿風格樣本;未連線時照常生成(無風格參照)',
   todayDateButton: '📋 複製今日日期行',
   todayDateToast: '已複製日期行,貼到日誌 Doc 開頭即可開新條目',
   honestyTitle: '誠實說明',

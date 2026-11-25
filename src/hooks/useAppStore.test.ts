@@ -10,10 +10,12 @@ function seedEmptyDrafts(): void {
 import { useAppStore } from './useAppStore';
 import { generatePlatformVariants, suggestHashtagsFor } from '../services/gemini/variants';
 import { generateJournalPost, rewriteWithGemini } from '../services/gemini/rewrite';
-import { libraryLoad, librarySave } from '../services/backend/client';
+import { checkThreadsStatus, libraryLoad, librarySave, scheduleThreadsPost } from '../services/backend/client';
 import { encryptLibraryBlob } from '../services/library/crypto';
 import { buildLibraryPayload } from '../services/library/payload';
 import { noteFileName } from '../services/notes/vaultMarkdown';
+import { tomorrowISO } from '../utils/pipeline';
+import { toISODate } from '../utils/date';
 import { FAMILY_COPY, STORAGE_COPY } from '../constants';
 import { HANDOFF_KEY, scheduleFeedKey } from '../services/family/config';
 import { parseHandoff } from '../services/family/handoff';
@@ -54,6 +56,9 @@ vi.mock('../services/backend/client', async (importOriginal) => {
     // 互動唯讀代讀是「按下才讀」,目前不會在掛載時發請求;仍先 stub 住,
     // 以免日後改成自動讀時重演上面那次只在 CI 現形的紅燈
     fetchThreadsInteractions: vi.fn(async () => ({ ok: true, data: { items: [], scanned: 0 } })),
+    // 管線 A 測試(2026-11-25)需要 Threads 佇列讀寫;未 stub 會真的 fetch worker.test
+    listThreadsQueue: vi.fn(async () => ({ ok: true, data: { items: [] } })),
+    scheduleThreadsPost: vi.fn(async () => ({ ok: true, data: { itemId: 'q-test' } })),
   };
 });
 
@@ -1586,5 +1591,101 @@ describe('useAppStore:便條匯出到 Obsidian vault(POST-PLAN P3,2026-11-12)', 
     expect(newPath).not.toBe(oldPath);
     expect(files[newPath]).toContain('# 新標題');
     expect(files[oldPath]).toContain('# 舊標題'); // 舊檔原封不動
+  });
+});
+
+describe('useAppStore:管線 A(diary-ai 本機日記來源,2026-11-25)', () => {
+  /** 掛載後等狀態查詢 settle(threads 依 mock 變 connected)——topUp 的硬前置。 */
+  async function settleThreads() {
+    vi.mocked(checkThreadsStatus).mockResolvedValue({ ok: true, data: { connected: true } });
+  }
+
+  it('補糧:日記→同構素材→Gemini 生成(帶 moodHint)→逐日排程;usedJournalDates 只記成功日', async () => {
+    await settleThreads();
+    vi.mocked(generateJournalPost).mockResolvedValue({ ok: true, text: '生成的貼文' });
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {}); // 掛載的非同步狀態查詢結束
+
+    act(() => result.current.updateAutoPipeline({ enabled: true, source: 'diary-ai', horizonDays: 7 }));
+    act(() => result.current.setGeminiKey('AQ.pipeline-a-key'));
+    act(() =>
+      result.current.addDiaryEntry({ date: '2026-11-18', title: '晨走', body: '第一篇日記內容'.repeat(20), mood: '😊 開心' }),
+    );
+    act(() => result.current.addDiaryEntry({ date: '2026-11-19', title: '', body: '第二篇日記內容'.repeat(20) }));
+
+    let n = -99;
+    await act(async () => {
+      n = await result.current.topUpPipeline();
+    });
+    expect(n).toBe(2);
+    expect(generateJournalPost).toHaveBeenCalledTimes(2);
+    // 選料新→舊:11-19(無標題無心情)先生成、11-18(帶標題與心情)後生成
+    expect(vi.mocked(generateJournalPost).mock.calls[0][0].entryBody).toContain('第二篇');
+    expect(vi.mocked(generateJournalPost).mock.calls[0][0].moodHint).toBeUndefined();
+    expect(vi.mocked(generateJournalPost).mock.calls[1][0].entryTitle).toBe('晨走');
+    expect(vi.mocked(generateJournalPost).mock.calls[1][0].moodHint).toBe('😊 開心');
+    expect(scheduleThreadsPost).toHaveBeenCalledTimes(2);
+    // 排程順序=預排日期順序(明天起);文字=生成結果
+    expect(vi.mocked(scheduleThreadsPost).mock.calls[0][0].text).toBe('生成的貼文');
+    expect(result.current.autoPipeline.usedJournalDates).toEqual(['2026-11-19', '2026-11-18']);
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    expect(result.current.autoPipeline.queuedThrough).toBe(toISODate(dayAfter));
+    expect(result.current.toastMessage).toContain('已排 2 天');
+  });
+
+  it('硬前置不符誠實提示:無 key → -3;無日記 → -3;素材全用過 → 0(都不偷跑範本)', async () => {
+    await settleThreads();
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {});
+    act(() => result.current.updateAutoPipeline({ enabled: true, source: 'diary-ai' }));
+
+    let n = -99;
+    await act(async () => {
+      n = await result.current.topUpPipeline();
+    });
+    expect(n).toBe(-3);
+    expect(result.current.toastMessage).toContain('Gemini key');
+
+    act(() => result.current.setGeminiKey('AQ.pipeline-a-key-2'));
+    await act(async () => {
+      n = await result.current.topUpPipeline();
+    });
+    expect(n).toBe(-3);
+    expect(result.current.toastMessage).toContain('寫日記還沒有任何條目');
+
+    act(() => result.current.addDiaryEntry({ date: '2026-11-18', title: '', body: '唯一一篇'.repeat(20) }));
+    act(() => result.current.updateAutoPipeline({ usedJournalDates: ['2026-11-18'] }));
+    await act(async () => {
+      n = await result.current.topUpPipeline();
+    });
+    expect(n).toBe(0);
+    expect(result.current.toastMessage).toContain('日記素材已全部用過');
+    expect(generateJournalPost).not.toHaveBeenCalled();
+    expect(scheduleThreadsPost).not.toHaveBeenCalled();
+  });
+
+  it('quota 中止=半成品照排:已成功者保留、後續不試;游標只推進到成功那天', async () => {
+    await settleThreads();
+    vi.mocked(generateJournalPost)
+      .mockResolvedValueOnce({ ok: true, text: '第一篇成功' })
+      .mockResolvedValueOnce({ ok: false, code: 'quota' });
+    const { result } = renderHook(() => useAppStore());
+    await act(async () => {});
+    act(() => result.current.updateAutoPipeline({ enabled: true, source: 'diary-ai', horizonDays: 7 }));
+    act(() => result.current.setGeminiKey('AQ.pipeline-a-key-3'));
+    act(() => result.current.addDiaryEntry({ date: '2026-11-19', title: '', body: '較新的素材'.repeat(20) }));
+    act(() => result.current.addDiaryEntry({ date: '2026-11-18', title: '', body: '較舊的素材'.repeat(20) }));
+
+    let n = -99;
+    await act(async () => {
+      n = await result.current.topUpPipeline();
+    });
+    expect(n).toBe(1);
+    expect(generateJournalPost).toHaveBeenCalledTimes(2); // 第二次失敗後中止,沒有第三次
+    expect(scheduleThreadsPost).toHaveBeenCalledTimes(1);
+    expect(result.current.autoPipeline.usedJournalDates).toEqual(['2026-11-19']);
+    expect(result.current.autoPipeline.queuedThrough).toBe(tomorrowISO()); // 只排到明天
+    expect(result.current.toastMessage).toContain('已排 1 天');
   });
 });

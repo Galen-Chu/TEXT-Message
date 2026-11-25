@@ -71,7 +71,7 @@ export function pipelineSettingsOf(ap: AutoPipeline): PipelineSettings {
   };
 }
 
-const PIPELINE_SOURCES: readonly AutoPipeline['source'][] = ['journal-ai', 'templates', 'manual'];
+const PIPELINE_SOURCES: readonly AutoPipeline['source'][] = ['journal-ai', 'diary-ai', 'templates', 'manual'];
 
 /**
  * 還原端的嚴格驗證(payload 層只鬆驗 isObj,壞形狀由這裡全有或全無地擋下:

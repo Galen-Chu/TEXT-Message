@@ -5,7 +5,7 @@
  */
 import { toISODate } from './date';
 
-export type PipelineSource = 'journal-ai' | 'templates' | 'manual';
+export type PipelineSource = 'journal-ai' | 'diary-ai' | 'templates' | 'manual';
 
 /** 每日預排單元:date=本機 YYYY-MM-DD,publishAt=該日本機 time 的 epoch ms。 */
 export interface DailyPlanItem {

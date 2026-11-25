@@ -113,6 +113,8 @@ describe('文庫雲端備份:payload(方案 A)', () => {
     expect(isPipelineSettings({ ...ok, time: '9:00' })).toBe(false); // 非 HH:mm
     expect(isPipelineSettings({ ...ok, time: '0800' })).toBe(false);
     expect(isPipelineSettings({ ...ok, source: 'rss' })).toBe(false);
+    // 管線 A(2026-11-25):diary-ai 是合法 source(隨備份漫遊、還原端可套用)
+    expect(isPipelineSettings({ ...ok, source: 'diary-ai' })).toBe(true);
     expect(isPipelineSettings({ ...ok, horizonDays: '14' })).toBe(false);
     expect(isPipelineSettings({ ...ok, horizonDays: Number.NaN })).toBe(false);
     expect(isPipelineSettings({ ...ok, journalFileId: 123 })).toBe(false);
