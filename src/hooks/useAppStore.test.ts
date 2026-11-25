@@ -844,24 +844,22 @@ describe('useAppStore:草稿管理(IA Phase 2 三大類文檔)', () => {
     expect(second.result.current.drafts).toHaveLength(after);
   });
 
-  it('Drive 風格樣本(D6):標記/上限 3/取消;持久化僅中繼資料(內容不落地)', () => {
+  it('Drive 風格樣本(D6):標記/上限 10(2026-11-25 由 3 放寬)/取消;持久化僅中繼資料(內容不落地)', () => {
     const { result } = renderHook(() => useAppStore());
     const doc = (i: number) => ({ id: `dd-${i}`, name: `文檔${i}`, mimeType: 'application/vnd.google-apps.document' });
-    act(() => result.current.toggleDriveStyleSample(doc(1)));
-    act(() => result.current.toggleDriveStyleSample(doc(2)));
-    act(() => result.current.toggleDriveStyleSample(doc(3)));
-    expect(result.current.driveStyleSamples).toHaveLength(3);
+    for (let i = 1; i <= 10; i += 1) act(() => result.current.toggleDriveStyleSample(doc(i)));
+    expect(result.current.driveStyleSamples).toHaveLength(10);
 
-    act(() => result.current.toggleDriveStyleSample(doc(4)));
-    expect(result.current.driveStyleSamples).toHaveLength(3); // 上限不超
+    act(() => result.current.toggleDriveStyleSample(doc(11)));
+    expect(result.current.driveStyleSamples).toHaveLength(10); // 上限不超
 
     act(() => result.current.toggleDriveStyleSample(doc(2)));
-    expect(result.current.driveStyleSamples).toHaveLength(2);
+    expect(result.current.driveStyleSamples).toHaveLength(9);
     expect(result.current.driveStyleSamples.some((s) => s.id === 'dd-2')).toBe(false);
 
     // 持久化內容僅 id/name/mimeType——不含任何文檔文字(紅線)
     const stored = readStore().driveStyleSamples as Array<Record<string, unknown>>;
-    expect(stored).toHaveLength(2);
+    expect(stored).toHaveLength(9);
     expect(Object.keys(stored[0]).sort()).toEqual(['id', 'mimeType', 'name']);
   });
 

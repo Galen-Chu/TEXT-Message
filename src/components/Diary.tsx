@@ -9,6 +9,7 @@ import {
   DIARY_PAGE_SIZE,
   DIARY_SECTIONS,
   DIARY_SECTION_MAX,
+  GEMINI_KEY_MODAL,
 } from '../constants';
 import type { AppStore } from '../hooks/useAppStore';
 import { diaryTotalLength, searchDiaryEntries, sortDiaryEntries } from '../services/diary/storage';
@@ -16,6 +17,7 @@ import { isVaultExportSupported } from '../services/diary/vaultFs';
 import { datesNeedingExport, rangeBounds } from '../services/diary/vaultMarkdown';
 import type { DiaryEntry, DiarySectionKey } from '../types';
 import { shortDateTimeLabel, toISODate } from '../utils/date';
+import GeminiKeyModal from './GeminiKeyModal';
 import Modal from './Modal';
 
 /**
@@ -24,6 +26,10 @@ import Modal from './Modal';
  * 搜尋是頁面本地狀態(不進 store 不落地——寫日記頁每次進入都從今天開始)。
  * 同日追加(維護者指示):心情(選填 8 選項)+內容長度 100–500 字(下限門檻、maxLength、
  * 即時字數)——長度屬 UI 層驗證,storage 只驗結構。
+ * AI 設定入口(2026-11-25 拍板納入,DIARY-PLAN D10):共用編發器的 GeminiKeyModal——
+ * 搜尋列常設「⚙️ AI 設定」鈕;無 key 點「生成貼文」時 toast 提示後直接開設定 modal。
+ * Drive 連接入口(同日拍板,D11):搜尋列「🔗 連接 Google Drive」(未連線)/
+ * 「📁 風格樣本 N 篇」(已連線,點擊跳雲端列管理);示範模式(drive.enabled=false)不出現。
  */
 export default function Diary({ store }: { store: AppStore }) {
   const [date, setDate] = useState(toISODate(new Date()));
@@ -43,6 +49,8 @@ export default function Diary({ store }: { store: AppStore }) {
   // 日記 P2 路徑 B:條目卡生成貼文(genBusyId=生成中的條目;genModal=可編輯結果)
   const [genBusyId, setGenBusyId] = useState<string | null>(null);
   const [genModal, setGenModal] = useState<{ entry: DiaryEntry; text: string } | null>(null);
+  /** AI 金鑰設定入口(2026-11-25):與編發器共用同一個 modal,設定金鑰不必繞去編發器頁。 */
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const [shown, setShown] = useState(DIARY_PAGE_SIZE);
   /** 匯出範圍是頁面本地狀態(每次進頁面重設為「全部」——增量寫入讓它幾乎沒代價)。 */
   const [range, setRange] = useState<'all' | 'year' | 'month'>('all');
@@ -374,6 +382,33 @@ export default function Diary({ store }: { store: AppStore }) {
         <span className="t-sub t-num" style={{ whiteSpace: 'nowrap' }}>
           {DIARY_COPY.countLabel(entries.length)}
         </span>
+        <button
+          onClick={() => setShowKeyModal(true)}
+          className="t-sub"
+          style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)', whiteSpace: 'nowrap' }}
+        >
+          ⚙️ AI 設定
+        </button>
+        {store.drive.enabled && store.drive.status !== 'connected' && (
+          <button
+            onClick={() => void store.drive.connect()}
+            disabled={store.drive.status === 'connecting'}
+            className="t-sub"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)', whiteSpace: 'nowrap' }}
+          >
+            {store.drive.status === 'connecting' ? DIARY_COPY.driveConnectingBtn : DIARY_COPY.driveConnectBtn}
+          </button>
+        )}
+        {store.drive.enabled && store.drive.status === 'connected' && (
+          <button
+            onClick={() => store.setActiveTab('drive')}
+            title={DIARY_COPY.driveSamplesHint}
+            className="t-sub"
+            style={{ fontWeight: 'var(--weight-bold)', color: 'var(--brand)', whiteSpace: 'nowrap' }}
+          >
+            {DIARY_COPY.driveSamplesBtn(store.driveStyleSamples.length)}
+          </button>
+        )}
       </div>
 
       {entries.length === 0 ? (
@@ -428,6 +463,8 @@ export default function Diary({ store }: { store: AppStore }) {
                     const r = await store.generateDiaryPostFromEntry(e);
                     setGenBusyId(null);
                     if (r.ok) setGenModal({ entry: e, text: r.text });
+                    // 無 key 的失敗:toast 已說明原因,直接開設定省一步(D10)
+                    else if (!store.geminiKey) setShowKeyModal(true);
                   }}
                 >
                   {genBusyId === e.id ? DIARY_COPY.generatingLabel : DIARY_COPY.genButton}
@@ -590,6 +627,22 @@ export default function Diary({ store }: { store: AppStore }) {
             </button>
           </div>
         </Modal>
+      )}
+
+      {showKeyModal && (
+        <GeminiKeyModal
+          label={GEMINI_KEY_MODAL.title}
+          hasKey={!!store.geminiKey}
+          onSave={(key) => {
+            store.setGeminiKey(key);
+            store.showToast(GEMINI_KEY_MODAL.savedToast);
+          }}
+          onClear={() => {
+            store.setGeminiKey('');
+            store.showToast(GEMINI_KEY_MODAL.clearedToast);
+          }}
+          onClose={() => setShowKeyModal(false)}
+        />
       )}
     </div>
   );

@@ -10,7 +10,7 @@ async function gotoTab(page: import('@playwright/test').Page, name: string) {
 test('載入:標題與側邊欄九個分頁', async ({ page }) => {
   await page.goto(PATH);
   await expect(page).toHaveTitle('TEXT-Message');
-  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['文管 Dashboard', '郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '寫日記 Diary', '定排程 Task', '編發器 Text', '文庫 Library']) {
     await expect(page.locator('nav').getByText(nav, { exact: true })).toBeVisible();
   }
   await expect(page.getByText('近期排程')).toBeVisible();
@@ -27,7 +27,7 @@ test('載入:標題與側邊欄九個分頁', async ({ page }) => {
 
 test('分頁切換:各頁主標題正確', async ({ page }) => {
   await page.goto(PATH);
-  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '編發器 Text', '寫日記 Diary', '定排程 Task', '文庫 Library']) {
+  for (const nav of ['郵件匣 Gmail', '自媒體 Social', '雲端列 Drive', '貼便條 Post', '寫日記 Diary', '定排程 Task', '編發器 Text', '文庫 Library']) {
     await gotoTab(page, nav);
     await expect(page.locator('main').getByText(nav, { exact: true }).first()).toBeVisible();
   }
@@ -276,14 +276,22 @@ test('寫日記:新增、持久化、編輯、刪除', async ({ page }) => {
   await expect(page.getByText('還沒有日記')).toBeVisible();
 });
 
-test('寫日記:生成貼文(無 key → 提示,不開面板)', async ({ page }) => {
+test('寫日記:生成貼文(無 key → 提示並開 AI 設定)', async ({ page }) => {
   await page.goto(PATH);
   await gotoTab(page, '寫日記 Diary');
   await page.getByPlaceholder('今天想記下什麼?').fill('E2E生成測試內容'.repeat(12)); // 120 字
   await page.getByRole('button', { name: '儲存日記' }).click();
 
-  // 示範模式建置無 Gemini key → 點生成僅 toast 提示,不出現生成面板
+  // 示範模式建置無 Gemini key → 點生成 toast 提示,並直接開 AI 設定(D10,開的是設定非生成面板)
   await page.getByRole('button', { name: '✨ 生成貼文', exact: true }).first().click();
   await expect(page.locator('.toast')).toContainText('Gemini key');
+  await expect(page.getByText('AI 設定(Gemini API key)')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.modal-card')).toHaveCount(0);
+
+  // 搜尋列的常設入口也開同一個設定 modal
+  await page.getByRole('button', { name: '⚙️ AI 設定' }).click();
+  await expect(page.getByText('AI 設定(Gemini API key)')).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.locator('.modal-card')).toHaveCount(0);
 });

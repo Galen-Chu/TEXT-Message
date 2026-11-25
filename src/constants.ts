@@ -203,6 +203,9 @@ export const PIPELINE_COPY = {
   dashboardPreview: 'Threads · 自動排程',
 };
 
+/** Drive 風格樣本上限(原 3 篇;2026-11-25 維護者實測後放寬至 10——單篇仍截 800 字,10 篇控制 prompt 體積)。 */
+export const DRIVE_STYLE_SAMPLE_LIMIT = 10;
+
 /** 雲端列 Drive(docs/DRIVE-PLAN)的使用者文案。 */
 export const DRIVE_COPY = {
   title: '雲端列 Drive',
@@ -959,6 +962,12 @@ export const DIARY_COPY = {
   genCopyButton: '複製',
   genCopiedToast: '已複製生成貼文 📋',
   genToDraftToast: '已帶入編發器草稿 ✨',
+  // Drive 連接入口(2026-11-25 拍板,DIARY-PLAN D11):生成貼文的風格參照需要 Drive 連線(樣本原文生成時即時匯出),
+  // 入口就近放搜尋列——未連線可直連、已連線顯示樣本數並可跳雲端列管理
+  driveConnectBtn: '🔗 連接 Google Drive',
+  driveConnectingBtn: '🔗 連線中…',
+  driveSamplesBtn: (n: number) => `📁 風格樣本 ${n} 篇`,
+  driveSamplesHint: '到雲端列 Drive 標記或管理風格樣本(生成貼文與編發器 AI 生成會參照)',
   // 沉澱小節(D9,2026-11-10):對映 vault 模板四小節的選填一行欄
   sectionsLabel: '沉澱小節(選填)',
   sectionsHint: '字數計入統計;匯出時寫進 Obsidian 條目的對應小節,供週/月回顧腳本取用',

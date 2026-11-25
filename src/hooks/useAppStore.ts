@@ -21,6 +21,7 @@ import {
   DRAFT_SAVE_COPY,
   DRAFT_VARIANTS_COPY,
   DRIVE_COPY,
+  DRIVE_STYLE_SAMPLE_LIMIT,
   FAMILY_COPY,
   GEMINI_ERROR_COPY,
   LANGUAGE_OPTIONS,
@@ -1744,15 +1745,15 @@ export function useAppStore() {
     drafts, activeDraftId, activeTemplateId, diaryEntries, notes, autoPipeline, librarySyncCode, libraryStartup,
   ]);
 
-  /** Drive 風格樣本(DRIVE-PLAN D6):標記/取消(上限 3 篇控制 prompt 長度)。 */
+  /** Drive 風格樣本(DRIVE-PLAN D6;上限 2026-11-25 由 3 放寬為 10——單篇截 800 字控制 prompt 長度)。 */
   const toggleDriveStyleSample = (doc: { id: string; name: string; mimeType: string }) => {
     setDriveStyleSamples((list) => {
       if (list.some((s) => s.id === doc.id)) {
         showToast(DRIVE_COPY.styleUnmarkedToast);
         return list.filter((s) => s.id !== doc.id);
       }
-      if (list.length >= 3) {
-        showToast(DRIVE_COPY.styleFullToast(3));
+      if (list.length >= DRIVE_STYLE_SAMPLE_LIMIT) {
+        showToast(DRIVE_COPY.styleFullToast(DRIVE_STYLE_SAMPLE_LIMIT));
         return list;
       }
       showToast(DRIVE_COPY.styleMarkedToast);
