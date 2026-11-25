@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deploy-retry.outputs.page_url }}
     steps:
       # action 自身 runtime 升 node24(2026-10-14;runner 需 ≥ v2.327.1,GitHub 托管已滿足)
       - uses: actions/checkout@v7
@@ -68,5 +68,18 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
+      # 2026-11-25 教訓:GitHub 服務端「抓 artifact metadata 的 API 讀取」會間歇瞬斷
+      # (deploy-pages 回「No artifacts named github-pages found」,但 artifact 實際存在
+      # 未過期、上游步驟全綠;GitHub 官方建議=稍後重跑)。首次嘗試失敗時等 30 秒重試
+      # 一次以吸收短暫瞬斷;重試步驟刻意不加 continue-on-error——兩次都敗時 run 仍為
+      # 紅燈,不造假綠燈(持續性平台事故仍需人工 re-run)。
       - id: deployment
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Wait before deploy retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - name: Deploy retry
+        id: deploy-retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5
